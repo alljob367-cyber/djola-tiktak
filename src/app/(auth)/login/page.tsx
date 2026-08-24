@@ -21,8 +21,6 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -49,31 +47,47 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    if (error) {
-      setIsLoading(false);
-      if (error.message.includes('Invalid login credentials')) {
-        toast.error('Identifiants incorrects', {
-          description: "Vérifiez votre e-mail et votre mot de passe.",
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Identifiants incorrects', {
+            description: "Vérifiez votre e-mail et votre mot de passe.",
+          });
+        } else {
+          toast.error('Erreur de connexion', {
+            description: error.message,
+          });
+        }
+        return;
+      }
+
+      toast.success('Connexion réussie !', {
+        description: 'Bienvenue sur votre espace.',
+      });
+
+      router.push('/dashboard');
+      router.refresh();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur inconnue';
+      if (message.includes('n\'est pas configuré')) {
+        toast.error('Service non configuré', {
+          description: 'Supabase n\'est pas encore configuré. Suivez le guide DEPLOYMENT.md pour configurer votre projet.',
+          duration: 8000,
         });
       } else {
         toast.error('Erreur de connexion', {
-          description: error.message,
+          description: 'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
         });
       }
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    toast.success('Connexion réussie !', {
-      description: 'Bienvenue sur votre espace.',
-    });
-
-    router.push('/dashboard');
-    router.refresh();
   };
 
   return (

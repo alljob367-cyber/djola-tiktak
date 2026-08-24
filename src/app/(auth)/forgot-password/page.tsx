@@ -19,8 +19,6 @@ import {
 } from '@/components/ui/card';
 
 export default function ForgotPasswordPage() {
-  const supabase = createClient();
-
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -45,23 +43,38 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
 
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/dashboard`,
-    });
-
-    if (resetError) {
-      setIsLoading(false);
-      toast.error('Erreur lors de l\'envoi', {
-        description: resetError.message,
+    try {
+      const supabase = createClient();
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/dashboard`,
       });
-      return;
-    }
 
-    setIsLoading(false);
-    setIsSuccess(true);
-    toast.success('E-mail envoyé !', {
-      description: 'Consultez votre boîte de réception pour réinitialiser votre mot de passe.',
-    });
+      if (resetError) {
+        toast.error('Erreur lors de l\'envoi', {
+          description: resetError.message,
+        });
+        return;
+      }
+
+      setIsSuccess(true);
+      toast.success('E-mail envoyé !', {
+        description: 'Consultez votre boîte de réception pour réinitialiser votre mot de passe.',
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur inconnue';
+      if (message.includes('n\'est pas configuré')) {
+        toast.error('Service non configuré', {
+          description: 'Supabase n\'est pas encore configuré. Suivez le guide DEPLOYMENT.md pour configurer votre projet.',
+          duration: 8000,
+        });
+      } else {
+        toast.error('Erreur de connexion', {
+          description: 'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

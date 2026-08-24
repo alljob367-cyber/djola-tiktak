@@ -82,8 +82,6 @@ function PasswordStrength({ password }: { password: string }) {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const supabase = createClient();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -130,7 +128,9 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -140,26 +140,40 @@ export default function RegisterPage() {
       },
     });
 
-    if (error) {
-      setIsLoading(false);
-      if (error.message.includes('already registered')) {
-        toast.error('E-mail déjà utilisé', {
-          description: 'Un compte existe déjà avec cette adresse. Essayez de vous connecter.',
+      if (error) {
+        if (error.message.includes('already registered')) {
+          toast.error('E-mail déjà utilisé', {
+            description: 'Un compte existe déjà avec cette adresse. Essayez de vous connecter.',
+          });
+        } else {
+          toast.error('Erreur lors de l\'inscription', {
+            description: error.message,
+          });
+        }
+        return;
+      }
+
+      toast.success('Compte créé avec succès !', {
+        description: 'Bienvenue dans votre espace professionnel.',
+      });
+
+      router.push('/dashboard');
+      router.refresh();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur inconnue';
+      if (message.includes('n\'est pas configuré')) {
+        toast.error('Service non configuré', {
+          description: 'Supabase n\'est pas encore configuré. Suivez le guide DEPLOYMENT.md pour configurer votre projet.',
+          duration: 8000,
         });
       } else {
-        toast.error('Erreur lors de l\'inscription', {
-          description: error.message,
+        toast.error('Erreur de connexion', {
+          description: 'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
         });
       }
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    toast.success('Compte créé avec succès !', {
-      description: 'Bienvenue dans votre espace professionnel.',
-    });
-
-    router.push('/dashboard');
-    router.refresh();
   };
 
   return (
