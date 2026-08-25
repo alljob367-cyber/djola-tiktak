@@ -13,6 +13,8 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function PublicProfilePage({ params }: PageProps) {
   const { slug } = await params;
   const supabase = await createServiceRoleClient();

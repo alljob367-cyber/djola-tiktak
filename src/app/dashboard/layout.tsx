@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: 'Gérez vos rendez-vous, clients et services.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({
   children,
 }: {
