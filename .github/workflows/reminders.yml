@@ -1,0 +1,45 @@
+# Djola TikTak — Rappels automatiques via GitHub Actions
+# Exécute le endpoint /api/cron/reminders 2x/jour (8h et 18h UTC)
+# Fonctionne gratuitement à la place de Vercel Cron (réservé au plan Pro)
+
+name: Rappels RDV
+
+on:
+  schedule:
+    # Tous les jours à 08h00 et 18h00 UTC
+    # Afrique Centrale (GMT+1) → 07h00 et 17h00 local
+    - cron: '0 8 * * *'
+    - cron: '0 18 * * *'
+  workflow_dispatch: # Déclenchement manuel depuis l'onglet Actions
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Envoyer les rappels
+        env:\n          APP_URL: ${{ vars.VERCEL_APP_URL || 'https://djola-tiktak.vercel.app' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          echo "⏰ Rappels Djola TikTak — $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+          if [ -z "$CRON_SECRET" ]; then
+            echo "❌ ERREUR: CRON_SECRET non configuré"
+            echo "→ Ajoute-le dans Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+
+          STATUS=$(curl -s -o /tmp/response.json -w '%{http_code}' \
+            -X POST "${APP_URL}/api/cron/reminders" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json")
+
+          echo "Status HTTP: $STATUS"
+          cat /tmp/response.json
+
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Rappels envoyés avec succès"
+          else
+            echo "⚠️ Réponse inattendue (status $STATUS)"
+          fi

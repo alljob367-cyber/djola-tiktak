@@ -1,0 +1,69 @@
+# Djola TikTak — Déploiement automatique sur Vercel
+# Se déclenche à chaque push sur main
+# Vercel détecte aussi les pushs automatiquement si le repo est connecté,
+# mais ce workflow garantit un déploiement fiable et traçable.
+
+name: Deploy sur Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Déploiement manuel
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Installer les dépendances
+        run: npm ci
+
+      - name: 🔍 Vérifier le build
+        run: npm run build
+
+      - name: 🚀 Déployer sur Vercel
+        if: success()
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "⚠️ VERCEL_TOKEN non configuré — le déploiement auto Vercel via GitHub Actions est désactivé"
+            echo ""
+            echo "Si ton repo GitHub est déjà connecté à Vercel, le déploiement se fait automatiquement à chaque push."
+            echo "Tu n'as rien à faire de plus."
+            echo ""
+            echo "Si tu veux activer ce workflow quand même :"
+            echo "1. Va sur vercel.com/account/tokens et crée un token"
+            echo "2. Va dans Settings > Secrets and variables > Actions de ton repo GitHub"
+            echo "3. Ajoute ces 3 secrets :"
+            echo "   - VERCEL_TOKEN (ton token Vercel)"
+            echo "   - VERCEL_ORG_ID (dans .vercel/project.json)"
+            echo "   - VERCEL_PROJECT_ID (dans .vercel/project.json)"
+            exit 0
+          fi
+
+          npm i -g vercel@latest
+          vercel deploy --prod --yes
+
+      - name: ✅ Résultat
+        if: always()
+        run: |
+          echo "=============================="
+          echo "  Djola TikTak — Déploiement"
+          echo "  Statut: ${{ job.status }}"
+          echo "  Commit: ${{ github.sha }}"
+          echo "  Branche: ${{ github.ref_name }}"
+          echo "  Par: ${{ github.actor }}"
+          echo "=============================="
