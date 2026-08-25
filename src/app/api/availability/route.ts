@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const parsed = availabilitySchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
 
     const { data, error } = await supabase
@@ -88,7 +88,7 @@ export async function PUT(request: NextRequest) {
     for (const item of items) {
       const parsed = availabilitySchema.safeParse(item);
       if (!parsed.success) {
-        return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+        return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
       }
       validatedItems.push({ ...parsed.data, profile_id: user.id });
     }

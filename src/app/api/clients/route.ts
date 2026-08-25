@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const parsed = clientSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
 
     const { name, phone, email, notes } = parsed.data;
