@@ -57,7 +57,7 @@ export default function LandingPage() {
             <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center">
               <CalendarCheck className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight">RDV Local</span>
+            <span className="text-xl font-bold tracking-tight">Djola TikTak</span>
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/login">
@@ -117,7 +117,7 @@ export default function LandingPage() {
                 Pour tous les prestataires locaux
               </h2>
               <p className="mt-3 text-gray-500 max-w-xl mx-auto">
-                Que vous soyez coiffeur, barbier, photographe ou consultant, RDV Local s'adapte à votre activité.
+                Que vous soyez coiffeur, barbier, photographe ou consultant, Djola TikTak s'adapte à votre activité.
               </p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -214,10 +214,10 @@ export default function LandingPage() {
             <div className="w-7 h-7 rounded-md bg-emerald-600 flex items-center justify-center">
               <CalendarCheck className="w-4 h-4 text-white" />
             </div>
-            <span className="text-sm font-semibold">RDV Local</span>
+            <span className="text-sm font-semibold">Djola TikTak</span>
           </div>
           <p className="text-sm text-gray-500">
-            Prise de rendez-vous pour prestataires locaux
+            Prise de rendez-vous par Djola
           </p>
         </div>
       </footer>

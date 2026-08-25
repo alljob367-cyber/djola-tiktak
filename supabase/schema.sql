@@ -1,7 +1,7 @@
 -- ============================================================
--- RDV Local — SaaS Booking System
+-- Djola TikTak — SaaS Booking System
 -- Complete PostgreSQL Schema for Supabase
--- ============================================================
+-- ====================================================
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

@@ -225,7 +225,7 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                   <CalendarDays size={16} />
                 </div>
                 <span className="text-base font-bold tracking-tight text-foreground truncate">
-                  RDV Local
+                  Djola
                 </span>
               </motion.div>
             )}
@@ -273,7 +273,7 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                 <CalendarDays size={14} />
               </div>
               <span className="text-sm font-bold tracking-tight text-foreground">
-                RDV Local
+                Djola
               </span>
             </div>
           </div>

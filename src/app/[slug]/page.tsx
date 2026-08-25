@@ -151,7 +151,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
       {/* Footer */}
       <footer className="mx-auto max-w-lg px-4 pb-8 pt-4 sm:px-6">
         <p className="text-center text-xs text-muted-foreground">
-          Propulsé par RDV Local
+          Propulsé par Djola TikTak
         </p>
       </footer>
     </div>

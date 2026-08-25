@@ -490,7 +490,7 @@ export default async function DashboardPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-foreground">
-                  Bienvenue sur RDV Local ! 🎉
+                  Bienvenue sur Djola TikTak ! 🎉
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   Pour commencer, créez vos services, configurez vos disponibilités, puis partagez votre lien de réservation avec vos clients. Tout est prêt pour gérer votre agenda en toute simplicité.

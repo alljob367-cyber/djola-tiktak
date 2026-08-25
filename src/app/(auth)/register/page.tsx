@@ -195,7 +195,7 @@ export default function RegisterPage() {
             <Scissors className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
-            BookLocal
+            Djola TikTak
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Rejoignez des centaines de professionnels

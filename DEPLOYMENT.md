@@ -1,4 +1,4 @@
-# RDV Local — Instructions de déploiement Vercel + Supabase
+# Djola TikTak — Instructions de déploiement Vercel + Supabase
 
 ## Étape 1 : Créer un projet Supabase
 

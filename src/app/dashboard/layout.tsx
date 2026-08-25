@@ -4,7 +4,7 @@ import { DashboardShell } from '@/components/dashboard/dashboard-shell';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Tableau de bord — RDV Local',
+  title: 'Tableau de bord — Djola TikTak',
   description: 'Gérez vos rendez-vous, clients et services.',
 };
 

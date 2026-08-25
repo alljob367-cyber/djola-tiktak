@@ -1,5 +1,5 @@
 // ============================================================
-// RDV Local — TypeScript types matching the PostgreSQL schema
+// Djola TikTak — TypeScript types matching the PostgreSQL schema
 // ============================================================
 
 export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
