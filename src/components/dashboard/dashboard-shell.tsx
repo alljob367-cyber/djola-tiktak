@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/tooltip';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types/database';
+import { Shield } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────
 interface DashboardShellProps {
@@ -189,6 +190,14 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/admin/check')
+      .then((r) => r.json())
+      .then((d) => setShowAdmin(d.isAdmin === true))
+      .catch(() => {});
+  }, []);
 
   const handleLogout = useCallback(async () => {
     const supabase = createClient();
@@ -326,6 +335,17 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                     Paramètres
                   </Link>
                 </DropdownMenuItem>
+                {showAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600">
+                        <Shield size={16} />
+                        Administration
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleLogout}
