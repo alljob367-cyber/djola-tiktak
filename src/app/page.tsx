@@ -1,224 +1,522 @@
+'use client';
+
 import Link from 'next/link';
-import { 
-  CalendarCheck, 
-  ArrowRight, 
-  Scissors, 
-  Camera, 
-  Wrench, 
-  UtensilsCrossed,
-  Sparkles,
+import {
+  CalendarCheck,
+  ArrowRight,
+  Play,
   Clock,
-  Shield,
+  Bell,
+  ShieldCheck,
+  TrendingUp,
   Smartphone,
-  Globe
+  Lock,
+  Scissors,
+  ScanLine,
+  Sparkles,
+  Hand,
+  Camera,
+  ClipboardList,
+  Users,
+  CheckCircle2,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  Star,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+
+/* ──────────── DATA ──────────── */
+
+const navLinks = ['Accueil', 'Fonctionnalités', 'Tarifs', 'À propos', 'FAQ'];
+
+const featureChecks = [
+  'Page de réservation personnalisée',
+  'Calendrier intelligent sans double réservation',
+  'Rappels automatiques (SMS, WhatsApp, Audio)',
+  'Tableau de bord simple et puissant',
+];
+
+const featureCards = [
+  { icon: Clock, title: 'Réservations 24/7', desc: 'Vos clients réservent à tout moment, même pendant votre sommeil.' },
+  { icon: Bell, title: 'Rappels automatiques', desc: 'Réduisez les absences grâce à des rappels SMS, WhatsApp et audio.' },
+  { icon: ShieldCheck, title: 'Aucune double réservation', desc: "Calendrier intelligent qui évite tout chevauchement de créneaux." },
+  { icon: TrendingUp, title: 'Développez votre activité', desc: "Attirez plus de clients et fidélisez-les grâce à une expérience professionnelle." },
+  { icon: Smartphone, title: '100% mobile', desc: 'Gérez votre activité depuis votre téléphone où que vous soyez.' },
+  { icon: Lock, title: 'Données sécurisées', desc: 'Vos données sont protégées et hébergées en toute sécurité.' },
+];
 
 const professions = [
-  { icon: Scissors, label: 'Coiffeurs & Barbiers' },
+  { icon: Scissors, label: 'Coiffeurs & Salons de beauté' },
+  { icon: ScanLine, label: 'Barbiers' },
   { icon: Sparkles, label: 'Esthéticiennes' },
+  { icon: Hand, label: 'Masseurs & Thérapeutes' },
   { icon: Camera, label: 'Photographes' },
-  { icon: Wrench, label: 'Réparateurs & Garages' },
-  { icon: UtensilsCrossed, label: 'Restaurants' },
-  { icon: CalendarCheck, label: 'Consultants & Coaches' },
+  { icon: ClipboardList, label: 'Consultants' },
+  { icon: Users, label: 'Et bien plus...' },
 ];
 
-const features = [
-  {
-    icon: Clock,
-    title: 'Page de réservation automatique',
-    description: 'Créez votre profil, ajoutez vos prestations et obtenez immédiatement une page de réservation personnalisée que vous pouvez partager.',
-  },
-  {
-    icon: Smartphone,
-    title: 'Mobile-first',
-    description: 'Vos clients réservent facilement depuis leur téléphone. Interface conçue pour une utilisation rapide et intuitive.',
-  },
-  {
-    icon: Shield,
-    title: 'Anti double réservation',
-    description: 'Protection avancée contre les chevauchements de rendez-vous. Un créneau réservé ne peut plus être pris par quelqu\'un d\'autre.',
-  },
-  {
-    icon: Globe,
-    title: 'Rappels automatiques',
-    description: 'Système de rappels par email, SMS, WhatsApp et appel vocal pour réduire les absences et les oublis.',
-  },
+const stats = [
+  { value: '+65%', label: 'de rendez-vous en moyenne' },
+  { value: '-80%', label: 'de temps passé au téléphone' },
+  { value: '+45%', label: 'de clients fidélisés' },
+  { value: '24/7', label: 'réservations automatiques' },
 ];
+
+const nextAppointments = [
+  { time: '10:00', name: 'Marie L.' },
+  { time: '11:30', name: 'Emma D.' },
+  { time: '14:00', name: 'Sarah K.' },
+  { time: '15:30', name: 'Aicha B.' },
+];
+
+const timeSlots = ['09:00', '11:00', '14:00', '15:00', '16:00'];
+const services = [
+  { name: 'Coupe + Brushing', duration: '30 min', price: '15 000 CFA', active: true },
+  { name: 'Coloration', duration: '60 min', price: '25 000 CFA' },
+  { name: 'Soin capillaire', duration: '45 min', price: '20 000 CFA' },
+  { name: 'Maquillage', duration: '60 min', price: '25 000 CFA' },
+];
+
+const calendarDays = [
+  { d: 29, current: false }, { d: 30, current: false },
+  { d: 1, current: true }, { d: 2, current: true }, { d: 3, current: true }, { d: 4, current: true }, { d: 5, current: true },
+  { d: 6, current: true }, { d: 7, current: true }, { d: 8, current: true }, { d: 9, current: true }, { d: 10, current: true },
+  { d: 11, current: true }, { d: 12, current: true }, { d: 13, current: true }, { d: 14, current: true }, { d: 15, current: true, selected: true },
+  { d: 16, current: true }, { d: 17, current: true }, { d: 18, current: true }, { d: 19, current: true }, { d: 20, current: true },
+  { d: 21, current: true }, { d: 22, current: true }, { d: 23, current: true }, { d: 24, current: true }, { d: 25, current: true },
+  { d: 26, current: true }, { d: 27, current: true }, { d: 28, current: true }, { d: 29, current: true }, { d: 30, current: true },
+  { d: 1, current: false }, { d: 2, current: false },
+];
+
+/* ──────────── COMPONENTS ──────────── */
+
+function LimeIcon({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lime ${className || ''}`}>
+      {children}
+    </div>
+  );
+}
+
+function BookingWidget() {
+  return (
+    <div className="relative rounded-2xl border border-white/[0.08] bg-[#111816] p-6 shadow-2xl">
+      {/* Glow effect */}
+      <div className="absolute -inset-4 -z-10 rounded-3xl bg-lime/10 blur-[80px]" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-white text-base font-semibold">Votre page de réservation</h3>
+        <span className="flex items-center gap-1.5 rounded-full bg-white/[0.05] px-3 py-1.5 text-xs text-gray-400 font-mono">
+          votresalon.djola-tiktak.com
+          <ExternalLink className="w-3 h-3" />
+        </span>
+      </div>
+
+      {/* 2-column grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Left: Services */}
+        <div>
+          <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-3">Choisissez une prestation</p>
+          <div className="flex flex-col gap-2">
+            {services.map((s) => (
+              <label
+                key={s.name}
+                className={`relative flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
+                  s.active
+                    ? 'border-lime/30 bg-lime/[0.08]'
+                    : 'border-white/[0.08] hover:border-white/20'
+                }`}
+              >
+                <div
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                    s.active ? 'border-lime' : 'border-white/30'
+                  }`}
+                >
+                  {s.active && <div className="h-2 w-2 rounded-full bg-lime" />}
+                </div>
+                <div className="flex flex-col">
+                  <span className={`text-sm font-medium ${s.active ? 'text-white' : 'text-gray-300'}`}>{s.name}</span>
+                  <span className="text-xs text-gray-500">{s.duration} • {s.price}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+          <button className="mt-2 text-xs text-lime underline underline-offset-2">Voir toutes les prestations</button>
+        </div>
+
+        {/* Right: Calendar + Time */}
+        <div>
+          <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-3">Sélectionnez une date et un créneau</p>
+
+          {/* Mini calendar */}
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <ChevronLeft className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-semibold text-white">Mai 2026</span>
+              <ChevronRight className="w-4 h-4 text-gray-500" />
+            </div>
+            <div className="grid grid-cols-7 gap-0.5 text-center">
+              {['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'].map((d) => (
+                <span key={d} className="text-[10px] text-gray-600 py-1">{d}</span>
+              ))}
+              {calendarDays.map((day, i) => (
+                <span
+                  key={i}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs mx-auto ${
+                    day.selected
+                      ? 'bg-lime text-black font-bold'
+                      : day.current
+                        ? 'text-white hover:bg-white/5'
+                        : 'text-gray-700'
+                  }`}
+                >
+                  {day.d}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Time slots */}
+          <div className="grid grid-cols-3 gap-2">
+            {timeSlots.map((t) => (
+              <button
+                key={t}
+                className={`rounded-md py-2 text-xs font-medium transition-colors ${
+                  t === '14:00'
+                    ? 'border border-lime/50 text-lime'
+                    : 'bg-white/[0.03] text-gray-300 hover:bg-white/[0.06]'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────── PAGE ──────────── */
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center">
-              <CalendarCheck className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-[#0a0f0d] text-white">
+      {/* ═══════ NAVBAR ═══════ */}
+      <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.06] bg-black/40 backdrop-blur-xl">
+        <div className="mx-auto flex h-[72px] max-w-[1280px] items-center justify-between px-6 lg:px-12">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-lime/40 bg-lime/10">
+              <CalendarCheck className="h-5 w-5 text-lime" />
             </div>
-            <span className="text-xl font-bold tracking-tight">Djola TikTak</span>
+            <span className="text-lg font-bold tracking-tight text-white">
+              Djola <span className="text-lime">TikTak</span>
+            </span>
           </Link>
+
+          {/* Desktop links */}
+          <div className="hidden lg:flex items-center gap-8">
+            {navLinks.map((l) => (
+              <a key={l} href={`#${l.toLowerCase()}`} className="text-sm text-gray-400 transition-colors hover:text-white">
+                {l}
+              </a>
+            ))}
+          </div>
+
+          {/* CTA */}
           <div className="flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="ghost" size="sm">
-                Connexion
-              </Button>
+            <Link
+              href="/login"
+              className="hidden sm:inline-flex items-center justify-center rounded-lg border border-white/20 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/5"
+            >
+              Se connecter
             </Link>
-            <Link href="/register">
-              <Button className="bg-emerald-600 hover:bg-emerald-700" size="sm">
-                Commencer gratuitement
-              </Button>
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center rounded-lg bg-lime px-6 py-2.5 text-sm font-semibold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
+            >
+              Essayer gratuitement
             </Link>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Hero */}
-      <main className="flex-1">
-        <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/50" />
-          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
-            <div className="max-w-3xl mx-auto text-center">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium mb-6">
-                <Sparkles className="w-4 h-4" />
-                Simple, rapide et gratuit pour démarrer
-              </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 leading-tight">
-                Vos rendez-vous,{' '}
-                <span className="text-emerald-600">simplifiés</span>
-              </h1>
-              <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                Créez votre page de réservation en quelques minutes.
-                Vos clients réservent en ligne, vous gérez tout depuis votre tableau de bord.
-              </p>
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link href="/register">
-                  <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-base px-8 h-12">
-                    Créer ma page de réservation
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-                <Link href="/login">
-                  <Button variant="outline" size="lg" className="text-base px-8 h-12">
-                    J'ai déjà un compte
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
+      {/* ═══════ HERO ═══════ */}
+      <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28">
+        {/* Radial glow behind widget */}
+        <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-lime/[0.04] blur-[120px]" />
 
-        {/* Professions */}
-        <section className="py-16 sm:py-20 bg-white">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                Pour tous les prestataires locaux
-              </h2>
-              <p className="mt-3 text-gray-500 max-w-xl mx-auto">
-                Que vous soyez coiffeur, barbier, photographe ou consultant, Djola TikTak s'adapte à votre activité.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              {professions.map((p) => (
-                <Card key={p.label} className="border-dashed hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors">
-                  <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
-                      <p.icon className="w-6 h-6 text-emerald-600" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700">{p.label}</span>
-                  </CardContent>
-                </Card>
+        <div className="relative mx-auto grid max-w-[1280px] gap-12 px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:px-12">
+          {/* Left — Copy */}
+          <div className="flex flex-col justify-center">
+            <span className="mb-6 inline-flex items-center rounded-full bg-lime/[0.08] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-lime">
+              La solution de référence
+            </span>
+
+            <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-extrabold leading-[1.1] tracking-tight">
+              Plus de rendez-vous.
+              <br />
+              <span className="text-lime">Moins de stress.</span>
+            </h1>
+
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-gray-400">
+              Djola TikTak aide les professionnels locaux à gérer leurs réservations en ligne, à
+              automatiser leurs rappels et à développer leur activité.
+            </p>
+
+            {/* Checklist */}
+            <ul className="mt-8 flex flex-col gap-3">
+              {featureChecks.map((item) => (
+                <li key={item} className="flex items-center gap-3 text-[15px] text-gray-200">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-lime" />
+                  {item}
+                </li>
               ))}
-            </div>
-          </div>
-        </section>
+            </ul>
 
-        {/* Features */}
-        <section className="py-16 sm:py-20 bg-gray-50">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                Tout ce dont vous avez besoin
-              </h2>
-              <p className="mt-3 text-gray-500 max-w-xl mx-auto">
-                Un système complet de gestion de rendez-vous, pensé pour les petites entreprises.
-              </p>
+            {/* CTAs */}
+            <div className="mt-10 flex flex-wrap items-center gap-4">
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
+              >
+                Commencer gratuitement
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
+              >
+                <Play className="h-4 w-4" />
+                Voir la démo
+              </Link>
             </div>
-            <div className="grid sm:grid-cols-2 gap-6">
-              {features.map((f) => (
-                <Card key={f.title} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6 sm:p-8">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center mb-4">
-                      <f.icon className="w-6 h-6 text-emerald-600" />
+
+            {/* Trust line */}
+            <div className="mt-8 flex flex-wrap items-center gap-6">
+              <span className="text-[13px] text-gray-600">
+                Aucune carte bancaire requise • Configuration en 2 minutes
+              </span>
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-2">
+                  {['bg-amber-600', 'bg-rose-500', 'bg-sky-500', 'bg-violet-500'].map((c, i) => (
+                    <div
+                      key={i}
+                      className={`h-9 w-9 rounded-full ${c} ring-2 ring-[#0a0f0d] flex items-center justify-center text-[10px] font-bold text-white`}
+                    >
+                      {['AL', 'FC', 'KD', 'MN'][i]}
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{f.title}</h3>
-                    <p className="text-gray-600 leading-relaxed">{f.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* How it works */}
-        <section className="py-16 sm:py-20 bg-white">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                Comment ça marche
-              </h2>
-            </div>
-            <div className="grid sm:grid-cols-3 gap-8 max-w-4xl mx-auto">
-              {[
-                { step: '1', title: 'Créez votre profil', desc: 'Inscrivez-vous, ajoutez vos prestations, prix et durées.' },
-                { step: '2', title: 'Partagez votre lien', desc: 'Obtenez votre page /votre-nom et partagez-la avec vos clients.' },
-                { step: '3', title: 'Recevez des RDV', desc: 'Vos clients réservent en ligne. Gérez tout depuis votre tableau de bord.' },
-              ].map((item) => (
-                <div key={item.step} className="text-center">
-                  <div className="w-14 h-14 rounded-full bg-emerald-600 text-white text-xl font-bold flex items-center justify-center mx-auto mb-4">
-                    {item.step}
+                  ))}
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    ))}
+                    <span className="ml-1 text-sm font-bold text-white">4,9/5</span>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-gray-600">{item.desc}</p>
+                  <span className="text-[11px] text-gray-500">+2 500 professionnels nous font confiance</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right — Booking Widget */}
+          <div className="hidden lg:block">
+            <BookingWidget />
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ FEATURES STRIP ═══════ */}
+      <section id="fonctionnalités" className="border-y border-white/[0.06] bg-[#0d1210] py-16">
+        <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-4 px-6 sm:grid-cols-3 lg:grid-cols-6 lg:gap-5 lg:px-12">
+          {featureCards.map((f) => (
+            <div
+              key={f.title}
+              className="group rounded-xl border border-white/[0.06] bg-[#111816] p-6 transition-colors hover:border-white/[0.12]"
+            >
+              <f.icon className="h-7 w-7 text-lime" strokeWidth={1.5} />
+              <h3 className="mt-4 text-[15px] font-semibold text-white">{f.title}</h3>
+              <p className="mt-2 text-[13px] leading-relaxed text-gray-500">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════ PRO SHOWCASE ═══════ */}
+      <section className="py-20 lg:py-24">
+        <div className="mx-auto grid max-w-[1200px] items-center gap-16 px-6 lg:grid-cols-2 lg:px-12">
+          {/* Left — Image + Floating cards */}
+          <div className="relative">
+            {/* Main image placeholder */}
+            <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a2420] to-[#111816]">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
+                <Sparkles className="h-16 w-16 text-lime/30 mb-3" />
+                <span className="text-sm">Photo professionnel</span>
+              </div>
+
+              {/* Floating card: RDV du jour */}
+              <div className="absolute top-[15%] -left-4 sm:-left-8 rounded-xl border border-white/[0.1] bg-[#111816]/95 p-4 backdrop-blur-xl shadow-xl">
+                <p className="text-[11px] uppercase tracking-wider text-gray-500">Rendez-vous du jour</p>
+                <p className="mt-1 text-3xl font-bold text-white">12</p>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <TrendingUp className="h-3.5 w-3.5 text-lime" />
+                  <span className="text-xs text-lime font-medium">+25% vs hier</span>
+                </div>
+                {/* Sparkline SVG */}
+                <svg className="mt-2 h-8 w-20" viewBox="0 0 80 30" fill="none">
+                  <polyline
+                    points="0,25 12,20 24,22 36,15 48,18 60,8 72,10 80,4"
+                    stroke="#c8ff00"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+
+              {/* Floating card: CA */}
+              <div className="absolute bottom-[20%] -left-4 sm:-left-6 rounded-xl border border-white/[0.1] bg-[#111816]/95 p-4 backdrop-blur-xl shadow-xl">
+                <p className="text-[11px] uppercase tracking-wider text-gray-500">Chiffre d&apos;affaires</p>
+                <p className="mt-1 text-2xl font-bold text-white">250 000 CFA</p>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <TrendingUp className="h-3.5 w-3.5 text-lime" />
+                  <span className="text-xs text-lime font-medium">+18% ce mois-ci</span>
+                </div>
+              </div>
+
+              {/* Floating card: Next appointments */}
+              <div className="absolute -right-4 sm:-right-8 top-[25%] rounded-xl border border-white/[0.1] bg-[#111816]/95 p-4 backdrop-blur-xl shadow-xl">
+                <p className="mb-3 text-[11px] uppercase tracking-wider text-gray-500">Prochains rendez-vous</p>
+                {nextAppointments.map((a) => (
+                  <div key={a.time} className="flex items-center gap-2.5 py-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-lime" />
+                    <span className="text-xs font-medium text-white">{a.time}</span>
+                    <span className="text-xs text-gray-400">{a.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right — Content */}
+          <div>
+            <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.12em] text-lime mb-5">
+              Conçu pour les professionnels
+            </span>
+
+            <h2 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
+              Gagnez du temps,
+              <br />
+              concentrez-vous sur votre passion
+            </h2>
+
+            <p className="mt-6 max-w-md text-[17px] leading-relaxed text-gray-400">
+              Djola TikTak automatise la gestion de vos rendez-vous pour vous permettre de vous
+              concentrer sur ce que vous faites de mieux.
+            </p>
+
+            {/* Stats grid */}
+            <div className="mt-10 grid grid-cols-2 gap-6">
+              {stats.map((s) => (
+                <div key={s.label}>
+                  <p className="text-3xl font-bold text-lime">{s.value}</p>
+                  <p className="mt-1 text-[13px] text-gray-400">{s.label}</p>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
 
-        {/* CTA */}
-        <section className="py-16 sm:py-20 bg-emerald-600">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
-              Prêt à simplifier vos rendez-vous ?
-            </h2>
-            <p className="text-emerald-100 text-lg mb-8 max-w-xl mx-auto">
-              Créez votre compte gratuit et commencez à recevoir des réservations en ligne dès aujourd'hui.
-            </p>
-            <Link href="/register">
-              <Button size="lg" variant="secondary" className="text-base px-8 h-12">
-                Commencer maintenant
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t bg-white py-8 mt-auto">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-emerald-600 flex items-center justify-center">
-              <CalendarCheck className="w-4 h-4 text-white" />
+            {/* CTAs */}
+            <div className="mt-10 flex flex-wrap gap-4">
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
+              >
+                Essayer gratuitement
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="#fonctionnalités"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
+              >
+                Voir toutes les fonctionnalités
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-            <span className="text-sm font-semibold">Djola TikTak</span>
           </div>
-          <p className="text-sm text-gray-500">
-            Prise de rendez-vous par Djola
+        </div>
+      </section>
+
+      {/* ═══════ INDUSTRIES ═══════ */}
+      <section className="border-y border-white/[0.06] py-20">
+        <div className="mx-auto max-w-[1280px] px-6 text-center lg:px-12">
+          <h2 className="text-3xl sm:text-4xl font-bold">Adapté à tous les professionnels locaux</h2>
+          <p className="mx-auto mt-4 max-w-xl text-[17px] text-gray-400">
+            Quelle que soit votre activité, Djola TikTak s&apos;adapte à vos besoins.
           </p>
+          <div className="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-8">
+            {professions.map((p) => (
+              <div key={p.label} className="flex flex-col items-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-lime/20 bg-lime/[0.06]">
+                  <p.icon className="h-7 w-7 text-lime" strokeWidth={1.5} />
+                </div>
+                <span className="text-sm font-medium text-white max-w-[120px]">{p.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ BOTTOM CTA ═══════ */}
+      <section className="py-20">
+        <div className="mx-auto max-w-[1100px] px-6 lg:px-12">
+          <div className="rounded-2xl border border-white/[0.08] bg-[#111816] px-8 py-12 sm:px-14 sm:py-14">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold">Prêt à développer votre activité ?</h2>
+                <p className="mt-3 max-w-lg text-[15px] text-gray-400">
+                  Rejoignez des milliers de professionnels qui ont déjà transformé leur gestion des
+                  rendez-vous.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
+                >
+                  Commencer gratuitement
+                </Link>
+                <Link
+                  href="#"
+                  className="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
+                >
+                  Prendre rendez-vous avec un expert
+                </Link>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-wrap justify-center lg:justify-end gap-6 text-[12px] text-gray-600">
+              <span>Aucune carte bancaire requise</span>
+              <span>Démo personnalisée de 15 min</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ FOOTER ═══════ */}
+      <footer className="border-t border-white/[0.06] py-8">
+        <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-4 px-6 sm:flex-row lg:px-12">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md border border-lime/40 bg-lime/10">
+              <CalendarCheck className="h-4 w-4 text-lime" />
+            </div>
+            <span className="text-sm font-semibold text-white">
+              Djola <span className="text-lime">TikTak</span>
+            </span>
+          </Link>
+          <p className="text-sm text-gray-600">Prise de rendez-vous par Djola</p>
         </div>
       </footer>
     </div>
