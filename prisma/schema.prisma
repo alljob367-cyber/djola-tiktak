@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,19 +8,120 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  businessName  String   @default("")
+  slug          String?  @unique
+  description   String   @default("")
+  phone         String   @default("")
+  avatarUrl     String   @default("")
+  currency      String   @default("XAF")
+  timezone      String   @default("Africa/Malabo")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  services       Service[]
+  clients        Client[]
+  appointments   Appointment[]
+  availability   Availability[]
+  blockedSlots   BlockedSlot[]
 }
 
-model Post {
+model Service {
+  id              String   @id @default(cuid())
+  profileId       String
+  name            String
+  description     String   @default("")
+  price           Int      @default(0)
+  durationMinutes Int      @default(30)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  profile     User        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([profileId])
+}
+
+model Client {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  profileId String
+  name      String
+  phone     String   @default("")
+  email     String   @default("")
+  notes     String   @default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  profile     User        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@unique([profileId, name, phone])
+  @@index([profileId])
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  profileId String
+  serviceId String
+  clientId  String
+  startsAt  DateTime
+  endsAt    DateTime
+  status    String   @default("pending")
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile User    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id])
+  client  Client  @relation(fields: [clientId], references: [id])
+
+  @@index([profileId])
+  @@index([startsAt])
+  @@index([status])
+}
+
+model Availability {
+  id         String  @id @default(cuid())
+  profileId  String
+  dayOfWeek  Int
+  startTime  String
+  endTime    String
+  isActive   Boolean @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  profile User @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model BlockedSlot {
+  id        String   @id @default(cuid())
+  profileId String
+  startsAt  DateTime
+  endsAt    DateTime
+  reason    String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile User @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
 }
