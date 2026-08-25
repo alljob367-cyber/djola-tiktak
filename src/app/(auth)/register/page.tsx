@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Loader2, Mail, Lock, Eye, EyeOff, Building2, Scissors, Check } from 'lucide-react';
+import { Loader2, Mail, Lock, Eye, EyeOff, Building2, Scissors, Check, Phone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ interface FormErrors {
   password?: string;
   confirmPassword?: string;
   business_name?: string;
+  phone?: string;
 }
 
 function PasswordStrength({ password }: { password: string }) {
@@ -86,6 +87,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -98,6 +100,10 @@ export default function RegisterPage() {
       newErrors.business_name = 'Le nom de votre entreprise est requis';
     } else if (businessName.trim().length < 2) {
       newErrors.business_name = 'Le nom doit contenir au moins 2 caractères';
+    }
+
+    if (phone.trim() && !/^[+]?[0-9]{8,15}$/.test(phone.replace(/\s/g, ''))) {
+      newErrors.phone = 'Numéro de téléphone invalide';
     }
 
     if (!email.trim()) {
@@ -136,6 +142,7 @@ export default function RegisterPage() {
       options: {
         data: {
           business_name: businessName.trim(),
+          phone: phone.trim(),
         },
       },
     });
@@ -153,11 +160,12 @@ export default function RegisterPage() {
         return;
       }
 
-      toast.success('Compte créé avec succès !', {
-        description: 'Bienvenue dans votre espace professionnel.',
+      toast.success('Compte créé ! Vérifiez votre e-mail.', {
+        description: 'Un lien de confirmation a été envoyé.',
+        duration: 5000,
       });
 
-      router.push('/dashboard');
+      router.push(`/verify-email?email=${encodeURIComponent(email.trim())}`);
       router.refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -245,6 +253,41 @@ export default function RegisterPage() {
                       className="text-destructive text-xs"
                     >
                       {errors.business_name}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Phone */}
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-sm font-medium">
+                  Numéro de téléphone <span className="text-muted-foreground font-normal">(optionnel)</span>
+                </Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+237 6XX XXX XXX"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
+                    }}
+                    className={`pl-10 h-11 ${errors.phone ? 'border-destructive focus-visible:ring-destructive/30' : ''}`}
+                    autoComplete="tel"
+                    disabled={isLoading}
+                  />
+                </div>
+                <AnimatePresence>
+                  {errors.phone && (
+                    <motion.p
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="text-destructive text-xs"
+                    >
+                      {errors.phone}
                     </motion.p>
                   )}
                 </AnimatePresence>

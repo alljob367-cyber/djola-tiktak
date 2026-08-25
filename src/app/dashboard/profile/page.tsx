@@ -10,6 +10,11 @@ import {
   Copy,
   Check,
   UserCircle,
+  Mail,
+  Phone,
+  ShieldCheck,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -111,6 +116,33 @@ export default function ProfilePage() {
   const [slugChecking, setSlugChecking] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [copied, setCopied] = useState(false);
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  const [resending, setResending] = useState(false);
+
+  // ── Check email verification ───────────────────────
+  useEffect(() => {
+    (async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) setEmailVerified(user.email_confirmed_at ? true : false);
+      } catch {}
+    })();
+  }, []);
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      const res = await fetch('/api/verify/resend-email', { method: 'POST' });
+      if (!res.ok) throw new Error();
+      toast.success('E-mail de vérification envoyé !');
+    } catch {
+      toast.error('Erreur lors de l\'envoi');
+    } finally {
+      setResending(false);
+    }
+  };
 
   const {
     register,
@@ -338,6 +370,58 @@ export default function ProfilePage() {
                 <p className="text-xs text-muted-foreground mt-2">
                   Partagez ce lien avec vos clients pour recevoir des réservations.
                 </p>
+              </CardContent>
+            </Card>
+
+            {/* Verification Status Card */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <ShieldCheck size={14} className="text-emerald-600" />
+                  Vérification
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Email verification */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Mail size={14} className="text-muted-foreground shrink-0" />
+                    <span className="text-sm truncate">E-mail</span>
+                  </div>
+                  {emailVerified === true ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-full">
+                      <Check size={12} /> Vérifié
+                    </span>
+                  ) : emailVerified === false ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResendVerification}
+                      disabled={resending}
+                      className="h-7 text-xs gap-1 text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-800"
+                    >
+                      {resending ? <Loader2 size={12} className="animate-spin" /> : <AlertCircle size={12} />}
+                      Non vérifié
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">…</span>
+                  )}
+                </div>
+
+                {/* Phone */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Phone size={14} className="text-muted-foreground shrink-0" />
+                    <span className="text-sm truncate">Téléphone</span>
+                  </div>
+                  {profile?.phone ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-full">
+                      <Check size={12} /> Renseigné
+                    </span>
+                  ) : (
+                    <span className="text-xs text-amber-600 font-medium">Non renseigné</span>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </motion.div>

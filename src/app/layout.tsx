@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: 'Djola TikTak — Votre rendez-vous en un clic',
   description: 'Djola TikTak simplifie la prise de rendez-vous pour les prestataires locaux. Coiffeurs, barbiers, esthéticiennes, photographes — créez votre page de réservation en minutes.',
   icons: {
-    icon: 'https://z-cdn.chatglm.cn/z-ai/static/logo.svg',
+    icon: '/logo.png',
   },
 };
 

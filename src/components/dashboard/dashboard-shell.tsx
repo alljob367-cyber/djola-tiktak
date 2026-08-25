@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -230,19 +231,15 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                 exit={{ opacity: 0 }}
                 className="flex items-center gap-2 overflow-hidden"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white dark:bg-emerald-500">
-                  <CalendarDays size={16} />
-                </div>
+                <Image src="/logo.png" alt="Djola TikTak" width={32} height={32} className="shrink-0 rounded-lg" />
                 <span className="text-base font-bold tracking-tight text-foreground truncate">
-                  Djola
+                  Djola TikTak
                 </span>
               </motion.div>
             )}
           </AnimatePresence>
           {collapsed && (
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white dark:bg-emerald-500">
-              <CalendarDays size={16} />
-            </div>
+            <Image src="/logo.png" alt="Djola TikTak" width={28} height={28} className="rounded-lg" />
           )}
         </div>
 
@@ -278,11 +275,9 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
           {/* Mobile menu button (placeholder for sheet/sidebar on mobile) */}
           <div className="lg:hidden">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600 text-white dark:bg-emerald-500">
-                <CalendarDays size={14} />
-              </div>
+              <Image src="/logo.png" alt="Djola TikTak" width={24} height={24} className="rounded-md" />
               <span className="text-sm font-bold tracking-tight text-foreground">
-                Djola
+                Djola TikTak
               </span>
             </div>
           </div>
