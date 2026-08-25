@@ -88,6 +88,85 @@ const calendarDays = [
   { d: 1, current: false }, { d: 2, current: false },
 ];
 
+const pricingPlans = [
+  {
+    name: 'Starter',
+    price: '3 000',
+    period: '/mois',
+    desc: 'Idéal pour les professionnels indépendants qui débutent en ligne.',
+    highlighted: false,
+    features: [
+      '1 professionnel',
+      '5 prestations maximum',
+      '50 rappels SMS/mois',
+      'Rappels WhatsApp',
+      'Page de réservation personnalisée',
+      'Calendrier intelligent',
+      'Support par email',
+    ],
+    cta: 'Commencer avec Starter',
+  },
+  {
+    name: 'Pro',
+    price: '10 000',
+    period: '/mois',
+    desc: 'Pour les professionnels qui veulent automatiser et développer leur activité.',
+    highlighted: true,
+    badge: 'Le plus populaire',
+    features: [
+      '3 professionnels',
+      'Prestations illimitées',
+      '300 rappels SMS/mois',
+      'Rappels WhatsApp + Audio (ElevenLabs)',
+      'Page de réservation personnalisée',
+      'Calendrier intelligent',
+      'Tableau de bord avancé',
+      'Statistiques détaillées',
+      'Support prioritaire',
+    ],
+    cta: 'Choisir Pro',
+  },
+  {
+    name: 'Business',
+    price: '25 000',
+    period: '/mois',
+    desc: 'Pour les structures avec plusieurs équipes et des besoins avancés.',
+    highlighted: false,
+    features: [
+      '10 professionnels',
+      'Prestations illimitées',
+      '1 000 rappels SMS/mois',
+      'Rappels WhatsApp + Audio (ElevenLabs)',
+      'Page de réservation multi-professionnels',
+      'Calendrier intelligent partagé',
+      'Tableau de bord avancé',
+      'Statistiques détaillées + exports',
+      'Marque blanche (logo personnalisé)',
+      'Support dédié prioritaire',
+    ],
+    cta: 'Choisir Business',
+  },
+  {
+    name: 'Entreprise',
+    price: 'Sur devis',
+    period: '',
+    desc: 'Solutions sur mesure pour les grandes structures et réseaux.',
+    highlighted: false,
+    features: [
+      'Professionnels illimités',
+      'Prestations illimitées',
+      'SMS illimités',
+      'Rappels WhatsApp + Audio (ElevenLabs)',
+      'Multi-établissements',
+      'API & intégrations personnalisées',
+      'Formation dédiée à votre équipe',
+      'SLA garanti 99,9%',
+      'Account manager dédié',
+    ],
+    cta: 'Nous contacter',
+  },
+];
+
 /* ──────────── COMPONENTS ──────────── */
 
 function LimeIcon({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -467,6 +546,90 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ═══════ PRICING ═══════ */}
+      <section id="tarifs" className="py-20 lg:py-24">
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-12">
+          {/* Header */}
+          <div className="text-center">
+            <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.12em] text-lime mb-4">
+              Tarifs simples et transparents
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold">Choisissez le plan qui vous convient</h2>
+            <p className="mx-auto mt-4 max-w-xl text-[17px] text-gray-400">
+              Tous les prix sont en FCFA. Pas de frais cachés, annulez à tout moment.
+            </p>
+          </div>
+
+          {/* Plans grid */}
+          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {pricingPlans.map((plan) => (
+              <div
+                key={plan.name}
+                className={`relative flex flex-col rounded-2xl border p-7 transition-all ${
+                  plan.highlighted
+                    ? 'border-lime/40 bg-[#111816] shadow-[0_0_60px_rgba(200,255,0,0.06)] scale-[1.02]'
+                    : 'border-white/[0.08] bg-[#111816] hover:border-white/15'
+                }`}
+              >
+                {/* Badge */}
+                {plan.badge && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-lime px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-black">
+                    {plan.badge}
+                  </span>
+                )}
+
+                {/* Plan name */}
+                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                <p className="mt-2 text-[13px] leading-relaxed text-gray-500">{plan.desc}</p>
+
+                {/* Price */}
+                <div className="mt-6 flex items-baseline gap-1">
+                  {plan.price !== 'Sur devis' ? (
+                    <>
+                      <span className="text-4xl font-extrabold text-white">{plan.price}</span>
+                      <span className="text-sm text-gray-500">FCFA{plan.period}</span>
+                    </>
+                  ) : (
+                    <span className="text-3xl font-extrabold text-white">Sur devis</span>
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div className="my-6 h-px bg-white/[0.06]" />
+
+                {/* Features */}
+                <ul className="flex flex-col gap-3 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-[14px]">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
+                      <span className="text-gray-300">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                <Link
+                  href={plan.name === 'Entreprise' ? '#' : '/register'}
+                  className={`mt-7 inline-flex items-center justify-center rounded-lg px-6 py-3 text-[14px] font-semibold transition-all ${
+                    plan.highlighted
+                      ? 'bg-lime text-black hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]'
+                      : 'border border-white/15 text-white hover:bg-white/5'
+                  }`}
+                >
+                  {plan.cta}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom note */}
+          <p className="mt-10 text-center text-[13px] text-gray-600">
+            Tous les plans incluent un essai gratuit de 14 jours • Paiement mobile money & carte bancaire acceptés
+          </p>
         </div>
       </section>
 
