@@ -22,7 +22,7 @@ export function PlanCard({
   onSelect,
   loading,
 }: PlanCardProps) {
-  const includedFeatures = plan.features
+  const includedFeatures = (plan.features ?? [])
     .filter((f) => f.included)
     .slice(0, 6);
 

@@ -75,8 +75,23 @@ export async function POST(request: NextRequest) {
     const processed: string[] = [];
     const errors: string[] = [];
 
-    for (const apt of appointments) {
-      if (!apt.client || !apt.profile || !apt.service) continue;
+    // Type the Supabase join result
+    interface AptClient { id: string; name: string; phone: string; email: string }
+    interface AptProfile { id: string; business_name: string; phone: string; timezone: string }
+    interface AptService { id: string; name: string }
+    interface AppointmentJoined {
+      id: string;
+      starts_at: string;
+      client: AptClient | null;
+      profile: AptProfile | null;
+      service: AptService | null;
+    }
+
+    for (const apt of appointments as unknown as AppointmentJoined[]) {
+      const client = apt.client;
+      const profile = apt.profile;
+      const service = apt.service;
+      if (!client || !profile || !service) continue;
 
       for (const channel of channels) {
         const key = `${apt.id}:${channel}`;
@@ -84,9 +99,9 @@ export async function POST(request: NextRequest) {
 
         // Déterminer si ce canal est disponible
         const canSend =
-          (channel === 'email' && apt.client.email) ||
-          (channel === 'whatsapp' && apt.client.phone) ||
-          (channel === 'sms' && apt.client.phone);
+          (channel === 'email' && client.email) ||
+          (channel === 'whatsapp' && client.phone) ||
+          (channel === 'sms' && client.phone);
 
         if (!canSend) continue;
 

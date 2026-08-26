@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -42,9 +42,12 @@ export default function VerifyEmailPage() {
     }
   };
 
-  // Try to get email from URL params or session
-  const userEmail = email || new URLSearchParams(window.location.search).get('email') || '';
-  if (userEmail && !email) setEmail(userEmail);
+  // Try to get email from URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get('email');
+    if (emailParam && !email) setEmail(emailParam);
+  }, [email]);
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-stone-50 via-white to-emerald-50/40">

@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import type { Profile } from '@/types/database';
 
 export async function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -53,4 +54,33 @@ export async function createServiceRoleClient() {
       },
     },
   });
+}
+
+/**
+ * Authenticates the current request via Supabase Auth and fetches
+ * the matching profile row.
+ *
+ * @returns `{ user, profile }` — the Supabase auth user and the profile.
+ * @throws Error with message 'Non authentifié.' if not logged in.
+ * @throws Error with message 'Profil introuvable.' if no profile linked.
+ */
+export async function getAuthenticatedUser() {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error('Non authentifié.');
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    throw new Error('Profil introuvable.');
+  }
+
+  return { user, profile: profile as Profile };
 }

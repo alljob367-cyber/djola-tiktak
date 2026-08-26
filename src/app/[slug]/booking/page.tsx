@@ -266,7 +266,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
       const result = clientInfoSchema.safeParse(clientInfo);
       if (!result.success) {
         const errors: Partial<Record<keyof ClientInfo, string>> = {};
-        for (const issue of result.error.errors) {
+        for (const issue of result.error.issues) {
           const key = issue.path[0] as keyof ClientInfo;
           errors[key] = issue.message;
         }

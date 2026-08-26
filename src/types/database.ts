@@ -20,6 +20,13 @@ export interface Profile {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // Subscription columns (added by subscription migration)
+  plan?: PlanId | null;
+  subscription_status?: SubscriptionDbStatus | null;
+  subscription_start?: string | null;
+  subscription_end?: string | null;
+  subscription_id?: string | null;
+  chariow_customer_id?: string | null;
 }
 
 export interface Service {
@@ -113,4 +120,132 @@ export interface BookingInput {
   client_phone: string;
   client_email?: string;
   notes?: string;
+}
+
+// ============================================================
+// Billing & Subscription types (matching subscription-migration.sql)
+// ============================================================
+
+export type PlanId = 'starter' | 'pro' | 'business';
+
+export type BillingPeriod = 'monthly' | 'yearly';
+
+export type SubscriptionDbStatus =
+  | 'trialing'
+  | 'active'
+  | 'past_due'
+  | 'cancelled'
+  | 'expired';
+
+/** Application-level status derived from DB status + date checks. */
+export type SubscriptionStatus =
+  | 'active'
+  | 'trialing'
+  | 'past_due'
+  | 'cancelled'
+  | 'expired';
+
+export type PaymentStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed'
+  | 'refunded';
+
+export type UsageRecordStatus =
+  | 'reserved'
+  | 'completed'
+  | 'failed'
+  | 'refunded';
+
+export interface Plan {
+  id: PlanId;
+  name: string;
+  description: string;
+  price_monthly: number;
+  price_yearly: number;
+  tier_priority: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  /** Computed feature list for UI display (not a DB column). */
+  features?: Array<{ key: string; label: string; included: boolean }>;
+}
+
+export interface PlanLimit {
+  id: string;
+  plan_id: PlanId;
+  feature_key: string;
+  limit_value: number;
+  created_at: string;
+}
+
+export interface Subscription {
+  id: string;
+  profile_id: string;
+  plan_id: PlanId;
+  status: SubscriptionDbStatus;
+  current_period_start: string;
+  current_period_end: string;
+  trial_start: string | null;
+  trial_end: string | null;
+  cancel_at_period_end: boolean;
+  cancellation_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Lightweight subscription info derived from the profile row. */
+export interface SubscriptionInfo {
+  plan: PlanId;
+  subscription_status: SubscriptionDbStatus;
+  subscription_start: string | null;
+  subscription_end: string | null;
+  is_active: boolean;
+  is_trial: boolean;
+  days_remaining: number | null;
+  trial_end: string | null;
+}
+
+export interface Payment {
+  id: string;
+  profile_id: string;
+  plan_id: PlanId;
+  plan_name: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  provider: string;
+  billing_period: BillingPeriod;
+  external_id: string | null;
+  external_status: string | null;
+  checkout_url: string | null;
+  paid_at: string | null;
+  refunded_at: string | null;
+  provider_metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UsageRecord {
+  id: string;
+  profile_id: string;
+  usage_type: string;
+  status: UsageRecordStatus;
+  credits_used: number;
+  reference_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+/** Row returned by the `get_usage_summary` RPC. */
+export interface UsageSummaryItem {
+  feature_key: string;
+  feature_label: string;
+  limit_key: string;
+  limit_value: number;
+  current_usage: number;
+  remaining: number;
+  unit_label?: string;
 }

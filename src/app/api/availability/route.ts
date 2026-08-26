@@ -84,7 +84,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // Valider chaque élément
-    const validatedItems = [];
+    const validatedItems: Array<{
+      profile_id: string;
+      day_of_week: number;
+      start_time: string;
+      end_time: string;
+      is_active: boolean;
+    }> = [];
     for (const item of items) {
       const parsed = availabilitySchema.safeParse(item);
       if (!parsed.success) {

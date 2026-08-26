@@ -318,9 +318,10 @@ export default function BillingPage() {
   const { subscription: sub, plans, usage, payments, alerts } = data;
   const voiceAlert = alerts?.voice_credits;
   const hasActiveSubscription =
-    sub.subscription_status !== 'none' &&
+    sub.subscription_status !== null &&
     sub.subscription_status !== 'expired' &&
-    sub.subscription_status !== 'past_due';
+    sub.subscription_status !== 'past_due' &&
+    sub.subscription_status !== 'cancelled';
 
   // Find plan name for current plan
   const currentPlanData = plans.find((p) => p.id === sub.plan);
@@ -537,7 +538,7 @@ export default function BillingPage() {
                   used={item.current_usage}
                   total={item.limit_value}
                   remaining={item.remaining}
-                  unitLabel={item.unit_label}
+                  unitLabel={item.unit_label ?? ''}
                   alertLevel={getAlertLevel(item)}
                 />
               ))}
