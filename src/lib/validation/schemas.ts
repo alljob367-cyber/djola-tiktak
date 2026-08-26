@@ -16,6 +16,12 @@ export const profileSchema = z.object({
   email: z.string().email('Email invalide').optional().or(z.literal('')),
   currency: z.string().default('XAF'),
   timezone: z.string().default('Africa/Malabo'),
+  avatar_url: z.string().max(500).optional().or(z.literal('')),
+  whatsapp_url: z.string().max(300).optional().or(z.literal('')),
+  facebook_url: z.string().max(300).optional().or(z.literal('')),
+  instagram_url: z.string().max(300).optional().or(z.literal('')),
+  tiktok_url: z.string().max(300).optional().or(z.literal('')),
+  website_url: z.string().max(300).optional().or(z.literal('')),
 });
 
 export const serviceSchema = z.object({
@@ -24,6 +30,7 @@ export const serviceSchema = z.object({
   price: z.coerce.number().int().min(0, 'Le prix ne peut pas être négatif'),
   duration_minutes: z.coerce.number().int().min(5, 'La durée minimale est de 5 minutes').max(480, 'La durée maximale est de 8 heures'),
   is_active: z.boolean().default(true),
+  image_url: z.string().max(500).nullable().optional(),
 });
 
 export const clientSchema = z.object({

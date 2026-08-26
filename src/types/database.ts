@@ -27,6 +27,12 @@ export interface Profile {
   subscription_end?: string | null;
   subscription_id?: string | null;
   chariow_customer_id?: string | null;
+  // Social media links
+  whatsapp_url?: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  tiktok_url?: string | null;
+  website_url?: string | null;
 }
 
 export interface Service {
@@ -37,6 +43,7 @@ export interface Service {
   price: number;
   duration_minutes: number;
   is_active: boolean;
+  image_url: string | null;
   created_at: string;
   updated_at: string;
 }

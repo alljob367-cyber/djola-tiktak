@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -10,6 +10,9 @@ import {
   Scissors,
   Loader2,
   PackageOpen,
+  Camera,
+  X,
+  ImageOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -61,6 +64,7 @@ interface ServiceFormData {
   price: string;
   duration_minutes: string;
   is_active: boolean;
+  image_url: string;
 }
 
 const emptyForm: ServiceFormData = {
@@ -69,6 +73,7 @@ const emptyForm: ServiceFormData = {
   price: '',
   duration_minutes: '30',
   is_active: true,
+  image_url: '',
 };
 
 // ── Animation variants ─────────────────────────────────────────
@@ -91,6 +96,8 @@ export default function ServicesPage() {
   const [form, setForm] = useState<ServiceFormData>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // ── Fetch services ──────────────────────────────────────
   const fetchServices = useCallback(async () => {
@@ -125,8 +132,31 @@ export default function ServicesPage() {
       price: String(s.price),
       duration_minutes: String(s.duration_minutes),
       is_active: s.is_active,
+      image_url: s.image_url || '',
     });
     setDialogOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image trop volumineuse (max 5 Mo)'); return; }
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'service-images');
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Erreur upload');
+      const { url } = await res.json();
+      setForm((f) => ({ ...f, image_url: url }));
+      toast.success('Image ajoutée');
+    } catch {
+      toast.error('Erreur lors de l\'upload de l\'image');
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
   };
 
   // ── Submit (create / update) ────────────────────────────
@@ -154,6 +184,7 @@ export default function ServicesPage() {
         price,
         duration_minutes: duration,
         is_active: form.is_active,
+        image_url: form.image_url || null,
       };
 
       const url = editingId ? `/api/services/${editingId}` : '/api/services';
@@ -272,8 +303,8 @@ export default function ServicesPage() {
                         >
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
-                                <Scissors size={16} className="text-emerald-600 dark:text-emerald-400" />
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg overflow-hidden bg-emerald-50 dark:bg-emerald-950/30">
+                                {s.image_url ? <img src={s.image_url} alt={s.name} className="h-full w-full object-cover" /> : <Scissors size={16} className="text-emerald-600 dark:text-emerald-400" />}
                               </div>
                               <div>
                                 <p className="font-medium">{s.name}</p>
@@ -473,6 +504,24 @@ export default function ServicesPage() {
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Image du service</Label>
+              <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageUpload} />
+              {form.image_url ? (
+                <div className="relative h-32 w-full rounded-lg overflow-hidden border bg-muted">
+                  <img src={form.image_url} alt="Service" className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => setForm((f) => ({ ...f, image_url: '' }))} className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white hover:bg-black/70 transition-colors">
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploadingImage}
+                  className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-colors">
+                  {uploadingImage ? <Loader2 size={20} className="animate-spin text-muted-foreground" /> : <Camera size={20} className="text-muted-foreground" />}
+                  <span className="text-xs text-muted-foreground">{uploadingImage ? 'Envoi en cours...' : 'Ajouter une photo'}</span>
+                </button>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="svc-desc">Description</Label>
