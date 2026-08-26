@@ -1,0 +1,17 @@
+{
+  "name": "Djola TikTak",
+  "short_name": "Djola",\n  "description": "Votre rendez-vous en un clic — Prise de RDV pour prestataires locaux",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f0d",
+  "theme_color": "#c8ff00",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

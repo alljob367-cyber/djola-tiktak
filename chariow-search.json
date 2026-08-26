@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://help.chariow.com/en/articles/259-developer-documentation-and-api",
+    "name": "Developer Documentation & API - Help for Chariow",
+    "snippet": "5 days ago · Access our technical resources to integrate, automate, and extend your Chariow store's capabilities. customers, discounts, and more ...",
+    "host_name": "help.chariow.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://chariow.dev/fr/guides/checkout",
+    "name": "Paiement - Introduction - Chariow Developers",
+    "snippet": "L'API de paiement vous permet de créer de manière programmatique des sessions d'achat pour vos clients. Cela est utile pour les vitrines personnalisées, les ... Initier un paiement · Suivi de campagne",
+    "host_name": "chariow.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=ZhAT2dGMR9w",
+    "name": "How to Create an API Key on Chariow - YouTube",
+    "snippet": "Mar 20, 2026 · ... développeur depuis votre tableau de bord - créer une clé PI en ... Understand the integration possibilities offered by Chariow. This ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/getchariow/posts/et-si-vous-pouviez-connecter-votre-boutique-chariow-%C3%A0-vos-propres-outils-avec-la/122259549212086427",
+    "name": "Et si vous pouviez connecter votre boutique Chariow à vos propres",
+    "snippet": "Mar 20, 2026 · Configuration : 1. Appuyez sur ALT + F11 pour ouvrir l'éditeur VBA. 2. Allez dans Insertion > Module. 3. Collez un script de connexion à l'API ...",
+    "host_name": "www.facebook.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.chariow.com/fr/articles/63-comment-fonctionne-chariow",
+    "name": "Comment fonctionne Chariow",
+    "snippet": "Paiements flexibles. API & Pulses : Pour les développeurs, accédez à l'API Chariow pour créer des intégrations sur mesure et recevoir des données en temps réel.",
+    "host_name": "help.chariow.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.chariow.com/en/collections/169-api-keys",
+    "name": "API Keys - Help for Chariow",
+    "snippet": "Help center. Go to Chariow. English, French. Collections. All collectionsCreatorsSettingsDeveloperAPI Keys. API Keys. Manage your API Keys on Chariow.",
+    "host_name": "help.chariow.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.chariow.com/en/collections/155-developer",
+    "name": "Developer - Help for Chariow",
+    "snippet": "Developer API Keys1 article Manage your API Keys on Chariow collection item image API Keys Manage your API Keys on Chariow",
+    "host_name": "help.chariow.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://chariow.dev/en/introduction/overview",
+    "name": "Introduction - Chariow Developers",
+    "snippet": "Get up and running with the Chariow API in minutes. Build custom integrations with our comprehensive API: RESTful API with JSON responses",
+    "host_name": "chariow.dev",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.squareup.com/ca/fr/online-payment-apis",
+    "name": "API de paiement en ligne pour les développeurs - Square Developer",
+    "snippet": "Créez un formulaire de paiement en ligne personnalisé, réactif, sécurisé et conforme aux normes PCI. Les clients peuvent payer rapidement avec leur mode de ...",
+    "host_name": "developer.squareup.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=s2QodmQKdpM",
+    "name": "[UPDATE] Discover the new integrations on Chariow - YouTube",
+    "snippet": "Apr 15, 2025 · Dans cette vidéo, découvrez comment connecter vos outils marketing préférés comme Mailchimp, WaChap, et Systeme IO directement à notre ...",
+    "host_name": "www.youtube.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
