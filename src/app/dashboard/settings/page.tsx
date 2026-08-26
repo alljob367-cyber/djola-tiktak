@@ -10,6 +10,11 @@ import {
   ShieldOff,
   Loader2,
   AlertTriangle,
+  Wallet,
+  CreditCard,
+  Copy,
+  Check,
+  Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -44,6 +49,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
 
 // ── Animation ────────────────────────────────────────────────
@@ -81,7 +88,17 @@ export default function SettingsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
-  // ── Fetch user email ─────────────────────────────────
+  // Payment methods state
+  const [pmEnabled, setPmEnabled] = useState(false);
+  const [omPhone, setOmPhone] = useState('');
+  const [omName, setOmName] = useState('');
+  const [mtnPhone, setMtnPhone] = useState('');
+  const [mtnName, setMtnName] = useState('');
+  const [pmInstructions, setPmInstructions] = useState('');
+  const [pmLoading, setPmLoading] = useState(true);
+  const [pmSaving, setPmSaving] = useState(false);
+
+  // ── Fetch user email & payment settings ─────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -89,13 +106,64 @@ export default function SettingsPage() {
           data: { user },
         } = await supabase.auth.getUser();
         if (user) setEmail(user.email ?? '');
+
+        // Fetch profile for payment settings
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('payment_methods_enabled, orange_money_phone, orange_money_name, mtn_momo_phone, mtn_momo_name, payment_instructions')
+          .single();
+
+        if (profile) {
+          setPmEnabled(profile.payment_methods_enabled ?? false);
+          setOmPhone(profile.orange_money_phone ?? '');
+          setOmName(profile.orange_money_name ?? '');
+          setMtnPhone(profile.mtn_momo_phone ?? '');
+          setMtnName(profile.mtn_momo_name ?? '');
+          setPmInstructions(profile.payment_instructions ?? '');
+        }
       } catch {
         // silent
       } finally {
         setLoadingEmail(false);
+        setPmLoading(false);
       }
     })();
   }, [supabase]);
+
+  // ── Save payment methods ────────────────────────────────
+  const handleSavePaymentMethods = async () => {
+    setPmSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          payment_methods_enabled: pmEnabled,
+          orange_money_phone: omPhone || null,
+          orange_money_name: omName || null,
+          mtn_momo_phone: mtnPhone || null,
+          mtn_momo_name: mtnName || null,
+          payment_instructions: pmInstructions || null,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+      toast.success('Moyens de paiement enregistrés');
+    } catch {
+      toast.error('Erreur lors de l\'enregistrement');
+    } finally {
+      setPmSaving(false);
+    }
+  };
+
+  // ── Copy to clipboard ──────────────────────────────────
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      toast.success('Copié !');
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   // ── Change password ───────────────────────────────────
   const handleChangePassword = async () => {
@@ -153,7 +221,6 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non autorisé');
 
-      // Deactivate profile
       const res = await fetch('/api/profiles', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -169,7 +236,6 @@ export default function SettingsPage() {
         }),
       });
 
-      // Even if profile update fails, we still try to sign out
       toast.info('Compte désactivé');
       await supabase.auth.signOut();
       router.push('/login');
@@ -189,7 +255,6 @@ export default function SettingsPage() {
 
     setDeleting(true);
     try {
-      // Sign out first
       await supabase.auth.signOut();
       toast.success('Compte supprimé. Vous pouvez maintenant contacter le support pour supprimer définitivement vos données.');
       router.push('/login');
@@ -214,6 +279,163 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-foreground mt-1">
           Gérez votre compte et vos préférences
         </p>
+      </motion.div>
+
+      {/* ── Payment Methods Section ──────────────────────────── */}
+      <motion.div variants={itemVariants}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Wallet size={16} className="text-emerald-600" />
+              Moyens de paiement locaux
+            </CardTitle>
+            <CardDescription>
+              Configurez vos numéros pour recevoir des paiements anticipés de vos clients. Les clients qui paient en avance seront en priorité.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Toggle */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Activer les paiements anticipés</p>
+                <p className="text-xs text-muted-foreground">
+                  Vos clients pourront vous payer en avance pour être prioritaires
+                </p>
+              </div>
+              <Switch
+                checked={pmEnabled}
+                onCheckedChange={setPmEnabled}
+                disabled={pmSaving}
+              />
+            </div>
+
+            {pmEnabled && (
+              <>
+                <Separator />
+
+                {/* Info banner */}
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900/50 dark:bg-blue-950/20">
+                  <div className="flex gap-2">
+                    <Info size={16} className="mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <div className="text-xs text-blue-700 dark:text-blue-300">
+                      <p className="font-medium">Comment ça marche ?</p>
+                      <p className="mt-1">Vos clients verront vos numéros de paiement sur votre page de réservation. Ils pourront vous envoyer le montant du service en avance via Orange Money ou MTN MoMo. Les réservations payées en avance seront marquées comme prioritaires.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Orange Money */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/40">
+                      <span className="text-sm font-bold text-orange-600 dark:text-orange-400">OM</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Orange Money</p>
+                      <p className="text-xs text-muted-foreground">Numéro pour recevoir les paiements</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="om-phone" className="text-xs">Numéro Orange Money</Label>
+                      <Input
+                        id="om-phone"
+                        type="tel"
+                        placeholder="+237 6XX XXX XXX"
+                        value={omPhone}
+                        onChange={(e) => setOmPhone(e.target.value)}
+                        disabled={pmSaving}
+                        className="min-h-[44px]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="om-name" className="text-xs">Nom du titulaire</Label>
+                      <Input
+                        id="om-name"
+                        type="text"
+                        placeholder="Jean Kamga"
+                        value={omName}
+                        onChange={(e) => setOmName(e.target.value)}
+                        disabled={pmSaving}
+                        className="min-h-[44px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* MTN MoMo */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-yellow-100 dark:bg-yellow-900/40">
+                      <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">MTN</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">MTN Mobile Money</p>
+                      <p className="text-xs text-muted-foreground">Numéro pour recevoir les paiements</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="mtn-phone" className="text-xs">Numéro MTN MoMo</Label>
+                      <Input
+                        id="mtn-phone"
+                        type="tel"
+                        placeholder="+237 6XX XXX XXX"
+                        value={mtnPhone}
+                        onChange={(e) => setMtnPhone(e.target.value)}
+                        disabled={pmSaving}
+                        className="min-h-[44px]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="mtn-name" className="text-xs">Nom du titulaire</Label>
+                      <Input
+                        id="mtn-name"
+                        type="text"
+                        placeholder="Jean Kamga"
+                        value={mtnName}
+                        onChange={(e) => setMtnName(e.target.value)}
+                        disabled={pmSaving}
+                        className="min-h-[44px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Custom instructions */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="pm-instructions" className="text-xs">
+                    Instructions personnalisées (facultatif)
+                  </Label>
+                  <Textarea
+                    id="pm-instructions"
+                    placeholder="Ex: Envoyez la capture d'écran de votre transfert à mon numéro WhatsApp après le paiement..."
+                    value={pmInstructions}
+                    onChange={(e) => setPmInstructions(e.target.value)}
+                    disabled={pmSaving}
+                    rows={3}
+                    className="text-sm"
+                  />
+                </div>
+
+                <Button
+                  onClick={handleSavePaymentMethods}
+                  disabled={pmSaving}
+                  className="w-full min-h-[48px] bg-emerald-600 hover:bg-emerald-700 text-white sm:w-auto"
+                  size="lg"
+                >
+                  {pmSaving && <Loader2 size={16} className="mr-2 animate-spin" />}
+                  <CreditCard size={16} className="mr-2" />
+                  Enregistrer les paiements
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Account section */}
@@ -380,7 +602,7 @@ export default function SettingsPage() {
               <Input
                 id="new-pwd"
                 type="password"
-                placeholder="••••••••"
+                placeholder="........"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
@@ -390,7 +612,7 @@ export default function SettingsPage() {
               <Input
                 id="confirm-pwd"
                 type="password"
-                placeholder="••••••••"
+                placeholder="........"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />

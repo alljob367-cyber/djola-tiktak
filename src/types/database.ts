@@ -33,6 +33,13 @@ export interface Profile {
   instagram_url?: string | null;
   tiktok_url?: string | null;
   website_url?: string | null;
+  // Local payment methods for client advance payment
+  payment_methods_enabled?: boolean | null;
+  orange_money_phone?: string | null;
+  orange_money_name?: string | null;
+  mtn_momo_phone?: string | null;
+  mtn_momo_name?: string | null;
+  payment_instructions?: string | null;
 }
 
 export interface Service {

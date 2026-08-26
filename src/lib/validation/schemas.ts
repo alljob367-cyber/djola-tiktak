@@ -22,6 +22,13 @@ export const profileSchema = z.object({
   instagram_url: z.string().max(300).optional().or(z.literal('')),
   tiktok_url: z.string().max(300).optional().or(z.literal('')),
   website_url: z.string().max(300).optional().or(z.literal('')),
+  // Local payment methods
+  payment_methods_enabled: z.boolean().optional().default(false),
+  orange_money_phone: z.string().max(30).optional().or(z.literal('')),
+  orange_money_name: z.string().max(100).optional().or(z.literal('')),
+  mtn_momo_phone: z.string().max(30).optional().or(z.literal('')),
+  mtn_momo_name: z.string().max(100).optional().or(z.literal('')),
+  payment_instructions: z.string().max(500).optional().or(z.literal('')),
 });
 
 export const serviceSchema = z.object({

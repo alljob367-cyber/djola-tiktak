@@ -21,6 +21,11 @@ import {
   CreditCard,
   Sparkles,
   AlertCircle,
+  Wallet,
+  Star,
+  Zap,
+  Copy,
+  CheckCheck,
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -47,6 +52,12 @@ interface Profile {
   phone: string;
   avatar_url: string;
   currency: string;
+  payment_methods_enabled?: boolean;
+  orange_money_phone?: string;
+  orange_money_name?: string;
+  mtn_momo_phone?: string;
+  mtn_momo_name?: string;
+  payment_instructions?: string;
 }
 
 interface Slot {
@@ -72,18 +83,27 @@ const clientInfoSchema = z.object({
 type ClientInfo = z.infer<typeof clientInfoSchema>;
 
 // ------------------------------------------------------------------
-// Steps definition
+// Steps definition — payment step is conditional
 // ------------------------------------------------------------------
 
-const STEPS = [
+const BASE_STEPS = [
   { id: 'service', label: 'Service', icon: Sparkles },
   { id: 'date', label: 'Date', icon: CalendarDays },
   { id: 'time', label: 'Horaire', icon: Clock },
   { id: 'info', label: 'Coordonnées', icon: User },
-  { id: 'confirm', label: 'Confirmation', icon: Check },
+  { id: 'payment', label: 'Paiement', icon: Wallet },
+  { id: 'confirm', label: 'Confirmer', icon: Check },
 ] as const;
 
-type StepId = (typeof STEPS)[number]['id'];
+const STEPS_NO_PAYMENT = [
+  { id: 'service', label: 'Service', icon: Sparkles },
+  { id: 'date', label: 'Date', icon: CalendarDays },
+  { id: 'time', label: 'Horaire', icon: Clock },
+  { id: 'info', label: 'Coordonnées', icon: User },
+  { id: 'confirm', label: 'Confirmer', icon: Check },
+] as const;
+
+type StepId = 'service' | 'date' | 'time' | 'info' | 'payment' | 'confirm';
 
 // ------------------------------------------------------------------
 // Animation helpers
@@ -135,11 +155,19 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
     Partial<Record<keyof ClientInfo, string>>
   >({});
 
+  // ---- payment state ----
+  const [wantsAdvancePayment, setWantsAdvancePayment] = useState(false);
+  const [copiedPhone, setCopiedPhone] = useState('');
+
   // ---- async states ----
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [booked, setBooked] = useState(false);
+
+  // ---- Dynamic steps based on payment methods availability ----
+  const hasPaymentMethods = profile?.payment_methods_enabled && (profile.orange_money_phone || profile.mtn_momo_phone);
+  const STEPS = hasPaymentMethods ? BASE_STEPS : STEPS_NO_PAYMENT;
 
   // ---- Fetch profile & services ----
   useEffect(() => {
@@ -159,6 +187,12 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           phone: data.phone,
           avatar_url: data.avatar_url,
           currency: data.currency,
+          payment_methods_enabled: data.payment_methods_enabled,
+          orange_money_phone: data.orange_money_phone,
+          orange_money_name: data.orange_money_name,
+          mtn_momo_phone: data.mtn_momo_phone,
+          mtn_momo_name: data.mtn_momo_name,
+          payment_instructions: data.payment_instructions,
         });
         const svc: Service[] = (data.services || []).map(
           (s: Record<string, unknown>) => ({
@@ -176,7 +210,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           const found = svc.find((s) => s.id === sp.service);
           if (found) {
             setSelectedService(found);
-            setCurrentStep(1); // Jump to date step
+            setCurrentStep(1);
           }
         }
       } catch {
@@ -240,7 +274,8 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   };
 
   const canGoNext = (): boolean => {
-    switch (STEPS[currentStep].id) {
+    const stepId = STEPS[currentStep]?.id;
+    switch (stepId) {
       case 'service':
         return selectedService !== null;
       case 'date':
@@ -251,6 +286,8 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
         const result = clientInfoSchema.safeParse(clientInfo);
         return result.success;
       }
+      case 'payment':
+        return true; // Payment is optional
       case 'confirm':
         return false;
       default:
@@ -262,7 +299,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
     if (!canGoNext()) return;
 
     // Validate info step
-    if (STEPS[currentStep].id === 'info') {
+    if (STEPS[currentStep]?.id === 'info') {
       const result = clientInfoSchema.safeParse(clientInfo);
       if (!result.success) {
         const errors: Partial<Record<keyof ClientInfo, string>> = {};
@@ -277,7 +314,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
     }
 
     // Fetch slots when moving from date to time
-    if (STEPS[currentStep].id === 'date' && selectedDate) {
+    if (STEPS[currentStep]?.id === 'date' && selectedDate) {
       fetchSlots(selectedDate);
     }
 
@@ -302,6 +339,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           client_phone: clientInfo.client_phone,
           client_email: clientInfo.client_email || '',
           starts_at: selectedSlot.starts_at,
+          prepayment: wantsAdvancePayment ? 'pending' : 'none',
         }),
       });
 
@@ -338,6 +376,14 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
     }
   };
 
+  const handleCopyPhone = (phone: string, label: string) => {
+    navigator.clipboard.writeText(phone).then(() => {
+      setCopiedPhone(label);
+      toast.success('Numéro copié !');
+      setTimeout(() => setCopiedPhone(''), 2000);
+    });
+  };
+
   // ---- Formatting helpers ----
   function formatDateFR(date: Date): string {
     return `${date.getDate()} ${MONTH_NAMES_FR[date.getMonth()]} ${date.getFullYear()}`;
@@ -353,7 +399,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   const renderStepper = () => {
     if (booked) return null;
     return (
-      <div className="mb-6 flex items-center justify-center gap-0 px-2">
+      <div className="mb-6 flex items-center justify-center gap-0 px-1">
         {STEPS.map((step, i) => {
           const isActive = i === currentStep;
           const isDone = i < currentStep;
@@ -362,7 +408,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             <div key={step.id} className="flex items-center">
               <div className="flex flex-col items-center">
                 <div
-                  className={`flex size-10 items-center justify-center rounded-full border-2 transition-colors sm:size-11 ${
+                  className={`flex size-9 items-center justify-center rounded-full border-2 transition-colors sm:size-10 ${
                     isActive
                       ? 'border-emerald-600 bg-emerald-600 text-white'
                       : isDone
@@ -371,13 +417,13 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
                   }`}
                 >
                   {isDone ? (
-                    <Check className="size-5" strokeWidth={3} />
+                    <Check className="size-4 sm:size-5" strokeWidth={3} />
                   ) : (
-                    <StepIcon className="size-4 sm:size-5" />
+                    <StepIcon className="size-3.5 sm:size-4" />
                   )}
                 </div>
                 <span
-                  className={`mt-1 text-[10px] font-medium sm:text-xs ${
+                  className={`mt-1 text-[9px] font-medium sm:text-[10px] ${
                     isActive ? 'text-emerald-700' : 'text-muted-foreground'
                   }`}
                 >
@@ -386,7 +432,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
               </div>
               {i < STEPS.length - 1 && (
                 <div
-                  className={`mx-1.5 h-0.5 w-6 sm:mx-2 sm:w-10 ${
+                  className={`mx-1 h-0.5 w-4 sm:mx-1.5 sm:w-8 ${
                     i < currentStep ? 'bg-emerald-500' : 'bg-muted-foreground/20'
                   }`}
                 />
@@ -473,7 +519,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
               key={day.toISOString()}
               type="button"
               onClick={() => handleDateSelect(day)}
-              className={`flex min-h-[72px] flex-col items-center justify-center rounded-xl border-2 px-2 py-3 transition-all ${
+              className={`flex min-h-[68px] flex-col items-center justify-center rounded-xl border-2 px-2 py-3 transition-all ${
                 isSelected
                   ? 'border-emerald-600 bg-emerald-600 text-white shadow-md'
                   : 'border-border bg-card hover:border-emerald-300 hover:bg-emerald-50/50'
@@ -625,7 +671,156 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
     </div>
   );
 
-  // ---- Step 5: Confirmation ----
+  // ---- Step 5: Payment (conditional) ----
+  const renderPaymentStep = () => {
+    if (!profile || !selectedService) return null;
+
+    return (
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-foreground">
+          Paiement anticipé
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Payez en avance pour confirmer votre réservation en priorité
+        </p>
+
+        {/* Priority banner */}
+        <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 dark:border-amber-900/40 dark:from-amber-950/20 dark:to-orange-950/20">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
+              <Zap className="size-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                Réservation prioritaire
+              </p>
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                En payant en avance, votre créneau sera garanti et prioritaire.
+                Envoyez le montant et confirmez votre réservation.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Toggle */}
+        <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center gap-3">
+            <Wallet className="size-5 text-emerald-600" />
+            <div>
+              <p className="text-sm font-medium">Je paie en avance</p>
+              <p className="text-xs text-muted-foreground">
+                {formatCurrency(selectedService.price, profile.currency)}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setWantsAdvancePayment(!wantsAdvancePayment)}
+            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
+              wantsAdvancePayment ? 'bg-emerald-600' : 'bg-muted'
+            }`}
+          >
+            <span
+              className={`inline-block size-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                wantsAdvancePayment ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Payment details when enabled */}
+        {wantsAdvancePayment && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-3 overflow-hidden"
+          >
+            <p className="text-sm font-medium text-foreground">
+              Envoyez {formatCurrency(selectedService.price, profile.currency)} à :
+            </p>
+
+            {profile.orange_money_phone && (
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-900/40 dark:bg-orange-950/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/40">
+                      <span className="text-sm font-bold text-orange-600 dark:text-orange-400">OM</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Orange Money</p>
+                      <p className="text-lg font-bold text-orange-700 dark:text-orange-300">{profile.orange_money_phone}</p>
+                      {profile.orange_money_name && (
+                        <p className="text-xs text-muted-foreground">{profile.orange_money_name}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyPhone(profile.orange_money_phone!, 'om')}
+                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-orange-200 bg-white transition-colors hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-900/40"
+                  >
+                    {copiedPhone === 'om' ? (
+                      <CheckCheck className="size-4 text-emerald-600" />
+                    ) : (
+                      <Copy className="size-4 text-orange-600" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {profile.mtn_momo_phone && (
+              <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900/40 dark:bg-yellow-950/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-yellow-100 dark:bg-yellow-900/40">
+                      <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">MTN</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">MTN Mobile Money</p>
+                      <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">{profile.mtn_momo_phone}</p>
+                      {profile.mtn_momo_name && (
+                        <p className="text-xs text-muted-foreground">{profile.mtn_momo_name}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyPhone(profile.mtn_momo_phone!, 'mtn')}
+                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-yellow-200 bg-white transition-colors hover:bg-yellow-100 dark:border-yellow-800 dark:bg-yellow-900/40"
+                  >
+                    {copiedPhone === 'mtn' ? (
+                      <CheckCheck className="size-4 text-emerald-600" />
+                    ) : (
+                      <Copy className="size-4 text-yellow-600" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {profile.payment_instructions && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900/40 dark:bg-blue-950/20">
+                <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                    {profile.payment_instructions}
+                  </p>
+              </div>
+            )}
+
+            <div className="flex items-start gap-2 rounded-lg bg-emerald-50 p-3 dark:bg-emerald-950/20">
+              <Star className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+              <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                Après le transfert, confirmez votre réservation ci-dessous. Votre paiement sera vérifié par le professionnel.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    );
+  };
+
+  // ---- Step: Confirmation ----
   const renderConfirmStep = () => (
     <div className="space-y-5">
       <h2 className="text-lg font-semibold text-foreground">
@@ -636,20 +831,14 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           <div className="flex items-start gap-3">
             <Sparkles className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">
-                Service
-              </p>
-              <p className="font-semibold text-foreground">
-                {selectedService?.name}
-              </p>
+              <p className="text-xs font-medium text-muted-foreground">Service</p>
+              <p className="font-semibold text-foreground">{selectedService?.name}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <CalendarDays className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">
-                Date
-              </p>
+              <p className="text-xs font-medium text-muted-foreground">Date</p>
               <p className="font-semibold text-foreground">
                 {selectedDate && formatDateFR(selectedDate)}
               </p>
@@ -658,9 +847,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           <div className="flex items-start gap-3">
             <Clock className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">
-                Horaire
-              </p>
+              <p className="text-xs font-medium text-muted-foreground">Horaire</p>
               <p className="font-semibold text-foreground">
                 {selectedSlot && formatTimeFR(selectedSlot.starts_at)}
               </p>
@@ -669,9 +856,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           <div className="flex items-start gap-3">
             <CreditCard className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">
-                Tarif
-              </p>
+              <p className="text-xs font-medium text-muted-foreground">Tarif</p>
               <p className="font-bold text-emerald-700">
                 {selectedService &&
                   formatCurrency(selectedService.price, profile?.currency)}
@@ -681,17 +866,25 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           <div className="flex items-start gap-3">
             <User className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">
-                Client
-              </p>
-              <p className="font-semibold text-foreground">
-                {clientInfo.client_name}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {clientInfo.client_phone}
-              </p>
+              <p className="text-xs font-medium text-muted-foreground">Client</p>
+              <p className="font-semibold text-foreground">{clientInfo.client_name}</p>
+              <p className="text-sm text-muted-foreground">{clientInfo.client_phone}</p>
             </div>
           </div>
+          {wantsAdvancePayment && (
+            <div className="flex items-start gap-3">
+              <Star className="mt-0.5 size-4 shrink-0 text-amber-500" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">Paiement</p>
+                <p className="font-semibold text-amber-700 dark:text-amber-400">
+                  Paiement anticipé — Prioritaire
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-500">
+                  N'oubliez pas d'envoyer le montant via {profile?.orange_money_phone ? 'Orange Money' : ''}{profile?.orange_money_phone && profile?.mtn_momo_phone ? ' ou ' : ''}{profile?.mtn_momo_phone ? 'MTN MoMo' : ''}
+                </p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       <Button
@@ -720,7 +913,6 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
       className="flex flex-col items-center gap-6 text-center"
     >
-      {/* Animated checkmark */}
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
@@ -753,34 +945,30 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
         <p className="text-sm text-muted-foreground">
           Vous recevrez un rappel avant votre rendez-vous.
         </p>
+        {wantsAdvancePayment && (
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+            <Star className="size-3" />
+            Réservation prioritaire — Pensez à envoyer le paiement
+          </div>
+        )}
       </div>
 
       <Card className="w-full border-emerald-200 bg-emerald-50/50">
         <CardContent className="space-y-3 p-4">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">
-              Service
-            </p>
-            <p className="font-semibold text-foreground">
-              {selectedService?.name}
-            </p>
+            <p className="text-xs font-medium text-muted-foreground">Service</p>
+            <p className="font-semibold text-foreground">{selectedService?.name}</p>
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground">
-              Date & heure
-            </p>
+            <p className="text-xs font-medium text-muted-foreground">Date & heure</p>
             <p className="font-semibold text-foreground">
               {selectedDate && formatDateFR(selectedDate)} à{' '}
               {selectedSlot && formatTimeFR(selectedSlot.starts_at)}
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground">
-              Professionnel
-            </p>
-            <p className="font-semibold text-foreground">
-              {profile?.business_name}
-            </p>
+            <p className="text-xs font-medium text-muted-foreground">Professionnel</p>
+            <p className="font-semibold text-foreground">{profile?.business_name}</p>
           </div>
         </CardContent>
       </Card>
@@ -830,7 +1018,8 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
 
   // ---- Step content dispatcher ----
   const renderStepContent = () => {
-    switch (STEPS[currentStep].id) {
+    const stepId = STEPS[currentStep]?.id;
+    switch (stepId) {
       case 'service':
         return renderServiceStep();
       case 'date':
@@ -839,6 +1028,8 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
         return renderTimeStep();
       case 'info':
         return renderInfoStep();
+      case 'payment':
+        return renderPaymentStep();
       case 'confirm':
         return renderConfirmStep();
       default:

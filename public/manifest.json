@@ -1,17 +1,54 @@
 {
-  "name": "Djola TikTak",
-  "short_name": "Djola",\n  "description": "Votre rendez-vous en un clic — Prise de RDV pour prestataires locaux",
+  "name": "Djola TikTak — Rendez-vous en un clic",
+  "short_name": "Djola",
+  "description": "Votre rendez-vous en un clic — Prise de RDV pour prestataires locaux",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0f0d",
-  "theme_color": "#c8ff00",
+  "background_color": "#ffffff",
+  "theme_color": "#059669",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["business", "lifestyle", "productivity"],
+  "lang": "fr",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/logo.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
     }
-  ]
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Mes rendez-vous",
+      "url": "/dashboard/appointments",
+      "description": "Voir mes rendez-vous"
+    },
+    {
+      "name": "Nouvelle réservation",
+      "url": "/dashboard/services",
+      "description": "Gérer mes services"
+    }
+  ],
+  "prefer_related_applications": false
 }
