@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     // Check plan limit for appointments per day
     const plan = (profile.plan as 'starter' | 'pro' | 'business') || 'starter';
-    let apptLimit = -1;
+    let apptLimit: number | null = null;
     try {
       const { data: planLimit } = await serviceRole
         .from('plan_limits')
@@ -117,8 +117,8 @@ export async function POST(request: NextRequest) {
       console.warn('[appointments] plan_limits query failed, using defaults:', err);
     }
 
-    // Fallback defaults
-    if (apptLimit === -1) {
+    // Fallback defaults only when DB returned nothing
+    if (apptLimit === null) {
       const defaults: Record<string, number> = { starter: 50, pro: 100, business: -1 };
       apptLimit = defaults[plan] ?? -1;
     }

@@ -1,8 +1,6 @@
 const CACHE_NAME = 'djola-tiktak-v2';
 const PRECACHE_URLS = [
   '/',
-  '/login',
-  '/register',
   '/pricing',
   '/manifest.json',
 ];

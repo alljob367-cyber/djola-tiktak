@@ -77,6 +77,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Professionnel non disponible' }, { status: 404 });
     }
 
+
+    // Vérifier la limite de rendez-vous par jour du plan
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+
+    const { count: todayCount } = await supabase
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('profile_id', service.profile_id)
+      .neq('status', 'cancelled')
+      .gte('starts_at', todayStart.toISOString())
+      .lt('starts_at', todayEnd.toISOString());
+
+    const profilePlan = (profile.plan as string) || 'starter';
+    const PLAN_DEFAULTS: Record<string, number> = { starter: 50, pro: 100, business: -1 };
+    let apptLimit = PLAN_DEFAULTS[profilePlan] ?? -1;
+
+    try {
+      const { data: planLimit } = await supabase
+        .from('plan_limits')
+        .select('limit_value')
+        .eq('plan_id', profilePlan)
+        .eq('limit_key', 'max_appointments_per_day')
+        .maybeSingle();
+      if (planLimit) apptLimit = planLimit.limit_value;
+    } catch {
+      // Use defaults on DB error
+    }
+
+    // Admin bypass (check via env)
+    const ADMIN_EMAILS_LIST = (process.env.ADMIN_EMAILS ?? '')
+      .split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
+    const isProfileAdmin = profile.email ? ADMIN_EMAILS_LIST.includes(profile.email.toLowerCase()) : false;
+
+    if (!isProfileAdmin && apptLimit !== -1 && (todayCount ?? 0) >= apptLimit) {
+      return NextResponse.json(
+        { error: "Ce professionnel a atteint sa limite de réservations pour aujourd'hui." },
+        { status: 429 },
+      );
+    }
+
     // Calculer ends_at à partir de la durée du service
     const start = new Date(starts_at);
     const end = new Date(start.getTime() + service.duration_minutes * 60 * 1000);

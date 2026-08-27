@@ -20,7 +20,7 @@ export async function GET() {
     }
 
     const isAdmin = ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '');
-    return NextResponse.json({ isAdmin, email: user.email });
+    return NextResponse.json({ isAdmin });
   } catch {
     return NextResponse.json({ isAdmin: false, reason: 'error' });
   }

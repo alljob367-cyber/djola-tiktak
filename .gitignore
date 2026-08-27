@@ -53,3 +53,6 @@ prompt
 server.log
 # Skills directory
 /skills/
+tool-results/
+
+db/custom.db

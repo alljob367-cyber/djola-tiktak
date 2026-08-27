@@ -6,8 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Phone, ChevronRight, MessageCircle, Globe, ImageOff, Wallet, Star, Copy, CheckCircle2 } from 'lucide-react';
-import type { ProfileWithServices } from '@/types/database';
+import { Clock, Phone, ChevronRight, MessageCircle, Globe, ImageOff, Wallet, CheckCircle2 } from 'lucide-react';
 
 interface PageProps { params: Promise<{ slug: string }> }
 

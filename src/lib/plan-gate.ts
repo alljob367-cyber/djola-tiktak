@@ -12,7 +12,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
   .filter(Boolean);
 
 // ── Default limits when DB plan_limits table is not available ──
-const DEFAULT_LIMITS: Record<string, Record<PlanId, number>> = {
+export const DEFAULT_LIMITS: Record<string, Record<PlanId, number>> = {
   max_services:              { starter: 5,   pro: -1, business: -1 },
   max_clients:               { starter: 200, pro: -1, business: -1 },
   max_appointments_per_day:  { starter: 50,  pro: 100, business: -1 },
@@ -47,7 +47,7 @@ export function isAdmin(email: string | null | undefined): boolean {
  * Returns true for admins regardless.
  */
 export function hasActiveSubscription(profile: Profile): boolean {
-  if (ADMIN_EMAILS.length === 0) return false; // No admin list = not admin
+  if (isAdmin(profile.email)) return true;
   const status = profile.subscription_status;
   return status === 'active' || status === 'trialing';
 }
@@ -140,8 +140,9 @@ export async function checkPlanLimit(params: {
   if (limitValue === null && DEFAULT_LIMITS[featureKey]?.[plan] !== undefined) {
     limitValue = DEFAULT_LIMITS[featureKey][plan];
   } else if (limitValue === null) {
-    // Feature not in defaults and not in DB → unlimited
-    limitValue = -1;
+    // Feature not in defaults and not in DB → deny by default
+    console.warn(`[plan-gate] Unknown feature key: ${featureKey} — denying access.`);
+    limitValue = 0;
   }
 
   // -1 means unlimited

@@ -1,5 +1,15 @@
+import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+
+// Constant-time comparison to prevent timing attacks
+function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) return false;
+  return timingSafeEqual(aBuf, bBuf);
+}
 
 // POST — endpoint cron pour envoyer les rappels de rendez-vous
 // Vérifie le header CRON_SECRET pour l'authentification
@@ -7,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     // Vérifier le secret du cron
     const cronSecret = request.headers.get('CRON_SECRET');
-    if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
+    if (!cronSecret || !process.env.CRON_SECRET || !safeCompare(cronSecret, process.env.CRON_SECRET)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 

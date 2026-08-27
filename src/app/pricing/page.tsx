@@ -148,7 +148,7 @@ function ComparisonCell({ value }: { value: string }) {
 
 export default function PricingPage() {
   const handlePlanSelect = useCallback((planKey: string) => {
-    window.location.href = `/auth/signup?plan=${planKey}`;
+    window.location.href = `/register?plan=${planKey}`;
   }, []);
 
   return (
@@ -304,7 +304,7 @@ export default function PricingPage() {
               size="lg"
               variant="outline"
               className="px-8 text-base"
-              onClick={() => window.location.href = '/auth/signup?plan=pro&payment=mobile_money'}
+              onClick={() => window.location.href = '/register?plan=pro&payment=mobile_money'}
             >
               <Phone className="mr-2 size-4" />
               Payer par Mobile Money

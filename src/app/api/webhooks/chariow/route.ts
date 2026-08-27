@@ -43,37 +43,40 @@ export async function POST(request: NextRequest) {
   const eventType: string = payload.event;
   const saleId: string = saleData.id;
 
-  // --- 3. Deduplication check ---
-  const { data: existingEvent } = await supabase
-    .from('webhook_events')
-    .select('id, status')
-    .eq('event_id', saleId)
-    .eq('provider', 'chariow')
-    .maybeSingle();
-
-  if (existingEvent && existingEvent.status === 'success') {
-    return NextResponse.json({ received: true });
-  }
-
-  // --- 4. Insert processing webhook_event ---
+  // --- 3. Upsert webhook_event (idempotent deduplication) ---
+  // Uses upsert to handle concurrent deliveries atomically.
+  // If (provider, event_id) already exists with 'success', we skip processing.
   const { data: webhookEvent, error: insertEventError } = await supabase
     .from('webhook_events')
-    .insert({
+    .upsert({
       provider: 'chariow',
       event_type: eventType,
       event_id: saleId,
       payload: payload as unknown as Record<string, unknown>,
       status: 'processing',
+    }, {
+      onConflict: 'provider,event_id',
+      ignoreDuplicates: true,
     })
-    .select('id')
-    .single();
+    .select('id, status')
+    .maybeSingle();
 
-  if (insertEventError || !webhookEvent) {
-    console.error('[chariow-webhook] Erreur insertion webhook_event:', insertEventError?.message);
+  // If upsert didn't insert (duplicate), check if already processed
+  if (!webhookEvent || insertEventError) {
+    // Row already exists — check its status
+    if (!insertEventError) {
+      // Duplicate ignored, already exists
+      return NextResponse.json({ received: true });
+    }
+    console.error('[chariow-webhook] Erreur upsert webhook_event:', insertEventError?.message);
     return NextResponse.json(
       { error: 'Erreur interne du serveur.' },
       { status: 500 },
     );
+  }
+
+  if (webhookEvent.status === 'success') {
+    return NextResponse.json({ received: true });
   }
 
   const webhookEventId: string = webhookEvent.id;

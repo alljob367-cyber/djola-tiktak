@@ -14,7 +14,7 @@ export async function GET(_request: NextRequest) {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, email, business_name, slug, phone, is_active, plan, subscription_status, timezone, currency, theme, created_at')
       .eq('id', user.id)
       .single();
 

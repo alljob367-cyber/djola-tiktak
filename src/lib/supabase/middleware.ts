@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const DASHBOARD_PATHS = ['/dashboard'];
+const ADMIN_PATHS = ['/admin'];
 const AUTH_PATHS = ['/login', '/register', '/forgot-password', '/verify-email'];
 
 export async function updateSession(request: NextRequest) {
@@ -20,10 +21,11 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isDashboard = DASHBOARD_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
+  const isAdmin = ADMIN_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
   const isAuth = AUTH_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
 
   // For non-protected routes, skip Supabase call entirely
-  if (!isDashboard && !isAuth) {
+  if (!isDashboard && !isAuth && !isAdmin) {
     return supabaseResponse;
   }
 
@@ -46,7 +48,12 @@ export async function updateSession(request: NextRequest) {
         },
       });
 
-      // Use getSession (local cache) instead of getUser (network call)
+      // For admin routes, use getUser() for server-side validation
+      // For dashboard/auth, use getSession() for speed
+      if (isAdmin) {
+        const { data: { user } } = await supabase.auth.getUser();
+        return user;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       return session?.user ?? null;
     })();
@@ -59,7 +66,7 @@ export async function updateSession(request: NextRequest) {
 
     // If user is null due to timeout, let the request through
     // Page-level auth will handle it
-    if (!user && isDashboard) {
+    if (!user && (isDashboard || isAdmin)) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       return NextResponse.redirect(url);

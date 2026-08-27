@@ -1,8 +1,18 @@
+import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
+// Constant-time comparison to prevent timing attacks
+function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) return false;
+  return timingSafeEqual(aBuf, bBuf);
+}
+
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
   .split(',')
@@ -15,12 +25,16 @@ export async function GET(request: NextRequest) {
   try {
     // Verify admin access — use ADMIN_SECRET only (not CRON_SECRET)
     const adminSecret = request.headers.get('X-Admin-Secret');
-    if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+    if (!adminSecret || !process.env.ADMIN_SECRET || !safeCompare(adminSecret, process.env.ADMIN_SECRET)) {
       // Fallback: authenticated admin user via session
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || ADMIN_EMAILS.length === 0 || !ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '')) {
-        return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
+      const isAuthed = !!user;
+      if (!isAuthed) {
+        return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 });
+      }
+      if (ADMIN_EMAILS.length === 0 || !ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '')) {
+        return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
       }
     }
 

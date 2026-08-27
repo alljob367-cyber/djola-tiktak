@@ -134,6 +134,12 @@ export default function SettingsPage() {
   const handleSavePaymentMethods = async () => {
     setPmSaving(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Non authentifié');
+        setPmSaving(false);
+        return;
+      }
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -144,7 +150,8 @@ export default function SettingsPage() {
           mtn_momo_name: mtnName || null,
           payment_instructions: pmInstructions || null,
           updated_at: new Date().toISOString(),
-        });
+        })
+        .eq('id', user.id);
 
       if (error) throw error;
       toast.success('Moyens de paiement enregistrés');
@@ -173,8 +180,8 @@ export default function SettingsPage() {
       setPwdError('Le nouveau mot de passe est requis');
       return;
     }
-    if (newPassword.length < 6) {
-      setPwdError('Le mot de passe doit contenir au moins 6 caractères');
+    if (newPassword.length < 8) {
+      setPwdError('Le mot de passe doit contenir au moins 8 caractères');
       return;
     }
     if (newPassword !== confirmPassword) {

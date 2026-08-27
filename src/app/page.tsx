@@ -57,7 +57,7 @@ const industries = [
   { icon: UtensilsCrossed, label: 'Restaurants & Bars', image: '/images/industries/restaurant.png', desc: 'Organisez vos tables et réservations en un clic.' },
   { icon: Stethoscope, label: 'Pharmacies & Santé', image: '/images/industries/pharmacie.png', desc: 'Planifiez consultations et retraits d\'ordonnances.' },
   { icon: Store, label: 'Boutiques & Commerce', image: '/images/industries/boutique.png', desc: 'Offrez des créneaux de retrait ou de conseil.' },
-  { icon: Stethoscope, label: 'Bien-être & Spa', image: '/images/industries/sante.png', desc: 'Simplifiez la réservation de massages et soins.' },
+  { icon: Sparkles, label: 'Bien-être & Spa', image: '/images/industries/sante.png', desc: 'Simplifiez la réservation de massages et soins.' },
   { icon: GraduationCap, label: 'Formation & Coaching', image: '/images/industries/formation.png', desc: 'Programmez vos sessions et suivis individuels.' },
 ];
 
@@ -661,7 +661,7 @@ export default function LandingPage() {
 
           {/* Bottom note */}
           <p className="mt-10 text-center text-[13px] text-gray-600">
-            Tous les plans incluent un essai gratuit de 14 jours • Paiement mobile money & carte bancaire acceptés
+            Tous les plans incluent un essai gratuit de 7 jours • Paiement mobile money & carte bancaire acceptés
           </p>
         </div>
       </section>

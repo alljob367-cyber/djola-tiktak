@@ -1,7 +1,18 @@
+import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
+
+// Constant-time comparison to prevent timing attacks
+function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) return false;
+  return timingSafeEqual(aBuf, bBuf);
+}
+
 
 // POST — endpoint cron pour expirer les abonnements échus
 // Déclenché par GitHub Actions (quotidiennement)
@@ -10,7 +21,7 @@ export async function POST(request: NextRequest) {
   try {
     // 1. Verify CRON_SECRET header
     const cronSecret = request.headers.get('CRON_SECRET');
-    if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
+    if (!cronSecret || !process.env.CRON_SECRET || !safeCompare(cronSecret, process.env.CRON_SECRET)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
@@ -27,7 +38,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           expired_count: 0,
-          message: `Erreur lors de l'expiration des abonnements : ${rpcError.message}`,
+          message: "Erreur lors de l'expiration des abonnements.",
         },
         { status: 500 },
       );

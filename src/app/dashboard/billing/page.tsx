@@ -250,8 +250,9 @@ export default function BillingPage() {
 
   // ── Plan change handler ────────────────────────────────────
   const handleSelectPlan = async (planId: PlanId) => {
+    if (!data) return;
     // Si c'est le plan actuel, ne rien faire
-    if (planId === sub.plan) return;
+    if (planId === data.subscription.plan) return;
 
     setPlanLoading(planId);
     try {

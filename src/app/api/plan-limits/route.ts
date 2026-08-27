@@ -1,19 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { isAdmin } from '@/lib/plan-gate';
+import { isAdmin, DEFAULT_LIMITS } from '@/lib/plan-gate';
 import type { PlanId } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
-
-// Default limits when DB is not available
-const DEFAULTS: Record<string, Record<PlanId, number>> = {
-  max_services:              { starter: 5,   pro: -1, business: -1 },
-  max_clients:               { starter: 200, pro: -1, business: -1 },
-  max_appointments_per_day:  { starter: 50,  pro: 100, business: -1 },
-  max_employees:             { starter: 1,   pro: 3,   business: 10 },
-  max_calendars:             { starter: 1,   pro: 3,   business: -1 },
-  voice_credits:             { starter: 50,  pro: 200, business: 500 },
-};
 
 const FEATURE_LABELS: Record<string, string> = {
   max_services: 'Services',
@@ -65,7 +55,7 @@ export async function GET() {
     }
 
     // Fill in defaults for missing keys
-    for (const [key, planDefaults] of Object.entries(DEFAULTS)) {
+    for (const [key, planDefaults] of Object.entries(DEFAULT_LIMITS)) {
       if (!(key in limits)) {
         limits[key] = planDefaults[plan] ?? 0;
       }
