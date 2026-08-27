@@ -13,6 +13,7 @@ import {
   Clock,
   UserCircle,
   Settings,
+  CreditCard,
   LogOut,
   Menu,
   ChevronLeft,
@@ -58,6 +59,7 @@ const sidebarLinks: NavItem[] = [
   { href: '/dashboard/appointments', label: 'Rendez-vous', icon: CalendarDays },
   { href: '/dashboard/clients', label: 'Clients', icon: Users },
   { href: '/dashboard/availability', label: 'Disponibilités', icon: Clock },
+  { href: '/dashboard/billing', label: 'Abonnement', icon: CreditCard },
   { href: '/dashboard/profile', label: 'Profil', icon: UserCircle },
   { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
 ];
@@ -328,6 +330,12 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                   <Link href="/dashboard/settings" className="cursor-pointer">
                     <Settings size={16} />
                     Paramètres
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/billing" className="cursor-pointer">
+                    <CreditCard size={16} />
+                    Abonnement
                   </Link>
                 </DropdownMenuItem>
                 {showAdmin && (

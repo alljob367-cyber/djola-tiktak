@@ -562,18 +562,24 @@ export default function BillingPage() {
             Ou payer par Mobile Money (Orange / MTN)
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
-          {plans.map((plan) => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              isCurrentPlan={plan.id === sub.plan}
-              isRecommended={plan.id === 'pro'}
-              onSelect={handleSelectPlan}
-              loading={planLoading === plan.id}
-            />
-          ))}
-        </div>
+        {plans.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">
+            Aucun plan disponible actuellement. Contactez le support.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+            {plans.map((plan) => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                isCurrentPlan={plan.id === sub.plan}
+                isRecommended={plan.id === 'pro'}
+                onSelect={handleSelectPlan}
+                loading={planLoading === plan.id}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── 5. Payment History Section ─────────────────────── */}
