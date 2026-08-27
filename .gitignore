@@ -55,4 +55,8 @@ server.log
 /skills/
 tool-results/
 
+# Secrets & credentials
+VARIABLES-VERCEL.md
+*.env.secrets
+
 db/custom.db
