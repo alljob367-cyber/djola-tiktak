@@ -5,8 +5,15 @@ export async function middleware(request: NextRequest) {
   return await updateSession(request);
 }
 
+// Only run middleware on dashboard routes (auth-required) and auth routes
+// This prevents 504 MIDDLEWARE_INVOCATION_TIMEOUT on public pages
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|logo.svg|robots.txt).*)',
+    '/dashboard/:path*',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/verify-email',
+    '/auth/:path*',
   ],
 };
