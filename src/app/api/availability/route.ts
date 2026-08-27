@@ -99,8 +99,7 @@ export async function PUT(request: NextRequest) {
       validatedItems.push({ ...parsed.data, profile_id: user.id });
     }
 
-    // Supprimer toutes les disponibilités existantes puis insérer les nouvelles
-    // dans une transaction logique : on insert d'abord, puis delete si insert réussit
+    // Insert new entries first
     const { data: insertedData, error: insertError } = await supabase
       .from('availability')
       .insert(validatedItems)
@@ -113,22 +112,33 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la mise à jour des disponibilités' }, { status: 500 });
     }
 
-    // Insert succeeded — now safely remove old entries (different from new ones)
-    const newIds = (insertedData ?? [])
-      .map((item: { id?: string }) => item.id)
-      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+    // Compute which old entries to delete: fetch existing IDs, subtract new IDs
+    // This avoids the fragile `.not('id', 'in', ...)` pattern and prevents
+    // the batch-delete bug where each batch would re-delete rows kept by prior batches.
+    const newIdSet = new Set(
+      (insertedData ?? [])
+        .map((item: { id?: string }) => item.id)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    );
 
-    if (newIds.length > 0) {
-      // Delete old entries that are NOT in the new set, for this user only
-      // Use individual deletes per batch of 100 to avoid PostgREST URL length limits
-      const batchSize = 100;
-      for (let i = 0; i < newIds.length; i += batchSize) {
-        const batch = newIds.slice(i, i + batchSize);
+    if (newIdSet.size > 0) {
+      const { data: oldSlots } = await supabase
+        .from('availability')
+        .select('id')
+        .eq('profile_id', user.id);
+
+      const idsToDelete = (oldSlots ?? [])
+        .map((s: { id: string }) => s.id)
+        .filter((id) => !newIdSet.has(id));
+
+      // Delete only the specific old IDs, in safe batches using .in() (parameterized)
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < idsToDelete.length; i += BATCH_SIZE) {
+        const batch = idsToDelete.slice(i, i + BATCH_SIZE);
         await supabase
           .from('availability')
           .delete()
-          .eq('profile_id', user.id)
-          .not('id', 'in', `(${batch.join(',')})`);
+          .in('id', batch);
       }
     }
 

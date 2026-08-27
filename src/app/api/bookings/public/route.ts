@@ -182,7 +182,38 @@ export async function POST(request: NextRequest) {
       client_id = newClient.id;
     }
 
-    // Créer le rendez-vous
+    // ── Créer le rendez-vous (atomic via RPC, with fallback) ──
+    // Try the Postgres RPC first (true atomicity, no TOCTOU race).
+    // Falls back to the legacy insert + post-insert guard if the RPC
+    // has not been deployed yet (migration not yet run).
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      'book_appointment_atomic',
+      {
+        p_profile_id: service.profile_id,
+        p_service_id: service_id,
+        p_client_id: client_id,
+        p_starts_at: starts_at,
+        p_ends_at: ends_at,
+        p_status: 'pending',
+        p_notes: '',
+      },
+    );
+
+    if (!rpcError && rpcResult) {
+      // RPC succeeded — handle result
+      if (rpcResult.conflict) {
+        return NextResponse.json(
+          { error: rpcResult.error || 'Ce créneau est déjà pris. Veuillez en choisir un autre.' },
+          { status: 409 },
+        );
+      }
+
+      return NextResponse.json({ data: rpcResult.appointment }, { status: 201 });
+    }
+
+    // ── Fallback: RPC not deployed yet — use legacy insert + post-insert guard ──
+    console.warn('[bookings/public] RPC book_appointment_atomic not available, using fallback:', rpcError?.message);
+
     const { data: appointment, error: aptError } = await supabase
       .from('appointments')
       .insert({
@@ -201,7 +232,7 @@ export async function POST(request: NextRequest) {
       `)
       .single();
 
-    // ── Post-insert overlap guard (defense against TOCTOU race) ──
+    // Post-insert overlap guard (defense against TOCTOU race)
     // If 2 concurrent requests passed the pre-check, one may have inserted first.
     // We verify no overlap was created; if so, we delete the duplicate and return 409.
     if (appointment) {
