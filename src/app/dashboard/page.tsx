@@ -255,12 +255,14 @@ export default async function DashboardPage() {
     month: '2-digit',
     day: '2-digit',
   }).format(now);
+  const tomorrowDate = new Date(now);
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
   const tomorrowStr = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(new Date(now.getTime() + 86400000));
+  }).format(tomorrowDate);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   // ── Parallel data fetch ──────────────────────────────────────

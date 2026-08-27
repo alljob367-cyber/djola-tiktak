@@ -10,9 +10,13 @@ export async function POST() {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
+    if (!user.email) {
+      return NextResponse.json({ error: 'Aucun e-mail associé à ce compte' }, { status: 400 });
+    }
+
     const { error } = await supabase.auth.resend({
       type: 'signup',
-      email: user.email!,
+      email: user.email || '',
     });
 
     if (error) {

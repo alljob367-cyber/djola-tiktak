@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { Mail, Loader2, ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
@@ -47,7 +49,7 @@ export default function VerifyEmailPage() {
     const params = new URLSearchParams(window.location.search);
     const emailParam = params.get('email');
     if (emailParam && !email) setEmail(emailParam);
-  }, [email]);
+  }, []);
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-stone-50 via-white to-emerald-50/40">
@@ -87,7 +89,7 @@ export default function VerifyEmailPage() {
         <Card className="border-0 shadow-xl shadow-black/5">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-lg font-semibold text-center">
-              Un dernier étape !
+              Une dernière étape !
             </CardTitle>
             <CardDescription className="text-center text-sm">
               {sent
@@ -100,6 +102,20 @@ export default function VerifyEmailPage() {
               <div className="rounded-lg bg-muted/50 p-3 text-center">
                 <p className="text-sm text-muted-foreground">Envoyé à</p>
                 <p className="text-sm font-medium text-foreground mt-0.5">{email}</p>
+              </div>
+            )}
+
+            {!email && (
+              <div className="space-y-2">
+                <Label htmlFor="verify-email-input">Votre adresse e-mail</Label>
+                <Input
+                  id="verify-email-input"
+                  type="email"
+                  placeholder="vous@exemple.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11"
+                />
               </div>
             )}
 

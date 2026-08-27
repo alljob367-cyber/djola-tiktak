@@ -3,15 +3,15 @@ import { ArrowLeft, CalendarX } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-stone-50 via-white to-emerald-50/40">
+    <main className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-stone-50 via-white to-emerald-50/40 dark:from-background dark:via-background dark:to-emerald-950/10">
       <div className="text-center space-y-6 max-w-md">
         <div className="flex justify-center">
-          <div className="rounded-full bg-emerald-100 p-6">
+          <div className="rounded-full bg-emerald-100 dark:bg-emerald-950/30 p-6">
             <CalendarX className="size-12 text-emerald-600" />
           </div>
         </div>
-        <h1 className="text-4xl font-bold text-gray-900">404</h1>
-        <p className="text-lg text-gray-500">
+        <h1 className="text-4xl font-bold text-foreground">404</h1>
+        <p className="text-lg text-muted-foreground">
           Page introuvable. Cette page n'existe pas ou a été déplacée.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">

@@ -33,10 +33,7 @@ export async function generateReminderAudio(payload: ReminderPayload): Promise<B
       body: JSON.stringify({
         text: message,
         model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-        },
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     });
 
@@ -58,25 +55,9 @@ export class VoiceProvider implements NotificationProvider {
   readonly channel = 'voice';
 
   async send(payload: ReminderPayload): Promise<ReminderResult> {
-    try {
-      const audio = await generateReminderAudio(payload);
-      if (!audio) {
-        return {
-          success: false,
-          channel: this.channel,
-          error: 'Impossible de générer le message vocal',
-        };
-      }
-
-      // Placeholder — integrate with Twilio Voice API or similar to deliver the audio
-      console.log(`[Voice] Audio reminder generated (${audio.length} bytes) for ${payload.clientPhone}`);
-      return { success: true, channel: this.channel, messageId: `voice-${Date.now()}` };
-    } catch (error) {
-      return {
-        success: false,
-        channel: this.channel,
-        error: error instanceof Error ? error.message : 'Erreur inconnue',
-      };
-    }
+    // Voice delivery is not yet implemented — bail out early to avoid
+    // wasting ElevenLabs API credits on audio that will never be sent.
+    console.warn('[Voice] Voice delivery not implemented; skipping for', payload.clientPhone);
+    return { success: false, reason: 'Voice delivery not implemented', channel: this.channel };
   }
 }

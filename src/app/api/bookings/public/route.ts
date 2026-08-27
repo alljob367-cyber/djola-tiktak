@@ -79,7 +79,8 @@ export async function POST(request: NextRequest) {
 
 
     // Vérifier la limite de rendez-vous par jour du plan
-    const todayStart = new Date();
+    const tz = profile.timezone || 'Africa/Malabo';
+    const todayStart = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date(todayStart);
     todayEnd.setDate(todayEnd.getDate() + 1);

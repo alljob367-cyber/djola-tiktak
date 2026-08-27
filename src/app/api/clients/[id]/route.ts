@@ -30,7 +30,7 @@ export async function DELETE(
     }
 
     // Supprimer les rendez-vous associés d'abord
-    await supabase.from('appointments').delete().eq('client_id', id);
+    await supabase.from('appointments').update({ status: 'cancelled' }).eq('client_id', id).neq('status', 'completed');
 
     // Supprimer le client
     const { error: deleteError } = await supabase

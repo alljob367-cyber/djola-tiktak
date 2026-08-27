@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 interface SubscriptionBadgeProps {
   status: string;
-  planName: string;
+  planName?: string;
   daysRemaining: number | null;
   isTrial: boolean;
 }

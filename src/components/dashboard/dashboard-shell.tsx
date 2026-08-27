@@ -20,6 +20,7 @@ import {
   ChevronRight,
   AlertTriangle,
   ArrowRight,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,6 @@ import {
 } from '@/components/ui/tooltip';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types/database';
-import { Shield } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────
 interface DashboardShellProps {

@@ -124,7 +124,7 @@ export default function ProfilePage() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) setEmailVerified(user.email_confirmed_at ? true : false);
-      } catch {}
+      } catch (err) { console.warn('[profile] email check failed:', err); }
     })();
   }, []);
 
@@ -198,7 +198,13 @@ export default function ProfilePage() {
       setSlugChecking(true);
       try {
         const res = await fetch(`/api/profiles/${slug}`);
-        setSlugAvailable(!res.ok);
+        if (res.status === 404) {
+          setSlugAvailable(true);
+        } else if (res.ok) {
+          setSlugAvailable(false);
+        } else {
+          setSlugAvailable(null);
+        }
       } catch { setSlugAvailable(null); } finally { setSlugChecking(false); }
     }, 400);
     return () => clearTimeout(timer);

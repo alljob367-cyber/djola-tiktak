@@ -347,9 +347,14 @@ function ManualPaymentContent() {
                     </p>
                     <p className="text-2xl font-extrabold tracking-wider text-foreground mt-1 font-mono">
                       {paymentMethod === 'orange_money'
-                        ? (process.env.NEXT_PUBLIC_OM_PHONE || '237 6XX XXX XXX')
-                        : (process.env.NEXT_PUBLIC_MTN_PHONE || '237 6XX XXX XXX')}
+                        ? (process.env.NEXT_PUBLIC_OM_PHONE || '')
+                        : (process.env.NEXT_PUBLIC_MTN_PHONE || '')}
                     </p>
+                    {!(paymentMethod === 'orange_money' ? process.env.NEXT_PUBLIC_OM_PHONE : process.env.NEXT_PUBLIC_MTN_PHONE) && (
+                      <p className="text-sm text-red-500 font-medium mt-1">
+                        Numéro non configuré. Contactez le support.
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground mt-1">
                       Nom du bénéficiaire : <span className="font-medium text-foreground">{process.env.NEXT_PUBLIC_PAYEE_NAME || 'Djola TikTak'}</span>
                     </p>
@@ -418,7 +423,11 @@ function ManualPaymentContent() {
                     Envoyez la capture d'écran de confirmation
                   </p>
                   <p className="text-blue-700/80 dark:text-blue-400 mt-1">
-                    WhatsApp : <span className="font-mono font-bold">{process.env.NEXT_PUBLIC_SUPPORT_PHONE || '237 6XX XXX XXX'}</span>
+                    WhatsApp : {process.env.NEXT_PUBLIC_SUPPORT_PHONE ? (
+                      <span className="font-mono font-bold">{process.env.NEXT_PUBLIC_SUPPORT_PHONE}</span>
+                    ) : (
+                      <span className="text-amber-600 font-medium">Voir page d'accueil</span>
+                    )}
                     {' — '}
                     Email : <span className="font-mono font-bold">support@djola-tiktak.com</span>
                   </p>

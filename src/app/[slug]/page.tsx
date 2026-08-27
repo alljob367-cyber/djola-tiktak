@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { formatCurrency } from '@/lib/availability/engine';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function PublicProfilePage({ params }: PageProps) {
   const { slug } = await params;
-  const supabase = await createServiceRoleClient();
+  const supabase = await createClient();
 
   const { data: profile, error } = await supabase
     .from('profiles')
@@ -169,7 +169,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
                   {/* Service image */}
                   {service.image_url ? (
                     <div className="h-16 w-16 shrink-0 rounded-lg overflow-hidden bg-muted">
-                      <img src={service.image_url} alt={service.name} className="h-full w-full object-cover" />
+                      <img src={service.image_url} alt={service.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                     </div>
                   ) : (
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/30">

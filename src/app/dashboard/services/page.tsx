@@ -324,7 +324,7 @@ export default function ServicesPage() {
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg overflow-hidden bg-emerald-50 dark:bg-emerald-950/30">
-                                {s.image_url ? <img src={s.image_url} alt={s.name} className="h-full w-full object-cover" /> : <CalendarCheck size={16} className="text-emerald-600 dark:text-emerald-400" />}
+                                {s.image_url ? <img src={s.image_url} alt={s.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : <CalendarCheck size={16} className="text-emerald-600 dark:text-emerald-400" />}
                               </div>
                               <div>
                                 <p className="font-medium">{s.name}</p>

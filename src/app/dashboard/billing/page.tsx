@@ -262,8 +262,11 @@ export default function BillingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erreur lors du changement de plan');
+      }
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Erreur lors du changement de plan');
       if (result.checkoutUrl) {
         window.location.href = result.checkoutUrl;
       } else {
@@ -285,8 +288,11 @@ export default function BillingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'cancel', reason: 'user_request' }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erreur lors de l\'annulation');
+      }
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Erreur lors de l\'annulation');
       toast.success('Abonnement annulé. Il restera actif jusqu\'à la fin de la période.');
       await fetchData();
     } catch (e) {
@@ -381,7 +387,7 @@ export default function BillingPage() {
               </div>
               <SubscriptionBadge
                 status={sub.subscription_status}
-                planName={currentPlanName}
+                planName={currentPlanName ?? ''}
                 daysRemaining={sub.days_remaining}
                 isTrial={sub.is_trial}
               />

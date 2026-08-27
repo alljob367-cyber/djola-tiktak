@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';

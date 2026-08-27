@@ -96,7 +96,7 @@ export function WelcomeModal({ businessName }: { businessName: string }) {
                 className="flex gap-3.5"
               >
                 <div className="shrink-0 h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center mt-0.5">
-                  <Icon className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+                  <Icon className="h-[18px] w-[18px] text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">{feature.title}</h3>

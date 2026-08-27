@@ -21,6 +21,7 @@ export interface ReminderResult {
   channel: string;
   messageId?: string;
   error?: string;
+  reason?: string;
 }
 
 export interface NotificationProvider {

@@ -61,19 +61,19 @@ export async function GET() {
       }
     }
 
-    // Count current usage
-    const serviceRole = await createServiceRoleClient();
+    // Nombre d'éléments en cours d'utilisation
+    const adminClient = await createServiceRoleClient();
     const counts: Record<string, number> = {};
 
     // Services count
-    const { count: servicesCount } = await serviceRole
+    const { count: servicesCount } = await adminClient
       .from('services')
       .select('id', { count: 'exact', head: true })
       .eq('profile_id', user.id);
     counts.max_services = servicesCount ?? 0;
 
     // Clients count
-    const { count: clientsCount } = await serviceRole
+    const { count: clientsCount } = await adminClient
       .from('clients')
       .select('id', { count: 'exact', head: true })
       .eq('profile_id', user.id);
@@ -83,7 +83,7 @@ export async function GET() {
     const today = new Date();
     const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
     const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
-    const { count: apptsCount } = await serviceRole
+    const { count: apptsCount } = await adminClient
       .from('appointments')
       .select('id', { count: 'exact', head: true })
       .eq('profile_id', user.id)

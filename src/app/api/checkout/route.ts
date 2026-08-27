@@ -82,11 +82,15 @@ export async function POST(request: NextRequest) {
 
     // 5. Call Chariow API to create checkout session
     try {
+      if (!profile.phone) {
+        await supabase.from('payments').update({ status: 'failed' }).eq('id', payment.id);
+        return NextResponse.json({ error: 'Veuillez configurer votre numéro de téléphone dans votre profil avant de payer.' }, { status: 400 });
+      }
       const { checkoutUrl, saleId } = await createCheckout({
         productId,
         email: profile.email || user.email || '',
         fullName: profile.business_name || 'Utilisateur',
-        phone: profile.phone || '237600000000',
+        phone: profile.phone || '',
         profileId: user.id,
         planId: selectedPlan,
       });

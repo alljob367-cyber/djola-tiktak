@@ -53,7 +53,7 @@ export function generateAvailableSlots(params: {
   if (dayAvailability.length === 0) return [];
 
   // Build date boundaries in the professional's timezone
-  const dateStr = formatDateISO(date);
+  const dateStr = formatDateISO(date, timezone);
   const dayStart = new Date(`${dateStr}T00:00:00`);
   const dayEnd = new Date(`${dateStr}T23:59:59`);
 
@@ -125,7 +125,10 @@ function minutesToDate(date: Date, minutes: number): Date {
   return result;
 }
 
-function formatDateISO(date: Date): string {
+function formatDateISO(date: Date, timezone?: string): string {
+  if (timezone) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  }
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
