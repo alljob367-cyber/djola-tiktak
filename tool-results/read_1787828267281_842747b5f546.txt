@@ -1,64 +1,64 @@
      1→'use client';
      2→
-     3→import Link from 'next/link';
-     4→import {
-     5→  CalendarCheck,
-     6→  ArrowRight,
-     7→  Play,
-     8→  Clock,
-     9→  Bell,
-    10→  ShieldCheck,
-    11→  TrendingUp,
-    12→  Smartphone,
-    13→  Lock,
-    14→  Sparkles,
-    15→  Scissors,
-    16→  UtensilsCrossed,
-    17→  Store,
-    18→  MonitorSmartphone,
-    19→  Briefcase,
-    20→  Camera,
-    21→  Stethoscope,
-    22→  GraduationCap,
-    23→  Utensils,
-    24→  Shirt,
-    25→  Wrench,
-    26→  Users,
-    27→  CheckCircle2,
-    28→  ExternalLink,
-    29→  ChevronLeft,
-    30→  ChevronRight,
-    31→  Star,
-    32→} from 'lucide-react';
-    33→
-    34→/* ──────────── DATA ──────────── */
-    35→
-    36→const navLinks = ['Accueil', 'Fonctionnalités', 'Tarifs', 'À propos', 'FAQ'];
-    37→
-    38→const featureChecks = [
-    39→  'Page de réservation personnalisée',
-    40→  'Calendrier intelligent sans double réservation',
-    41→  'Rappels automatiques (SMS, WhatsApp, Audio)',
-    42→  'Tableau de bord simple et puissant',
-    43→];
-    44→
-    45→const featureCards = [
-    46→  { icon: Clock, title: 'Réservations 24/7', desc: 'Vos clients réservent à tout moment, même pendant votre sommeil.' },
-    47→  { icon: Bell, title: 'Rappels automatiques', desc: 'Réduisez les absences grâce à des rappels SMS, WhatsApp et audio.' },
-    48→  { icon: ShieldCheck, title: 'Aucune double réservation', desc: "Calendrier intelligent qui évite tout chevauchement de créneaux." },
-    49→  { icon: TrendingUp, title: 'Développez votre activité', desc: "Attirez plus de clients et fidélisez-les grâce à une expérience professionnelle." },
-    50→  { icon: Smartphone, title: '100% mobile', desc: 'Gérez votre activité depuis votre téléphone où que vous soyez.' },
-    51→  { icon: Lock, title: 'Données sécurisées', desc: 'Vos données sont protégées et hébergées en toute sécurité.' },
-    52→];
-    53→
-    54→const professions = [
-    55→  { icon: UtensilsCrossed, label: 'Restaurants & Bars' },
-    56→  { icon: Scissors, label: 'Coiffeurs & Barbiers' },
-    57→  { icon: Store, label: 'Boutiques & Commerce' },
-    58→  { icon: MonitorSmartphone, label: 'Agences & Freelances' },
-    59→  { icon: Stethoscope, label: 'Santé & Bien-être' },
-    60→  { icon: GraduationCap, label: 'Formation & Coaching' },
-    61→  { icon: Users, label: 'Et bien plus...' },
+     3→import Image from 'next/image';
+     4→import Link from 'next/link';
+     5→import {
+     6→  CalendarCheck,
+     7→  ArrowRight,
+     8→  Play,
+     9→  Clock,
+    10→  Bell,
+    11→  ShieldCheck,
+    12→  TrendingUp,
+    13→  Smartphone,
+    14→  Lock,
+    15→  Sparkles,
+    16→  Scissors,
+    17→  UtensilsCrossed,
+    18→  Store,
+    19→  MonitorSmartphone,
+    20→  Briefcase,
+    21→  Camera,
+    22→  Stethoscope,
+    23→  GraduationCap,
+    24→  Utensils,
+    25→  Shirt,
+    26→  Wrench,
+    27→  Users,
+    28→  CheckCircle2,
+    29→  ExternalLink,
+    30→  ChevronLeft,
+    31→  ChevronRight,
+    32→  Star,
+    33→} from 'lucide-react';
+    34→
+    35→/* ──────────── DATA ──────────── */
+    36→
+    37→const navLinks = ['Accueil', 'Fonctionnalités', 'Tarifs', 'À propos', 'FAQ'];
+    38→
+    39→const featureChecks = [
+    40→  'Page de réservation personnalisée',
+    41→  'Calendrier intelligent sans double réservation',
+    42→  'Rappels automatiques (SMS, WhatsApp, Audio)',
+    43→  'Tableau de bord simple et puissant',
+    44→];
+    45→
+    46→const featureCards = [
+    47→  { icon: Clock, title: 'Réservations 24/7', desc: 'Vos clients réservent à tout moment, même pendant votre sommeil.' },
+    48→  { icon: Bell, title: 'Rappels automatiques', desc: 'Réduisez les absences grâce à des rappels SMS, WhatsApp et audio.' },
+    49→  { icon: ShieldCheck, title: 'Aucune double réservation', desc: "Calendrier intelligent qui évite tout chevauchement de créneaux." },
+    50→  { icon: TrendingUp, title: 'Développez votre activité', desc: "Attirez plus de clients et fidélisez-les grâce à une expérience professionnelle." },
+    51→  { icon: Smartphone, title: '100% mobile', desc: 'Gérez votre activité depuis votre téléphone où que vous soyez.' },
+    52→  { icon: Lock, title: 'Données sécurisées', desc: 'Vos données sont protégées et hébergées en toute sécurité.' },
+    53→];
+    54→
+    55→const industries = [
+    56→  { icon: Scissors, label: 'Coiffeurs & Barbiers', image: '/images/industries/salon.png', desc: 'Gérez vos coupes, tresses et rasages sans accroc.' },
+    57→  { icon: UtensilsCrossed, label: 'Restaurants & Bars', image: '/images/industries/restaurant.png', desc: 'Organisez vos tables et réservations en un clic.' },
+    58→  { icon: Stethoscope, label: 'Pharmacies & Santé', image: '/images/industries/pharmacie.png', desc: 'Planifiez consultations et retraits d\'ordonnances.' },
+    59→  { icon: Store, label: 'Boutiques & Commerce', image: '/images/industries/boutique.png', desc: 'Offrez des créneaux de retrait ou de conseil.' },
+    60→  { icon: Stethoscope, label: 'Bien-être & Spa', image: '/images/industries/sante.png', desc: 'Simplifiez la réservation de massages et soins.' },
+    61→  { icon: GraduationCap, label: 'Formation & Coaching', image: '/images/industries/formation.png', desc: 'Programmez vos sessions et suivis individuels.' },
     62→];
     63→
     64→const stats = [
@@ -536,159 +536,186 @@
    536→      </section>
    537→
    538→      {/* ═══════ INDUSTRIES ═══════ */}
-   539→      <section className="border-y border-white/[0.06] py-20">
-   540→        <div className="mx-auto max-w-[1280px] px-6 text-center lg:px-12">
-   541→          <h2 className="text-3xl sm:text-4xl font-bold">Adapté à tous les professionnels locaux</h2>
-   542→          <p className="mx-auto mt-4 max-w-xl text-[17px] text-gray-400">
-   543→            Quelle que soit votre activité, Djola TikTak s&apos;adapte à vos besoins.
-   544→          </p>
-   545→          <div className="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-8">
-   546→            {professions.map((p) => (
-   547→              <div key={p.label} className="flex flex-col items-center">
-   548→                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-lime/20 bg-lime/[0.06]">
-   549→                  <p.icon className="h-7 w-7 text-lime" strokeWidth={1.5} />
-   550→                </div>
-   551→                <span className="text-sm font-medium text-white max-w-[120px]">{p.label}</span>
-   552→              </div>
-   553→            ))}
-   554→          </div>
-   555→        </div>
-   556→      </section>
-   557→
-   558→      {/* ═══════ PRICING ═══════ */}
-   559→      <section id="tarifs" className="py-20 lg:py-24">
-   560→        <div className="mx-auto max-w-[1280px] px-6 lg:px-12">
-   561→          {/* Header */}
-   562→          <div className="text-center">
-   563→            <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.12em] text-lime mb-4">
-   564→              Tarifs simples et transparents
-   565→            </span>
-   566→            <h2 className="text-3xl sm:text-4xl font-bold">Choisissez le plan qui vous convient</h2>
-   567→            <p className="mx-auto mt-4 max-w-xl text-[17px] text-gray-400">
-   568→              Tous les prix sont en FCFA. Pas de frais cachés, annulez à tout moment.
-   569→            </p>
-   570→          </div>
-   571→
-   572→          {/* Plans grid */}
-   573→          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-   574→            {pricingPlans.map((plan) => (
-   575→              <div
-   576→                key={plan.name}
-   577→                className={`relative flex flex-col rounded-2xl border p-7 transition-all ${
-   578→                  plan.highlighted
-   579→                    ? 'border-lime/40 bg-[#111816] shadow-[0_0_60px_rgba(200,255,0,0.06)] scale-[1.02]'
-   580→                    : 'border-white/[0.08] bg-[#111816] hover:border-white/15'
-   581→                }`}
-   582→              >
-   583→                {/* Badge */}
-   584→                {plan.badge && (
-   585→                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-lime px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-black">
-   586→                    {plan.badge}
-   587→                  </span>
-   588→                )}
-   589→
-   590→                {/* Plan name */}
-   591→                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-   592→                <p className="mt-2 text-[13px] leading-relaxed text-gray-500">{plan.desc}</p>
-   593→
-   594→                {/* Price */}
-   595→                <div className="mt-6 flex items-baseline gap-1">
-   596→                  {plan.price !== 'Sur devis' ? (
-   597→                    <>
-   598→                      <span className="text-4xl font-extrabold text-white">{plan.price}</span>
-   599→                      <span className="text-sm text-gray-500">FCFA{plan.period}</span>
-   600→                    </>
-   601→                  ) : (
-   602→                    <span className="text-3xl font-extrabold text-white">Sur devis</span>
-   603→                  )}
-   604→                </div>
-   605→
-   606→                {/* Divider */}
-   607→                <div className="my-6 h-px bg-white/[0.06]" />
-   608→
-   609→                {/* Features */}
-   610→                <ul className="flex flex-col gap-3 flex-1">
-   611→                  {plan.features.map((f) => (
-   612→                    <li key={f} className="flex items-start gap-2.5 text-[14px]">
-   613→                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
-   614→                      <span className="text-gray-300">{f}</span>
-   615→                    </li>
-   616→                  ))}
-   617→                </ul>
-   618→
-   619→                {/* CTA */}
-   620→                <Link
-   621→                  href={plan.name === 'Entreprise' ? '#' : '/register'}
-   622→                  className={`mt-7 inline-flex items-center justify-center rounded-lg px-6 py-3 text-[14px] font-semibold transition-all ${
-   623→                    plan.highlighted
-   624→                      ? 'bg-lime text-black hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]'
-   625→                      : 'border border-white/15 text-white hover:bg-white/5'
-   626→                  }`}
-   627→                >
-   628→                  {plan.cta}
-   629→                  <ArrowRight className="ml-2 h-4 w-4" />
-   630→                </Link>
-   631→              </div>
-   632→            ))}
-   633→          </div>
-   634→
-   635→          {/* Bottom note */}
-   636→          <p className="mt-10 text-center text-[13px] text-gray-600">
-   637→            Tous les plans incluent un essai gratuit de 14 jours • Paiement mobile money & carte bancaire acceptés
-   638→          </p>
-   639→        </div>
-   640→      </section>
-   641→
-   642→      {/* ═══════ BOTTOM CTA ═══════ */}
-   643→      <section className="py-20">
-   644→        <div className="mx-auto max-w-[1100px] px-6 lg:px-12">
-   645→          <div className="rounded-2xl border border-white/[0.08] bg-[#111816] px-8 py-12 sm:px-14 sm:py-14">
-   646→            <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-   647→              <div>
-   648→                <h2 className="text-2xl sm:text-3xl font-bold">Prêt à développer votre activité ?</h2>
-   649→                <p className="mt-3 max-w-lg text-[15px] text-gray-400">
-   650→                  Rejoignez des milliers de professionnels qui ont déjà transformé leur gestion des
-   651→                  rendez-vous.
-   652→                </p>
-   653→              </div>
-   654→              <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
-   655→                <Link
-   656→                  href="/register"
-   657→                  className="inline-flex items-center justify-center rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
-   658→                >
-   659→                  Commencer gratuitement
-   660→                </Link>
-   661→                <Link
-   662→                  href="#"
-   663→                  className="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
-   664→                >
-   665→                  Prendre rendez-vous avec un expert
-   666→                </Link>
-   667→              </div>
-   668→            </div>
-   669→            <div className="mt-6 flex flex-wrap justify-center lg:justify-end gap-6 text-[12px] text-gray-600">
-   670→              <span>Aucune carte bancaire requise</span>
-   671→              <span>Démo personnalisée de 15 min</span>
-   672→            </div>
-   673→          </div>
-   674→        </div>
-   675→      </section>
-   676→
-   677→      {/* ═══════ FOOTER ═══════ */}
-   678→      <footer className="border-t border-white/[0.06] py-8">
-   679→        <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-4 px-6 sm:flex-row lg:px-12">
-   680→          <Link href="/" className="flex items-center gap-2">
-   681→            <div className="flex h-7 w-7 items-center justify-center rounded-md border border-lime/40 bg-lime/10">
-   682→              <CalendarCheck className="h-4 w-4 text-lime" />
-   683→            </div>
-   684→            <span className="text-sm font-semibold text-white">
-   685→              Djola <span className="text-lime">TikTak</span>
-   686→            </span>
-   687→          </Link>
-   688→          <p className="text-sm text-gray-600">Prise de rendez-vous par Djola</p>
-   689→        </div>
-   690→      </footer>
-   691→    </div>
-   692→  );
-   693→}
-   694→
+   539→      <section className="border-y border-white/[0.06] py-20 lg:py-24">
+   540→        <div className="mx-auto max-w-[1280px] px-6 lg:px-12">
+   541→          <div className="text-center">
+   542→            <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.12em] text-lime mb-4">
+   543→              Pour chaque métier
+   544→            </span>
+   545→            <h2 className="text-3xl sm:text-4xl font-bold">Adapté à tous les professionnels locaux</h2>
+   546→            <p className="mx-auto mt-4 max-w-xl text-[17px] text-gray-400">
+   547→              Quelle que soit votre activité, Djola TikTak s&apos;adapte à vos besoins.
+   548→            </p>
+   549→          </div>
+   550→
+   551→          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+   552→            {industries.map((ind) => (
+   553→              <div
+   554→                key={ind.label}
+   555→                className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111816] transition-all hover:border-lime/20 hover:shadow-[0_0_40px_rgba(200,255,0,0.04)]"
+   556→              >
+   557→                {/* Image */}
+   558→                <div className="relative h-48 overflow-hidden">
+   559→                  <Image
+   560→                    src={ind.image}
+   561→                    alt={ind.label}
+   562→                    fill
+   563→                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+   564→                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+   565→                  />
+   566→                  {/* Gradient overlay */}
+   567→                  <div className="absolute inset-0 bg-gradient-to-t from-[#111816] via-transparent to-transparent" />
+   568→                  {/* Icon badge */}
+   569→                  <div className="absolute bottom-4 left-4 flex h-10 w-10 items-center justify-center rounded-xl border border-lime/30 bg-[#111816]/90 backdrop-blur-sm">
+   570→                    <ind.icon className="h-5 w-5 text-lime" strokeWidth={1.5} />
+   571→                  </div>
+   572→                </div>
+   573→
+   574→                {/* Content */}
+   575→                <div className="p-6">
+   576→                  <h3 className="text-lg font-semibold text-white">{ind.label}</h3>
+   577→                  <p className="mt-2 text-sm leading-relaxed text-gray-400">{ind.desc}</p>
+   578→                </div>
+   579→              </div>
+   580→            ))}
+   581→          </div>
+   582→        </div>
+   583→      </section>
+   584→
+   585→      {/* ═══════ PRICING ═══════ */}
+   586→      <section id="tarifs" className="py-20 lg:py-24">
+   587→        <div className="mx-auto max-w-[1280px] px-6 lg:px-12">
+   588→          {/* Header */}
+   589→          <div className="text-center">
+   590→            <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.12em] text-lime mb-4">
+   591→              Tarifs simples et transparents
+   592→            </span>
+   593→            <h2 className="text-3xl sm:text-4xl font-bold">Choisissez le plan qui vous convient</h2>
+   594→            <p className="mx-auto mt-4 max-w-xl text-[17px] text-gray-400">
+   595→              Tous les prix sont en FCFA. Pas de frais cachés, annulez à tout moment.
+   596→            </p>
+   597→          </div>
+   598→
+   599→          {/* Plans grid */}
+   600→          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+   601→            {pricingPlans.map((plan) => (
+   602→              <div
+   603→                key={plan.name}
+   604→                className={`relative flex flex-col rounded-2xl border p-7 transition-all ${
+   605→                  plan.highlighted
+   606→                    ? 'border-lime/40 bg-[#111816] shadow-[0_0_60px_rgba(200,255,0,0.06)] scale-[1.02]'
+   607→                    : 'border-white/[0.08] bg-[#111816] hover:border-white/15'
+   608→                }`}
+   609→              >
+   610→                {/* Badge */}
+   611→                {plan.badge && (
+   612→                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-lime px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-black">
+   613→                    {plan.badge}
+   614→                  </span>
+   615→                )}
+   616→
+   617→                {/* Plan name */}
+   618→                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+   619→                <p className="mt-2 text-[13px] leading-relaxed text-gray-500">{plan.desc}</p>
+   620→
+   621→                {/* Price */}
+   622→                <div className="mt-6 flex items-baseline gap-1">
+   623→                  {plan.price !== 'Sur devis' ? (
+   624→                    <>
+   625→                      <span className="text-4xl font-extrabold text-white">{plan.price}</span>
+   626→                      <span className="text-sm text-gray-500">FCFA{plan.period}</span>
+   627→                    </>
+   628→                  ) : (
+   629→                    <span className="text-3xl font-extrabold text-white">Sur devis</span>
+   630→                  )}
+   631→                </div>
+   632→
+   633→                {/* Divider */}
+   634→                <div className="my-6 h-px bg-white/[0.06]" />
+   635→
+   636→                {/* Features */}
+   637→                <ul className="flex flex-col gap-3 flex-1">
+   638→                  {plan.features.map((f) => (
+   639→                    <li key={f} className="flex items-start gap-2.5 text-[14px]">
+   640→                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
+   641→                      <span className="text-gray-300">{f}</span>
+   642→                    </li>
+   643→                  ))}
+   644→                </ul>
+   645→
+   646→                {/* CTA */}
+   647→                <Link
+   648→                  href={plan.name === 'Entreprise' ? '#' : '/register'}
+   649→                  className={`mt-7 inline-flex items-center justify-center rounded-lg px-6 py-3 text-[14px] font-semibold transition-all ${
+   650→                    plan.highlighted
+   651→                      ? 'bg-lime text-black hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]'
+   652→                      : 'border border-white/15 text-white hover:bg-white/5'
+   653→                  }`}
+   654→                >
+   655→                  {plan.cta}
+   656→                  <ArrowRight className="ml-2 h-4 w-4" />
+   657→                </Link>
+   658→              </div>
+   659→            ))}
+   660→          </div>
+   661→
+   662→          {/* Bottom note */}
+   663→          <p className="mt-10 text-center text-[13px] text-gray-600">
+   664→            Tous les plans incluent un essai gratuit de 14 jours • Paiement mobile money & carte bancaire acceptés
+   665→          </p>
+   666→        </div>
+   667→      </section>
+   668→
+   669→      {/* ═══════ BOTTOM CTA ═══════ */}
+   670→      <section className="py-20">
+   671→        <div className="mx-auto max-w-[1100px] px-6 lg:px-12">
+   672→          <div className="rounded-2xl border border-white/[0.08] bg-[#111816] px-8 py-12 sm:px-14 sm:py-14">
+   673→            <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+   674→              <div>
+   675→                <h2 className="text-2xl sm:text-3xl font-bold">Prêt à développer votre activité ?</h2>
+   676→                <p className="mt-3 max-w-lg text-[15px] text-gray-400">
+   677→                  Rejoignez des milliers de professionnels qui ont déjà transformé leur gestion des
+   678→                  rendez-vous.
+   679→                </p>
+   680→              </div>
+   681→              <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+   682→                <Link
+   683→                  href="/register"
+   684→                  className="inline-flex items-center justify-center rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
+   685→                >
+   686→                  Commencer gratuitement
+   687→                </Link>
+   688→                <Link
+   689→                  href="#"
+   690→                  className="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
+   691→                >
+   692→                  Prendre rendez-vous avec un expert
+   693→                </Link>
+   694→              </div>
+   695→            </div>
+   696→            <div className="mt-6 flex flex-wrap justify-center lg:justify-end gap-6 text-[12px] text-gray-600">
+   697→              <span>Aucune carte bancaire requise</span>
+   698→              <span>Démo personnalisée de 15 min</span>
+   699→            </div>
+   700→          </div>
+   701→        </div>
+   702→      </section>
+   703→
+   704→      {/* ═══════ FOOTER ═══════ */}
+   705→      <footer className="border-t border-white/[0.06] py-8">
+   706→        <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-4 px-6 sm:flex-row lg:px-12">
+   707→          <Link href="/" className="flex items-center gap-2">
+   708→            <div className="flex h-7 w-7 items-center justify-center rounded-md border border-lime/40 bg-lime/10">
+   709→              <CalendarCheck className="h-4 w-4 text-lime" />
+   710→            </div>
+   711→            <span className="text-sm font-semibold text-white">
+   712→              Djola <span className="text-lime">TikTak</span>
+   713→            </span>
+   714→          </Link>
+   715→          <p className="text-sm text-gray-600">Prise de rendez-vous par Djola</p>
+   716→        </div>
+   717→      </footer>
+   718→    </div>
+   719→  );
+   720→}
+   721→
