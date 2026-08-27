@@ -42,16 +42,11 @@ export async function createServiceRoleClient() {
     );
   }
 
-  const cookieStore = await cookies();
-
+  // Service role client — no cookies needed, skip cookie store entirely
   return createServerClient(url, key, {
     cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(_cookiesToSet) {
-        // Service role client does not need to set cookies
-      },
+      getAll() { return []; },
+      setAll() {},
     },
   });
 }
@@ -59,10 +54,6 @@ export async function createServiceRoleClient() {
 /**
  * Authenticates the current request via Supabase Auth and fetches
  * the matching profile row.
- *
- * @returns `{ user, profile }` — the Supabase auth user and the profile.
- * @throws Error with message 'Non authentifié.' if not logged in.
- * @throws Error with message 'Profil introuvable.' if no profile linked.
  */
 export async function getAuthenticatedUser() {
   const supabase = await createClient();

@@ -1,17 +1,27 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const DASHBOARD_PATHS = ['/dashboard'];
+const AUTH_PATHS = ['/login', '/register', '/forgot-password', '/verify-email'];
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
-  // Graceful handling when Supabase is not configured (dev/demo mode)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    // No Supabase configured — skip auth checks, let requests pass through
+    return supabaseResponse;
+  }
+
+  const pathname = request.nextUrl.pathname;
+  const isDashboard = DASHBOARD_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
+  const isAuth = AUTH_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
+
+  // For non-protected routes, skip Supabase call entirely
+  if (!isDashboard && !isAuth) {
     return supabaseResponse;
   }
 
@@ -36,22 +46,17 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh session if expired
-  const { data: { user } } = await supabase.auth.getUser();
+  // Use getSession (cached) instead of getUser (network call) for speed
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
-  // Protected routes: redirect to login if not authenticated
-  const isDashboardRoute = request.nextUrl.pathname.startsWith('/dashboard');
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/(auth)');
-  const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
-
-  if (!user && isDashboardRoute && !isApiRoute) {
+  if (!user && isDashboard) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && isAuthRoute) {
+  if (user && isAuth) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
