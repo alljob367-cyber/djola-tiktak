@@ -261,72 +261,68 @@ export default async function DashboardPage() {
     month: '2-digit',
     day: '2-digit',
   }).format(new Date(now.getTime() + 86400000));
-
-  // Fetch today's appointments with service and client details
-  const { data: todayAppointments } = await supabase
-    .from('appointments')
-    .select(`
-      *,
-      service:services(name, duration_minutes, price),
-      client:clients(name, phone)
-    `)
-    .eq('profile_id', user.id)
-    .gte('starts_at', `${todayStr}T00:00:00`)
-    .lt('starts_at', `${tomorrowStr}T00:00:00`)
-    .neq('status', 'cancelled')
-    .order('starts_at', { ascending: true });
-
-  const typedAppointments = (todayAppointments ?? []) as unknown as AppointmentWithDetails[];
-
-  // Fetch all upcoming appointments (from now) for next appointment highlight
-  const { data: upcomingAppointments } = await supabase
-    .from('appointments')
-    .select(`
-      *,
-      service:services(name, duration_minutes, price),
-      client:clients(name, phone)
-    `)
-    .eq('profile_id', user.id)
-    .gte('starts_at', now.toISOString())
-    .neq('status', 'cancelled')
-    .order('starts_at', { ascending: true })
-    .limit(1);
-
-  const typedUpcoming = (upcomingAppointments ?? []) as unknown as AppointmentWithDetails[];
-  const nextAppointment = typedUpcoming[0] ?? null;
-
-  // Total clients count
-  const { count: totalClients } = await supabase
-    .from('clients')
-    .select('*', { count: 'exact', head: true })
-    .eq('profile_id', user.id);
-
-  // Monthly revenue estimate: sum of service prices for completed appointments this month
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const { data: monthlyCompleted } = await supabase
-    .from('appointments')
-    .select(`
-      service:services(price)
-    `)
-    .eq('profile_id', user.id)
-    .eq('status', 'completed')
-    .gte('starts_at', monthStart.toISOString())
-    .lt('starts_at', now.toISOString());
+
+  // ── Parallel data fetch ──────────────────────────────────────
+  const [
+    todayResult,
+    upcomingResult,
+    clientsResult,
+    monthlyResult,
+    servicesResult,
+  ] = await Promise.all([
+    // Today's appointments
+    supabase
+      .from('appointments')
+      .select(`*, service:services(name, duration_minutes, price), client:clients(name, phone)`)
+      .eq('profile_id', user.id)
+      .gte('starts_at', `${todayStr}T00:00:00`)
+      .lt('starts_at', `${tomorrowStr}T00:00:00`)
+      .neq('status', 'cancelled')
+      .order('starts_at', { ascending: true }),
+    // Next upcoming appointment
+    supabase
+      .from('appointments')
+      .select(`*, service:services(name, duration_minutes, price), client:clients(name, phone)`)
+      .eq('profile_id', user.id)
+      .gte('starts_at', now.toISOString())
+      .neq('status', 'cancelled')
+      .order('starts_at', { ascending: true })
+      .limit(1),
+    // Total clients
+    supabase
+      .from('clients')
+      .select('*', { count: 'exact', head: true })
+      .eq('profile_id', user.id),
+    // Monthly revenue
+    supabase
+      .from('appointments')
+      .select(`service:services(price)`)
+      .eq('profile_id', user.id)
+      .eq('status', 'completed')
+      .gte('starts_at', monthStart.toISOString())
+      .lt('starts_at', now.toISOString()),
+    // Total services
+    supabase
+      .from('services')
+      .select('*', { count: 'exact', head: true })
+      .eq('profile_id', user.id),
+  ]);
+
+  const typedAppointments = (todayResult.data ?? []) as unknown as AppointmentWithDetails[];
+  const typedUpcoming = (upcomingResult.data ?? []) as unknown as AppointmentWithDetails[];
+  const nextAppointment = typedUpcoming[0] ?? null;
+  const totalClients = clientsResult.count ?? 0;
+  const totalServices = servicesResult.count ?? 0;
 
   const monthlyRevenue =
-    (monthlyCompleted ?? []).reduce(
+    (monthlyResult.data ?? []).reduce(
       (sum, a) => {
         const svc = a.service as unknown as { price: number }[] | null;
         return sum + (svc?.[0]?.price ?? 0);
       },
       0
     );
-
-  // Check if there are any services (for empty state logic)
-  const { count: totalServices } = await supabase
-    .from('services')
-    .select('*', { count: 'exact', head: true })
-    .eq('profile_id', user.id);
 
   // ── Render ─────────────────────────────────────────────────
   return (

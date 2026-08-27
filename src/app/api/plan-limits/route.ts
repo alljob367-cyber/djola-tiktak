@@ -60,8 +60,8 @@ export async function GET() {
           limits[row.limit_key] = row.limit_value;
         }
       }
-    } catch {
-      // plan_limits table not available, use defaults
+    } catch (err) {
+      console.warn('[plan-limits] DB query failed, using defaults:', err);
     }
 
     // Fill in defaults for missing keys

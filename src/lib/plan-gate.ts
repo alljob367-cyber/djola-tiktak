@@ -173,15 +173,6 @@ export async function checkPlanLimit(params: {
 
     const { count, error } = await query;
 
-    if (error) {
-      // On DB error, allow the action but log warning
-      console.warn(`[plan-gate] Error counting ${table}:`, error.message);
-      return { allowed: true, isAdmin: false, plan, subscriptionStatus: subStatus, limit: limitValue, current: 0, featureKey, message: '', upgradeUrl };
-    }
-
-    const current = count ?? 0;
-    const allowed = current < limitValue;
-
     const featureLabels: Record<string, string> = {
       max_services: 'services',
       max_clients: 'clients',
@@ -190,8 +181,16 @@ export async function checkPlanLimit(params: {
       max_calendars: 'calendriers',
       voice_credits: 'crédits vocaux',
     };
-
     const label = featureLabels[featureKey] || featureKey;
+
+    if (error) {
+      // On DB error, deny the action and log error
+      console.error(`[plan-gate] Error counting ${table}:`, error.message);
+      return { allowed: false, isAdmin: false, plan, subscriptionStatus: subStatus, limit: limitValue, current: 0, featureKey, message: `Erreur de vérification de la limite ${label}. Réessayez.`, upgradeUrl };
+    }
+
+    const current = count ?? 0;
+    const allowed = current < limitValue;
 
     return {
       allowed,
@@ -206,9 +205,10 @@ export async function checkPlanLimit(params: {
         : `Votre plan « ${plan} » est limité à ${limitValue} ${label}. Passez à un plan supérieur pour en ajouter plus.`,
       upgradeUrl,
     };
-  } catch {
-    // On error, allow action
-    return { allowed: true, isAdmin: false, plan, subscriptionStatus: subStatus, limit: limitValue, current: 0, featureKey, message: '', upgradeUrl };
+  } catch (err) {
+    // On unexpected error, deny action
+    console.error(`[plan-gate] Unexpected error counting ${table}:`, err);
+    return { allowed: false, isAdmin: false, plan, subscriptionStatus: subStatus, limit: limitValue, current: 0, featureKey, message: 'Erreur lors de la vérification des limites. Réessayez.', upgradeUrl };
   }
 }
 

@@ -113,7 +113,9 @@ export async function POST(request: NextRequest) {
         .eq('limit_key', 'max_appointments_per_day')
         .maybeSingle();
       if (planLimit) apptLimit = planLimit.limit_value;
-    } catch {}
+    } catch (err) {
+      console.warn('[appointments] plan_limits query failed, using defaults:', err);
+    }
 
     // Fallback defaults
     if (apptLimit === -1) {

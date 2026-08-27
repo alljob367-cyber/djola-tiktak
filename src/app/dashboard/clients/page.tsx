@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -93,17 +93,28 @@ export default function ClientsPage() {
   const [appointmentCounts, setAppointmentCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ClientFormData>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // ── Debounced search ────────────────────────────────
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search]);
+
   // ── Fetch clients ──────────────────────────────────────
   const fetchClients = useCallback(async () => {
     try {
       const params = new URLSearchParams();
-      if (search.trim()) params.set('search', search.trim());
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
       const qs = params.toString();
       const res = await fetch(`/api/clients${qs ? `?${qs}` : ''}`);
       if (!res.ok) throw new Error('Erreur réseau');
@@ -114,7 +125,7 @@ export default function ClientsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [debouncedSearch]);
 
   // ── Fetch appointment counts (optimized: server-side aggregation) ───────────────────────────
   const fetchCounts = useCallback(async () => {
