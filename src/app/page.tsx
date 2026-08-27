@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   CalendarCheck,
@@ -51,14 +52,13 @@ const featureCards = [
   { icon: Lock, title: 'Données sécurisées', desc: 'Vos données sont protégées et hébergées en toute sécurité.' },
 ];
 
-const professions = [
-  { icon: UtensilsCrossed, label: 'Restaurants & Bars' },
-  { icon: Scissors, label: 'Coiffeurs & Barbiers' },
-  { icon: Store, label: 'Boutiques & Commerce' },
-  { icon: MonitorSmartphone, label: 'Agences & Freelances' },
-  { icon: Stethoscope, label: 'Santé & Bien-être' },
-  { icon: GraduationCap, label: 'Formation & Coaching' },
-  { icon: Users, label: 'Et bien plus...' },
+const industries = [
+  { icon: Scissors, label: 'Coiffeurs & Barbiers', image: '/images/industries/salon.png', desc: 'Gérez vos coupes, tresses et rasages sans accroc.' },
+  { icon: UtensilsCrossed, label: 'Restaurants & Bars', image: '/images/industries/restaurant.png', desc: 'Organisez vos tables et réservations en un clic.' },
+  { icon: Stethoscope, label: 'Pharmacies & Santé', image: '/images/industries/pharmacie.png', desc: 'Planifiez consultations et retraits d\'ordonnances.' },
+  { icon: Store, label: 'Boutiques & Commerce', image: '/images/industries/boutique.png', desc: 'Offrez des créneaux de retrait ou de conseil.' },
+  { icon: Stethoscope, label: 'Bien-être & Spa', image: '/images/industries/sante.png', desc: 'Simplifiez la réservation de massages et soins.' },
+  { icon: GraduationCap, label: 'Formation & Coaching', image: '/images/industries/formation.png', desc: 'Programmez vos sessions et suivis individuels.' },
 ];
 
 const stats = [
@@ -536,19 +536,46 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════ INDUSTRIES ═══════ */}
-      <section className="border-y border-white/[0.06] py-20">
-        <div className="mx-auto max-w-[1280px] px-6 text-center lg:px-12">
-          <h2 className="text-3xl sm:text-4xl font-bold">Adapté à tous les professionnels locaux</h2>
-          <p className="mx-auto mt-4 max-w-xl text-[17px] text-gray-400">
-            Quelle que soit votre activité, Djola TikTak s&apos;adapte à vos besoins.
-          </p>
-          <div className="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-8">
-            {professions.map((p) => (
-              <div key={p.label} className="flex flex-col items-center">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-lime/20 bg-lime/[0.06]">
-                  <p.icon className="h-7 w-7 text-lime" strokeWidth={1.5} />
+      <section className="border-y border-white/[0.06] py-20 lg:py-24">
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-12">
+          <div className="text-center">
+            <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.12em] text-lime mb-4">
+              Pour chaque métier
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold">Adapté à tous les professionnels locaux</h2>
+            <p className="mx-auto mt-4 max-w-xl text-[17px] text-gray-400">
+              Quelle que soit votre activité, Djola TikTak s&apos;adapte à vos besoins.
+            </p>
+          </div>
+
+          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {industries.map((ind) => (
+              <div
+                key={ind.label}
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111816] transition-all hover:border-lime/20 hover:shadow-[0_0_40px_rgba(200,255,0,0.04)]"
+              >
+                {/* Image */}
+                <div className="relative h-48 overflow-hidden">
+                  <Image
+                    src={ind.image}
+                    alt={ind.label}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  />
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#111816] via-transparent to-transparent" />
+                  {/* Icon badge */}
+                  <div className="absolute bottom-4 left-4 flex h-10 w-10 items-center justify-center rounded-xl border border-lime/30 bg-[#111816]/90 backdrop-blur-sm">
+                    <ind.icon className="h-5 w-5 text-lime" strokeWidth={1.5} />
+                  </div>
                 </div>
-                <span className="text-sm font-medium text-white max-w-[120px]">{p.label}</span>
+
+                {/* Content */}
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-white">{ind.label}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-400">{ind.desc}</p>
+                </div>
               </div>
             ))}
           </div>
