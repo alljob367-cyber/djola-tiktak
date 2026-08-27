@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+      // Sanitize: remove special PostgREST filter characters to prevent injection
+      const safe = search.replace(/[%_.,'"\\]/g, '');
+      query = query.or(`name.ilike.%${safe}%,phone.ilike.%${safe}%,email.ilike.%${safe}%`);
     }
 
     const { data, error } = await query;

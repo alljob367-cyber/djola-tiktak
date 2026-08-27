@@ -1,23 +1,47 @@
-# Djola TikTak — Work Log
+# Djola TikTak — Worklog
 
 ---
 Task ID: 1
 Agent: Main Agent
-Task: Vérification et validation complète du setup Supabase + App
+Task: Phase 1 — Correction des bugs critiques
 
 Work Log:
-- Vérifié que les 7 tables sont créées sur Supabase (profiles, services, clients, appointments, availability, blocked_slots, reminders)
-- Confirmé que le trigger auto-create profile fonctionne (inscription test → profil auto-créé avec business_name)
-- Testé l'inscription via Supabase Auth API → succès
-- Testé le login via Supabase Auth API → succès (après confirmation email)
-- Confirmé que la mise à jour du profil (slug, phone, description) fonctionne via RLS
-- Build Next.js production: 0 erreur, 23 routes compilées
-- Test E2E des pages: Landing 200, Login 200, Register 200, Forgot 200, Public Pro 200, Booking 200, Dashboard 307 (redirect)
-- Test E2E des API: Profile API retourne les données complètes, Zod validation retourne des erreurs françaises
+- Analysé l'intégralité du codebase (29 fichiers API, 7 pages dashboard, lib, middleware)
+- Identifié 9 bugs répartis en 3 phases
+- Corrigé plan-gate.ts : la logique de fallback écrasait les valeurs DB, cassant les plans illimités
+- Corrigé clients/route.ts : injection SQL potentielle dans la recherche via PostgREST filter
+- Corrigé availability/route.ts : race condition delete-all + insert non atomique (perte de données)
+- Corrigé dashboard/page.tsx : `return null` → `redirect('/login')` pour utilisateur non auth
+- Corrigé type error plan-gate.ts : subscription_status undefined → null
+- Vérifié le build TypeScript : 0 erreurs dans src/
 
 Stage Summary:
-- Base Supabase entièrement opérationnelle
-- App compilée et testée avec succès
-- 1 bug critique trouvé et corrigé: Zod v4 utilise `error.issues` au lieu de `error.errors`
-- Fix poussé sur GitHub (commit eb2c0e6)
-- 9 fichiers API corrigés
+- 4 bugs critiques corrigés, 0 erreurs TypeScript dans l'application
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Phase 2 — Correction des bugs fonctionnels
+
+Work Log:
+- Ajouté vérification des RDV actifs avant suppression service (409 avec message clair)
+- Mis à jour le frontend services pour afficher l'erreur spécifique HAS_ACTIVE_APPOINTMENTS
+- Ajouté bouton supprimer RDV avec AlertDialog de confirmation sur chaque carte
+- Le bouton poubelle est visible pour TOUS les statuts (pas seulement pending/confirmed)
+- Ajouté rate limiting in-memory sur /api/bookings/public (max 5/IP/heure, HTTP 429)
+
+Stage Summary:
+- 3 bugs fonctionnels corrigés
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Phase 3 — Optimisations UI/UX et performance
+
+Work Log:
+- Optimisé le fetch des compteurs RDV par client (préparation pour agrégation côté serveur)
+- Nettoyé les imports inutilisés (Eye, Copy, CheckCheck)
+
+Stage Summary:
+- 2 optimisations appliquées
+- Total : 9 corrections sur 3 phases, build clean

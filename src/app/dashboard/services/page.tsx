@@ -226,6 +226,10 @@ export default function ServicesPage() {
       const res = await fetch(`/api/services/${id}`, { method: 'DELETE' });
       if (!res.ok) {
         const err = await res.json();
+        if (err.code === 'HAS_ACTIVE_APPOINTMENTS') {
+          toast.error(err.error, { duration: 5000 });
+          return;
+        }
         throw new Error(err.error || 'Erreur serveur');
       }
       toast.success('Service supprimé');

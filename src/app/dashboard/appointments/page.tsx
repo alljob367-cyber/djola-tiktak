@@ -9,8 +9,8 @@ import {
   Loader2,
   CalendarX2,
   UserX,
-  Eye,
   CircleDot,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,17 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import type { AppointmentWithDetails, AppointmentStatus } from '@/types/database';
 
 // ── Status config ─────────────────────────────────────────────
@@ -118,6 +129,7 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // ── Fetch ───────────────────────────────────────────────
   const fetchAppointments = useCallback(async () => {
@@ -140,6 +152,24 @@ export default function AppointmentsPage() {
     setLoading(true);
     fetchAppointments();
   }, [fetchAppointments]);
+
+  // ── Delete appointment ──────────────────────────────
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/appointments/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erreur serveur');
+      }
+      toast.success('Rendez-vous supprimé');
+      fetchAppointments();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // ── Status update ───────────────────────────────────────
   const updateStatus = async (id: string, status: AppointmentStatus) => {
@@ -257,53 +287,84 @@ export default function AppointmentsPage() {
               </div>
 
               {/* Actions */}
-              {canAct && (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {apt.status === 'pending' && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                {canAct && (
+                  <>
+                    {apt.status === 'pending' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateStatus(apt.id, 'confirmed')}
+                        disabled={isUpdating}
+                        className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+                      >
+                        {isUpdating && <Loader2 size={13} className="mr-1.5 animate-spin" />}
+                        <CheckCircle2 size={14} className="mr-1" />
+                        Confirmer
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => updateStatus(apt.id, 'confirmed')}
+                      onClick={() => updateStatus(apt.id, 'completed')}
                       disabled={isUpdating}
-                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+                      className="border-teal-200 text-teal-700 hover:bg-teal-50 dark:border-teal-800 dark:text-teal-400 dark:hover:bg-teal-950/40"
                     >
-                      {isUpdating && <Loader2 size={13} className="mr-1.5 animate-spin" />}
                       <CheckCircle2 size={14} className="mr-1" />
-                      Confirmer
+                      Terminer
                     </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => updateStatus(apt.id, 'completed')}
-                    disabled={isUpdating}
-                    className="border-teal-200 text-teal-700 hover:bg-teal-50 dark:border-teal-800 dark:text-teal-400 dark:hover:bg-teal-950/40"
-                  >
-                    <CheckCircle2 size={14} className="mr-1" />
-                    Terminer
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => updateStatus(apt.id, 'cancelled')}
-                    disabled={isUpdating}
-                    className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
-                  >
-                    <CalendarX2 size={14} className="mr-1" />
-                    Annuler
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => updateStatus(apt.id, 'no_show')}
-                    disabled={isUpdating}
-                    className="border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
-                  >
-                    <UserX size={14} className="mr-1" />
-                    <span className="hidden sm:inline">Absent</span>
-                  </Button>
-                </div>
-              )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateStatus(apt.id, 'cancelled')}
+                      disabled={isUpdating}
+                      className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
+                    >
+                      <CalendarX2 size={14} className="mr-1" />
+                      Annuler
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateStatus(apt.id, 'no_show')}
+                      disabled={isUpdating}
+                      className="border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
+                    >
+                      <UserX size={14} className="mr-1" />
+                      <span className="hidden sm:inline">Absent</span>
+                    </Button>
+                  </>
+                )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={isUpdating || deletingId === apt.id}
+                      className="text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                    >
+                      {deletingId === apt.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Supprimer ce rendez-vous ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action est irréversible. Le rendez-vous de {apt.client?.name ?? 'Client inconnu'} du {formatFrenchDate(apt.starts_at)} à {formatFrenchTime(apt.starts_at)} sera définitivement supprimé.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(apt.id)}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        Supprimer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           </CardContent>
         </Card>

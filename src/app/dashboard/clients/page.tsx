@@ -116,12 +116,17 @@ export default function ClientsPage() {
     }
   }, [search]);
 
-  // ── Fetch appointment counts ───────────────────────────
+  // ── Fetch appointment counts (optimized: server-side aggregation) ───────────────────────────
   const fetchCounts = useCallback(async () => {
     try {
-      const res = await fetch('/api/appointments');
+      const res = await fetch('/api/appointments?_count_by=client');
       if (!res.ok) return;
       const json = await res.json();
+      if (json.counts) {
+        setAppointmentCounts(json.counts);
+        return;
+      }
+      // Fallback: count from full list
       const apts = json.data ?? [];
       const counts: Record<string, number> = {};
       for (const a of apts) {

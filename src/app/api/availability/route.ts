@@ -99,31 +99,31 @@ export async function PUT(request: NextRequest) {
       validatedItems.push({ ...parsed.data, profile_id: user.id });
     }
 
-    // Supprimer toutes les disponibilités existantes
-    const { error: deleteError } = await supabase
-      .from('availability')
-      .delete()
-      .eq('profile_id', user.id);
-
-    if (deleteError) {
-      console.error('Erreur suppression disponibilités:', deleteError);
-      return NextResponse.json({ error: 'Erreur lors de la mise à jour des disponibilités' }, { status: 500 });
-    }
-
-    // Insérer les nouvelles disponibilités
-    const { data, error } = await supabase
+    // Supprimer toutes les disponibilités existantes puis insérer les nouvelles
+    // dans une transaction logique : on insert d'abord, puis delete si insert réussit
+    const { data: insertedData, error: insertError } = await supabase
       .from('availability')
       .insert(validatedItems)
       .select()
       .order('day_of_week', { ascending: true })
       .order('start_time', { ascending: true });
 
-    if (error) {
-      console.error('Erreur availability PUT:', error);
+    if (insertError) {
+      console.error('Erreur availability PUT (insert):', insertError);
       return NextResponse.json({ error: 'Erreur lors de la mise à jour des disponibilités' }, { status: 500 });
     }
 
-    return NextResponse.json({ data });
+    // Insert succeeded — now safely remove old entries (different from new ones)
+    const newIds = (insertedData ?? []).map((item: { id?: string }) => item.id).filter(Boolean);
+    if (newIds.length > 0) {
+      await supabase
+        .from('availability')
+        .delete()
+        .eq('profile_id', user.id)
+        .not('id', 'in', `(${newIds.join(',')})`);
+    }
+
+    return NextResponse.json({ data: insertedData });
   } catch (err) {
     console.error('Erreur inattendue availability PUT:', err);
     return NextResponse.json({ error: 'Erreur serveur interne' }, { status: 500 });

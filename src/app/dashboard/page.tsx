@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { formatCurrency, DAY_NAMES_FR, MONTH_NAMES_FR } from '@/lib/availability/engine';
 import {
@@ -233,7 +234,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) return null;
+  if (!user) redirect('/login');
 
   // Fetch profile for business name and currency
   const { data: profile } = await supabase

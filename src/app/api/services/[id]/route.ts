@@ -85,7 +85,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE — supprimer un service
+// DELETE — supprimer un service (vérifie qu'aucun RDV n'existe)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
@@ -95,6 +95,36 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
+
+    // Vérifier que le service appartient à l'utilisateur
+    const { data: existing, error: findError } = await supabase
+      .from('services')
+      .select('id')
+      .eq('id', id)
+      .eq('profile_id', user.id)
+      .single();
+
+    if (findError || !existing) {
+      return NextResponse.json({ error: 'Service non trouvé' }, { status: 404 });
+    }
+
+    // Vérifier s'il existe des rendez-vous liés (non annulés)
+    const { count: aptCount } = await supabase
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('service_id', id)
+      .neq('status', 'cancelled');
+
+    if (aptCount && aptCount > 0) {
+      return NextResponse.json({
+        error: `Impossible de supprimer ce service : ${aptCount} rendez-vous actifs y sont liés. Annulez ou supprimez d'abord les rendez-vous.`,
+        code: 'HAS_ACTIVE_APPOINTMENTS',
+        appointmentCount: aptCount,
+      }, { status: 409 });
+    }
+
+    // Supprimer les rendez-vous annulés liés, puis le service
+    await supabase.from('appointments').delete().eq('service_id', id);
 
     const { error } = await supabase
       .from('services')

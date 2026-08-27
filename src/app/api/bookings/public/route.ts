@@ -2,9 +2,44 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { publicBookingSchema } from '@/lib/validation/schemas';
 
+// Rate limiting: max 5 bookings per IP per hour
+const BOOKING_RATE_LIMIT = 5;
+const BOOKING_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const ipBookingCache = new Map<string, { count: number; windowStart: number }>();
+
+// Simple in-memory rate limiter (resets on deploy, acceptable for single-instance)
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = ipBookingCache.get(ip);
+
+  if (!entry || now - entry.windowStart > BOOKING_RATE_WINDOW_MS) {
+    ipBookingCache.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+
+  if (entry.count >= BOOKING_RATE_LIMIT) {
+    return true;
+  }
+
+  entry.count++;
+  return false;
+}
+
 // POST — réservation publique (sans authentification)
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting par IP
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+      || request.headers.get('x-real-ip') 
+      || 'unknown';
+    
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        { error: 'Trop de réservations en peu de temps. Veuillez réessayer dans une heure.' },
+        { status: 429 },
+      );
+    }
+
     const supabase = await createServiceRoleClient();
 
     const body = await request.json();

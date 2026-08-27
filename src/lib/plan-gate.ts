@@ -98,7 +98,7 @@ export async function checkPlanLimit(params: {
   }
 
   // ── Check subscription status ──
-  const subStatus = profile.subscription_status;
+  const subStatus = profile.subscription_status ?? null;
   if (!subStatus || subStatus === 'expired' || subStatus === 'cancelled' || subStatus === 'past_due') {
     return {
       allowed: false,
@@ -118,7 +118,7 @@ export async function checkPlanLimit(params: {
   }
 
   // ── Get the limit for this feature/plan ──
-  let limitValue = -1;
+  let limitValue: number | null = null;
 
   try {
     const supabase = await createServiceRoleClient();
@@ -136,11 +136,12 @@ export async function checkPlanLimit(params: {
     // plan_limits table might not exist yet, use defaults
   }
 
-  // Fallback to defaults
-  if (limitValue === -1 && !DEFAULT_LIMITS[featureKey]?.[plan] && DEFAULT_LIMITS[featureKey]?.[plan] !== -1) {
-    limitValue = DEFAULT_LIMITS[featureKey]?.[plan] ?? 0;
-  } else if (DEFAULT_LIMITS[featureKey]?.[plan] !== undefined) {
+  // Fallback to defaults only when DB returned nothing
+  if (limitValue === null && DEFAULT_LIMITS[featureKey]?.[plan] !== undefined) {
     limitValue = DEFAULT_LIMITS[featureKey][plan];
+  } else if (limitValue === null) {
+    // Feature not in defaults and not in DB → unlimited
+    limitValue = -1;
   }
 
   // -1 means unlimited
