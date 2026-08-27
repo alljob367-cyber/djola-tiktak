@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getReminderService } from '@/lib/reminders/service';
 
 // Constant-time comparison to prevent timing attacks
 function safeCompare(a: string, b: string): boolean {
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createServiceRoleClient();
+    const reminderService = getReminderService();
 
     // Calculer la fenêtre de 24 heures
     const now = new Date();
@@ -34,11 +36,14 @@ export async function POST(request: NextRequest) {
       .select(`
         id,
         starts_at,
+        ends_at,
+        status,
         profile:profiles(
           id,
           business_name,
           phone,
-          timezone
+          timezone,
+          currency
         ),
         client:clients(
           id,
@@ -48,7 +53,8 @@ export async function POST(request: NextRequest) {
         ),
         service:services(
           id,
-          name
+          name,
+          price
         )
       `)
       .gte('starts_at', now.toISOString())
@@ -81,17 +87,18 @@ export async function POST(request: NextRequest) {
       (existingReminders || []).map((r) => `${r.appointment_id}:${r.channel}`)
     );
 
-    const channels: Array<'email' | 'whatsapp' | 'sms'> = ['email', 'whatsapp', 'sms'];
     const processed: string[] = [];
     const errors: string[] = [];
 
     // Type the Supabase join result
     interface AptClient { id: string; name: string; phone: string; email: string }
-    interface AptProfile { id: string; business_name: string; phone: string; timezone: string }
-    interface AptService { id: string; name: string }
+    interface AptProfile { id: string; business_name: string; phone: string; timezone: string; currency: string }
+    interface AptService { id: string; name: string; price: number }
     interface AppointmentJoined {
       id: string;
       starts_at: string;
+      ends_at: string;
+      status: string;
       client: AptClient | null;
       profile: AptProfile | null;
       service: AptService | null;
@@ -103,51 +110,83 @@ export async function POST(request: NextRequest) {
       const service = apt.service;
       if (!client || !profile || !service) continue;
 
+      // Déterminer les canaux disponibles
+      const channels: string[] = [];
+      if (client.email) channels.push('email');
+      // SMS et WhatsApp seront activés quand ces providers seront intégrés
+      // if (client.phone) channels.push('sms');
+      // if (client.phone) channels.push('whatsapp');
+
       for (const channel of channels) {
         const key = `${apt.id}:${channel}`;
         if (sentKeys.has(key)) continue;
 
-        // Déterminer si ce canal est disponible
-        const canSend =
-          (channel === 'email' && client.email) ||
-          (channel === 'whatsapp' && client.phone) ||
-          (channel === 'sms' && client.phone);
-
-        if (!canSend) continue;
-
         try {
-          // Enregistrer le rappel comme « en cours »
-          const { error: insertError } = await supabase
+          // Insérer le rappel en base (pending)
+          const { data: reminderRow, error: insertError } = await supabase
             .from('reminders')
             .insert({
               appointment_id: apt.id,
               channel,
               status: 'pending',
-            });
+            })
+            .select('id')
+            .maybeSingle();
 
-          if (insertError) {
+          if (insertError || !reminderRow) {
             errors.push(`Échec création rappel ${apt.id}:${channel}`);
             continue;
           }
 
-          // TODO : Intégrer l'envoi réel du rappel (email/WhatsApp/SMS)
-          // Pour le moment, on marque comme envoyé
-          const { error: updateError } = await supabase
-            .from('reminders')
-            .update({
-              status: 'sent',
-              sent_at: new Date().toISOString(),
-            })
-            .eq('appointment_id', apt.id)
-            .eq('channel', channel);
+          // Construire le payload et envoyer via ReminderService
+          const payload = reminderService.buildPayload({
+            appointmentId: apt.id,
+            clientName: client.name,
+            clientPhone: client.phone,
+            clientEmail: client.email,
+            serviceName: service.name,
+            servicePrice: service.price,
+            businessName: profile.business_name,
+            startsAt: apt.starts_at,
+            endsAt: apt.ends_at,
+            timezone: profile.timezone,
+            currency: profile.currency || 'XAF',
+          });
 
-          if (updateError) {
-            errors.push(`Échec mise à jour rappel ${apt.id}:${channel}`);
-          } else {
+          const results = await reminderService.sendReminder(payload, [channel]);
+
+          // Mettre à jour le statut du rappel en fonction du résultat
+          const result = results[0];
+          if (result?.success) {
+            await supabase
+              .from('reminders')
+              .update({
+                status: 'sent',
+                sent_at: new Date().toISOString(),
+              })
+              .eq('id', reminderRow.id);
+
             processed.push(apt.id);
+            console.log(
+              `[cron/reminders] ✅ ${channel} envoyé pour RDV ${apt.id} → ${client.email}`,
+            );
+          } else {
+            await supabase
+              .from('reminders')
+              .update({
+                status: 'failed',
+                error_message: result?.error || 'Erreur inconnue',
+              })
+              .eq('id', reminderRow.id);
+
+            errors.push(`Échec envoi ${apt.id}:${channel} — ${result?.error}`);
+            console.error(
+              `[cron/reminders] ❌ ${channel} échoué pour RDV ${apt.id}: ${result?.error}`,
+            );
           }
         } catch (err) {
           errors.push(`Erreur rappel ${apt.id}:${channel}: ${String(err)}`);
+          console.error(`[cron/reminders] Erreur ${apt.id}:${channel}:`, err);
         }
       }
     }
