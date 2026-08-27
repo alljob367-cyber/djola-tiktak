@@ -65,3 +65,23 @@ Work Log:
 Stage Summary:
 - 9 corrections de sécurité et stabilisation appliquées
 - Total cumulé : 18 corrections sur 4 phases, 0 erreurs TS
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: Phase 5 — Stabilisation avancée + Push Git
+
+Work Log:
+- 5.1 Ajouté error.tsx global (app/), dashboard, et [slug] — 3 error boundaries
+- 5.2 plan-gate.ts : fail-open → fail-closed (erreurs DB bloquent l'action au lieu de l'autoriser)
+- 5.3 Remplacé 2 empty catch blocks silencieux par console.warn dans appointments et plan-limits
+- 5.4 Créé page /reset-password avec formulaire nouveau mot de passe +redirectTo corrigé dans forgot-password
+- 5.5 Dashboard : 6 requêtes séquentielles → Promise.all (parallèle)
+- 5.6 Recherche clients : ajouté debounce 300ms via useRef
+- 5.7 Build : 0 erreurs TypeScript dans src/
+- Push Git sur main : ae331c6
+
+Stage Summary:
+- 6 corrections appliquées
+- Total cumulé : 24 corrections sur 5 phases, 0 erreurs TS
+- Git : poussé sur main
