@@ -184,8 +184,10 @@ export default function ClientsPage() {
         notes: form.notes.trim(),
       };
 
-      const res = await fetch('/api/clients', {
-        method: 'POST',
+      const url = editingId ? `/api/clients/${editingId}` : '/api/clients';
+      const method = editingId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
