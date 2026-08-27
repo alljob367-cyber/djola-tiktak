@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Phone,
@@ -26,6 +26,14 @@ type PaymentMethod = 'orange_money' | 'mtn_momo';
 
 type BillingPeriod = 'monthly' | 'yearly';
 
+interface PaymentInfo {
+  orange_money: { phone: string; name: string } | null;
+  mtn_momo: { phone: string; name: string } | null;
+  support_email: string;
+  support_phone: string | null;
+  payee_name: string;
+}
+
 interface ManualPayResponse {
   paymentId: string;
   status: string;
@@ -44,6 +52,9 @@ interface ManualPayResponse {
     billingPeriod: string;
     notes: string[];
   };
+  support_email?: string;
+  support_phone?: string | null;
+  message?: string;
 }
 
 // ── Plans ─────────────────────────────────────────────────────
@@ -78,6 +89,23 @@ function ManualPaymentContent() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ManualPayResponse | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
+  const [loadingInfo, setLoadingInfo] = useState(false);
+
+  // Fetch payment instructions from API (server-side env vars)
+  const fetchPaymentInfo = useCallback(async () => {
+    setLoadingInfo(true);
+    try {
+      const res = await fetch('/api/billing/manual-pay');
+      if (!res.ok) throw new Error('Erreur de chargement');
+      const data: PaymentInfo = await res.json();
+      setPaymentInfo(data);
+    } catch {
+      toast.error('Impossible de charger les informations de paiement. Réessayez.');
+    } finally {
+      setLoadingInfo(false);
+    }
+  }, []);
 
   // Step 1 → 2
   const handlePlanSelect = (planId: string) => {
@@ -86,9 +114,13 @@ function ManualPaymentContent() {
   };
 
   // Step 2 → 3
-  const handleMethodSelect = (method: PaymentMethod) => {
+  const handleMethodSelect = async (method: PaymentMethod) => {
     setPaymentMethod(method);
     setStep(3);
+    // Fetch payment info from API if not already loaded
+    if (!paymentInfo) {
+      await fetchPaymentInfo();
+    }
   };
 
   // Step 3 → Submit
@@ -337,103 +369,128 @@ function ManualPaymentContent() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Recipient info */}
-            <div className="rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/50 p-5 dark:bg-emerald-950/20 dark:border-emerald-700">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-medium">
-                      {paymentMethod === 'orange_money' ? 'Orange Money' : 'MTN Mobile Money'}
-                    </p>
-                    <p className="text-2xl font-extrabold tracking-wider text-foreground mt-1 font-mono">
-                      {paymentMethod === 'orange_money'
-                        ? (process.env.NEXT_PUBLIC_OM_PHONE || '')
-                        : (process.env.NEXT_PUBLIC_MTN_PHONE || '')}
-                    </p>
-                    {!(paymentMethod === 'orange_money' ? process.env.NEXT_PUBLIC_OM_PHONE : process.env.NEXT_PUBLIC_MTN_PHONE) && (
-                      <p className="text-sm text-red-500 font-medium mt-1">
-                        Numéro non configuré. Contactez le support.
-                      </p>
-                    )}
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Nom du bénéficiaire : <span className="font-medium text-foreground">{process.env.NEXT_PUBLIC_PAYEE_NAME || 'Djola TikTak'}</span>
-                    </p>
+            {loadingInfo ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : paymentInfo ? (
+              <>
+                {/* Recipient info */}
+                <div className="rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/50 p-5 dark:bg-emerald-950/20 dark:border-emerald-700">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground uppercase font-medium">
+                          {paymentMethod === 'orange_money' ? 'Orange Money' : 'MTN Mobile Money'}
+                        </p>
+                        {(() => {
+                          const methodInfo = paymentMethod === 'orange_money'
+                            ? paymentInfo.orange_money
+                            : paymentInfo.mtn_momo;
+                          return methodInfo ? (
+                            <p className="text-2xl font-extrabold tracking-wider text-foreground mt-1 font-mono">
+                              {methodInfo.phone}
+                            </p>
+                          ) : (
+                            <p className="text-lg font-bold text-red-500 mt-1">
+                              Numéro non configuré
+                            </p>
+                          );
+                        })()}
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Nom du bénéficiaire : <span className="font-medium text-foreground">{paymentInfo.payee_name}</span>
+                        </p>
+                      </div>
+                      {(() => {
+                        const methodInfo = paymentMethod === 'orange_money'
+                          ? paymentInfo.orange_money
+                          : paymentInfo.mtn_momo;
+                        return methodInfo ? (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0"
+                            onClick={() => copyToClipboard(methodInfo.phone, 'phone')}
+                          >
+                            {copiedField === 'phone' ? <CheckCircle size={16} className="text-emerald-500" /> : <Copy size={16} />}
+                          </Button>
+                        ) : null;
+                      })()}
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm">
+                      <CircleDot size={14} className="text-emerald-500" />
+                      <span className="font-medium text-foreground">Montant exact : {formattedAmount} FCFA</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => copyToClipboard(String(amount), 'amount')}
+                      >
+                        {copiedField === 'amount' ? <CheckCircle size={12} className="text-emerald-500" /> : <Copy size={12} className="mr-1" />}
+                        Copier
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="shrink-0"
-                    onClick={() =>
-                      copyToClipboard(
-                        paymentMethod === 'orange_money'
-                          ? (process.env.NEXT_PUBLIC_OM_PHONE || '')
-                          : (process.env.NEXT_PUBLIC_MTN_PHONE || ''),
-                        'phone',
-                      )
-                    }
-                  >
-                    {copiedField === 'phone' ? <CheckCircle size={16} className="text-emerald-500" /> : <Copy size={16} />}
-                  </Button>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm">
-                  <CircleDot size={14} className="text-emerald-500" />
-                  <span className="font-medium text-foreground">Montant exact : {formattedAmount} FCFA</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    onClick={() => copyToClipboard(String(amount), 'amount')}
-                  >
-                    {copiedField === 'amount' ? <CheckCircle size={12} className="text-emerald-500" /> : <Copy size={12} className="mr-1" />}
-                    Copier
-                  </Button>
+                {/* Steps to follow */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-foreground text-sm">Comment procéder :</h4>
+                  <ol className="space-y-2">
+                    {[
+                      `Ouvrez votre application ${paymentMethod === 'orange_money' ? 'Orange Money' : 'MTN MoMo'}`,
+                      'Sélectionnez « Transfert d\'argent » ou « Send Money »',
+                      'Entrez le numéro du bénéficiaire ci-dessus',
+                      `Entrez le montant exact : ${formattedAmount} FCFA`,
+                      'Confirmez avec votre code secret',
+                      'Cliquez sur « J\'ai effectué le transfert » ci-dessous',
+                    ].map((text, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+                          {i + 1}
+                        </span>
+                        <span className="pt-0.5">{text}</span>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
+
+                {/* Contact info */}
+                <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 dark:bg-blue-950/30 dark:border-blue-800">
+                  <div className="flex items-start gap-3">
+                    <MessageCircle size={18} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-blue-800 dark:text-blue-300">
+                        Envoyez la capture d'écran de confirmation
+                      </p>
+                      <p className="text-blue-700/80 dark:text-blue-400 mt-1">
+                        {paymentInfo.support_phone ? (
+                          <>
+                            WhatsApp : <span className="font-mono font-bold">{paymentInfo.support_phone}</span>
+                            {' — '}
+                          </>
+                        ) : null}
+                        Email : <span className="font-mono font-bold">{paymentInfo.support_email}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-950/30">
+                <p className="text-sm text-red-700 dark:text-red-400">
+                  Impossible de charger les informations de paiement.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-3"
+                  onClick={fetchPaymentInfo}
+                >
+                  Réessayer
+                </Button>
               </div>
-            </div>
-
-            {/* Steps to follow */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-foreground text-sm">Comment procéder :</h4>
-              <ol className="space-y-2">
-                {[
-                  `Ouvrez votre application ${paymentMethod === 'orange_money' ? 'Orange Money' : 'MTN MoMo'}`,
-                  'Sélectionnez « Transfert d\'argent » ou « Send Money »',
-                  'Entrez le numéro du bénéficiaire ci-dessus',
-                  `Entrez le montant exact : ${formattedAmount} FCFA`,
-                  'Confirmez avec votre code secret',
-                  'Cliquez sur « J\'ai effectué le transfert » ci-dessous',
-                ].map((text, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
-                      {i + 1}
-                    </span>
-                    <span className="pt-0.5">{text}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            {/* Contact info */}
-            <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 dark:bg-blue-950/30 dark:border-blue-800">
-              <div className="flex items-start gap-3">
-                <MessageCircle size={18} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-blue-800 dark:text-blue-300">
-                    Envoyez la capture d'écran de confirmation
-                  </p>
-                  <p className="text-blue-700/80 dark:text-blue-400 mt-1">
-                    WhatsApp : {process.env.NEXT_PUBLIC_SUPPORT_PHONE ? (
-                      <span className="font-mono font-bold">{process.env.NEXT_PUBLIC_SUPPORT_PHONE}</span>
-                    ) : (
-                      <span className="text-amber-600 font-medium">Voir page d'accueil</span>
-                    )}
-                    {' — '}
-                    Email : <span className="font-mono font-bold">support@djola-tiktak.com</span>
-                  </p>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Action buttons */}
             <div className="flex gap-3">
@@ -444,7 +501,7 @@ function ManualPaymentContent() {
               <Button
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || !paymentInfo?.[paymentMethod]}
               >
                 {loading && <Loader2 size={16} className="mr-1.5 animate-spin" />}
                 J'ai effectué le transfert
@@ -513,6 +570,15 @@ function ManualPaymentContent() {
                   <span>Votre abonnement est activé automatiquement après validation</span>
                 </li>
               </ol>
+              {/* Support contact in confirmation */}
+              <div className="mt-4 pt-3 border-t border-amber-200 dark:border-amber-700">
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Contact :{' '}
+                  {result.support_phone && <span className="font-mono font-bold">WhatsApp {result.support_phone}</span>}
+                  {result.support_phone && ' — '}
+                  <span className="font-mono font-bold">{result.support_email || 'support@djola-tiktak.com'}</span>
+                </p>
+              </div>
             </div>
 
             <Button

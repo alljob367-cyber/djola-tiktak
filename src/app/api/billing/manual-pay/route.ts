@@ -7,6 +7,34 @@ export const dynamic = 'force-dynamic';
 
 const VALID_PLANS: PlanId[] = ['starter', 'pro', 'business'];
 
+// ── GET: Return payment instructions (phone numbers, support contact) ────
+
+export async function GET() {
+  try {
+    await getAuthenticatedUser(); // ensure user is logged in
+
+    const plan = PLAN_PRICES.pro; // default plan for amount display
+    const instructions = getPaymentInstructions(plan.monthly, plan.name, 'monthly');
+
+    return NextResponse.json({
+      orange_money: instructions.orange_money ?? null,
+      mtn_momo: instructions.mtn_momo ?? null,
+      support_email: 'support@djola-tiktak.com',
+      support_phone: process.env.SUPPORT_PHONE || null,
+      payee_name: process.env.ORANGE_MONEY_NAME || process.env.MTN_MOMO_NAME || 'Djola TikTak',
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Non authentifié.') {
+      return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 });
+    }
+    console.error('Erreur instructions paiement:', error);
+    return NextResponse.json(
+      { error: 'Erreur interne du serveur.' },
+      { status: 500 },
+    );
+  }
+}
+
 /** Pricing data — mirrors the DB seed data. */
 const PLAN_PRICES: Record<PlanId, { name: string; monthly: number; yearly: number }> = {
   starter: { name: 'Starter', monthly: 3000, yearly: 30000 },
@@ -63,16 +91,20 @@ export async function POST(request: NextRequest) {
 
     if (existingPending) {
       // Return existing pending payment instead of creating a duplicate
+      const instructions = getPaymentInstructions(amount, plan.name, period);
       return NextResponse.json({
         paymentId: existingPending.id,
         status: 'pending',
-        message: 'Vous avez déjà une demande de paiement en attente. Effectuez le transfert et contactez le support pour validation.',
+        message: 'Vous avez déjà une demande de paiement en attente. Effectuez le transfert et envoyez la capture de confirmation.',
         planId: selectedPlan,
         planName: plan.name,
         amount,
         currency: 'XAF',
         billingPeriod: period,
         paymentMethod: paymentMethod || null,
+        instructions,
+        support_email: 'support@djola-tiktak.com',
+        support_phone: process.env.SUPPORT_PHONE || null,
       });
     }
 
@@ -118,6 +150,8 @@ export async function POST(request: NextRequest) {
       billingPeriod: period,
       paymentMethod: paymentMethod || null,
       instructions,
+      support_email: 'support@djola-tiktak.com',
+      support_phone: process.env.SUPPORT_PHONE || null,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Non authentifié.') {
