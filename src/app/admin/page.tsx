@@ -17,7 +17,7 @@ import {
   Loader2,
   RefreshCw,
   Shield,
-  Scissors,
+  CalendarCheck,
   AlertTriangle,
   UserCheck,
 } from 'lucide-react';
@@ -249,7 +249,7 @@ export default function AdminPage() {
 
         {/* ── Secondary stats ────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <MiniStat icon={Scissors} label="Services" value={m.totalServices} />
+          <MiniStat icon={CalendarCheck} label="Services" value={m.totalServices} />
           <MiniStat icon={Users} label="Clients enregistrés" value={m.totalClients} />
           <MiniStat icon={Clock} label="RDV cette semaine" value={m.weekAppointments} />
           <MiniStat icon={UserCheck} label="Nouveaux (sem.)" value={m.weekNewProfiles} />
@@ -406,7 +406,7 @@ export default function AdminPage() {
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Scissors size={16} className="text-blue-400" />
+                  <CalendarCheck size={16} className="text-blue-400" />
                   Services les plus populaires
                 </CardTitle>
               </CardHeader>

@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
-  Scissors,
+  CalendarCheck,
   CalendarDays,
   Users,
   Clock,
@@ -54,7 +54,7 @@ interface NavItem {
 // ── Navigation config ──────────────────────────────────────────
 const sidebarLinks: NavItem[] = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/dashboard/services', label: 'Services', icon: Scissors },
+  { href: '/dashboard/services', label: 'Services', icon: CalendarCheck },
   { href: '/dashboard/appointments', label: 'Rendez-vous', icon: CalendarDays },
   { href: '/dashboard/clients', label: 'Clients', icon: Users },
   { href: '/dashboard/availability', label: 'Disponibilités', icon: Clock },

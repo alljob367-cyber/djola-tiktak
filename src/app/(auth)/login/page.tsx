@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Loader2, Mail, Lock, Scissors, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Mail, Lock, CalendarCheck, Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,7 +106,7 @@ export default function LoginPage() {
           className="flex flex-col items-center mb-8"
         >
           <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/25 mb-4">
-            <Scissors className="w-7 h-7 text-white" />
+            <CalendarCheck className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Djola TikTak

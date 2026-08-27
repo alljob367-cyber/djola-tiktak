@@ -11,12 +11,18 @@ import {
   TrendingUp,
   Smartphone,
   Lock,
-  Scissors,
-  ScanLine,
   Sparkles,
-  Hand,
+  Scissors,
+  UtensilsCrossed,
+  Store,
+  MonitorSmartphone,
+  Briefcase,
   Camera,
-  ClipboardList,
+  Stethoscope,
+  GraduationCap,
+  Utensils,
+  Shirt,
+  Wrench,
   Users,
   CheckCircle2,
   ExternalLink,
@@ -46,12 +52,12 @@ const featureCards = [
 ];
 
 const professions = [
-  { icon: Scissors, label: 'Coiffeurs & Salons de beauté' },
-  { icon: ScanLine, label: 'Barbiers' },
-  { icon: Sparkles, label: 'Esthéticiennes' },
-  { icon: Hand, label: 'Masseurs & Thérapeutes' },
-  { icon: Camera, label: 'Photographes' },
-  { icon: ClipboardList, label: 'Consultants' },
+  { icon: UtensilsCrossed, label: 'Restaurants & Bars' },
+  { icon: Scissors, label: 'Coiffeurs & Barbiers' },
+  { icon: Store, label: 'Boutiques & Commerce' },
+  { icon: MonitorSmartphone, label: 'Agences & Freelances' },
+  { icon: Stethoscope, label: 'Santé & Bien-être' },
+  { icon: GraduationCap, label: 'Formation & Coaching' },
   { icon: Users, label: 'Et bien plus...' },
 ];
 
@@ -71,10 +77,10 @@ const nextAppointments = [
 
 const timeSlots = ['09:00', '11:00', '14:00', '15:00', '16:00'];
 const services = [
-  { name: 'Coupe + Brushing', duration: '30 min', price: '15 000 CFA', active: true },
-  { name: 'Coloration', duration: '60 min', price: '25 000 CFA' },
-  { name: 'Soin capillaire', duration: '45 min', price: '20 000 CFA' },
-  { name: 'Maquillage', duration: '60 min', price: '25 000 CFA' },
+  { name: 'Consultation initiale', duration: '30 min', price: '10 000 CFA', active: true },
+  { name: 'Prestation standard', duration: '60 min', price: '25 000 CFA' },
+  { name: 'Forfait complet', duration: '90 min', price: '40 000 CFA' },
+  { name: 'Suivi & assistance', duration: '45 min', price: '15 000 CFA' },
 ];
 
 const calendarDays = [
@@ -187,7 +193,7 @@ function BookingWidget() {
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-white text-base font-semibold">Votre page de réservation</h3>
         <span className="flex items-center gap-1.5 rounded-full bg-white/[0.05] px-3 py-1.5 text-xs text-gray-400 font-mono">
-          votresalon.djola-tiktak.com
+          votre-business.djola-tiktak.com
           <ExternalLink className="w-3 h-3" />
         </span>
       </div>

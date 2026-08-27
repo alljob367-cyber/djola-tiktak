@@ -378,7 +378,7 @@ export default function ProfilePage() {
               <CardContent className="p-6 space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="biz-name">Nom de l'entreprise *</Label>
-                  <Input id="biz-name" placeholder="Ex : Salon Beauté Divine" {...register('business_name', { onBlur: (e) => handleNameBlur(e.target.value) })} />
+                  <Input id="biz-name" placeholder="Ex : Restaurant Le Baobab" {...register('business_name', { onBlur: (e) => handleNameBlur(e.target.value) })} />
                   {errors.business_name && <p className="text-xs text-red-500">{errors.business_name.message}</p>}
                 </div>
                 <div className="space-y-2">

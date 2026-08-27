@@ -7,7 +7,7 @@ import {
   Pencil,
   Trash2,
   Clock,
-  Scissors,
+  CalendarCheck,
   Loader2,
   PackageOpen,
   Camera,
@@ -304,7 +304,7 @@ export default function ServicesPage() {
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg overflow-hidden bg-emerald-50 dark:bg-emerald-950/30">
-                                {s.image_url ? <img src={s.image_url} alt={s.name} className="h-full w-full object-cover" /> : <Scissors size={16} className="text-emerald-600 dark:text-emerald-400" />}
+                                {s.image_url ? <img src={s.image_url} alt={s.name} className="h-full w-full object-cover" /> : <CalendarCheck size={16} className="text-emerald-600 dark:text-emerald-400" />}
                               </div>
                               <div>
                                 <p className="font-medium">{s.name}</p>
@@ -405,7 +405,7 @@ export default function ServicesPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
-                            <Scissors size={18} className="text-emerald-600 dark:text-emerald-400" />
+                            <CalendarCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -500,7 +500,7 @@ export default function ServicesPage() {
               <Label htmlFor="svc-name">Nom du service *</Label>
               <Input
                 id="svc-name"
-                placeholder="Ex : Coupe homme"
+                placeholder="Ex : Consultation de 30 min"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               />

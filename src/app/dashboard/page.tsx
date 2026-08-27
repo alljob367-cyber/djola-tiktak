@@ -18,7 +18,7 @@ import {
   ArrowRight,
   Plus,
   CalendarClock,
-  Scissors,
+  CalendarCheck,
   UserPlus,
   Sparkles,
 } from 'lucide-react';
@@ -432,7 +432,7 @@ export default async function DashboardPage() {
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-start gap-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
-                    <Scissors className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    <CalendarCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-foreground">
