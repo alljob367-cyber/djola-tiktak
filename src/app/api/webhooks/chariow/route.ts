@@ -215,7 +215,7 @@ async function handleSaleCompleted(
         external_id: saleId,
         external_status: 'completed',
         paid_at: new Date().toISOString(),
-        billing_period: 'monthly',
+        billing_period: (metadata.billing_period === 'yearly' ? 'yearly' : 'monthly'),
       })
       .select('id')
       .single();
@@ -227,13 +227,16 @@ async function handleSaleCompleted(
     paymentId = newPayment.id;
   }
 
-  // c) Activate subscription via service
+  // c) Determine billing period from metadata or default to monthly
+  const billingPeriod = (metadata.billing_period === 'yearly' ? 'yearly' : 'monthly') as 'monthly' | 'yearly';
+
+  // d) Activate subscription via service
   const subscriptionId = await subscriptionService.activateSubscription(
     profileId,
     planId,
     paymentId,
-    30,
-    'monthly',
+    billingPeriod === 'yearly' ? 365 : 30,
+    billingPeriod,
   );
 
   // d) Update profile chariow_customer_id if not set

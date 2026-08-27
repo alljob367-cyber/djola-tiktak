@@ -1,21 +1,44 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    // ── Auth check: only authenticated admins can auto-confirm ──
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email requis' }, { status: 400 });
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    // ── Admin check: ADMIN_EMAILS must be configured and contain user ──
+    if (ADMIN_EMAILS.length === 0) {
+      return NextResponse.json({ error: 'Fonction non configurée' }, { status: 403 });
+    }
+
+    if (!ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '')) {
+      return NextResponse.json({ error: 'Accès refusé. Réservé aux administrateurs.' }, { status: 403 });
+    }
+
+    // ── Validate input ──
+    const body = await request.json();
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'Email valide requis' }, { status: 400 });
+    }
 
     // Use Supabase REST Admin API directly to find user by email
     const listRes = await fetch(
-      `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(normalizedEmail)}`,
+      `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
       {
         headers: {
           'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,

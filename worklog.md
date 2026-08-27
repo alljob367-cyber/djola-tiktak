@@ -45,3 +45,23 @@ Work Log:
 Stage Summary:
 - 2 optimisations appliquées
 - Total : 9 corrections sur 3 phases, build clean
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Phase 4 — Sécurité & Stabilisation
+
+Work Log:
+- 4.1 auto-confirm : ajouté auth obligatoire + vérification admin + validation email regex
+- 4.2 Corrigé 3 fichiers : hasActiveSubscription, admin/metrics, admin/check — `ADMIN_EMAILS.length===0` ne donne plus accès admin à tous
+- 4.3 admin/payments et admin/payments/confirm : supprimé le fallback CRON_SECRET, ajouté fallback session admin auth
+- 4.4 Profils publics : select('*') remplacé par liste explicite de champs publics (exclut plan, subscription_status, chariow_customer_id, etc.)
+- 4.5 PUT clients : ajouté validation Zod (clientSchema.safeParse). Ajouté validation ISO date sur appointmentCreateSchema, blockedSlotSchema, publicBookingSchema
+- 4.6 Webhook chariow : billing_period n'est plus hardcodé 'monthly', lu depuis metadata.billing_period
+- 4.7 Désactivation : nouveau endpoint POST /api/profiles/deactivate qui ne fait que `is_active: false` sans effacer les données. Frontend corrigé.
+- 4.8 Middleware : ajouté `/admin/:path*` au matcher pour protéger les routes admin
+- 4.9 Build : 0 erreurs TypeScript dans src/
+
+Stage Summary:
+- 9 corrections de sécurité et stabilisation appliquées
+- Total cumulé : 18 corrections sur 4 phases, 0 erreurs TS

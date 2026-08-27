@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
+
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 // ── GET: List payments (optionally filter by status) ─────────
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify admin access
+    // Verify admin access — use ADMIN_SECRET only (not CRON_SECRET)
     const adminSecret = request.headers.get('X-Admin-Secret');
     if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
-      const cronSecret = request.headers.get('CRON_SECRET');
-      if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
+      // Fallback: authenticated admin user via session
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || ADMIN_EMAILS.length === 0 || !ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '')) {
         return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
       }
     }

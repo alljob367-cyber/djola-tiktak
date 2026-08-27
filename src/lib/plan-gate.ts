@@ -47,7 +47,7 @@ export function isAdmin(email: string | null | undefined): boolean {
  * Returns true for admins regardless.
  */
 export function hasActiveSubscription(profile: Profile): boolean {
-  if (ADMIN_EMAILS.length === 0) return true; // No admin list = open access (dev mode)
+  if (ADMIN_EMAILS.length === 0) return false; // No admin list = not admin
   const status = profile.subscription_status;
   return status === 'active' || status === 'trialing';
 }

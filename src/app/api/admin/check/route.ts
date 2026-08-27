@@ -16,7 +16,7 @@ export async function GET() {
     }
 
     if (ADMIN_EMAILS.length === 0) {
-      return NextResponse.json({ isAdmin: true, email: user.email });
+      return NextResponse.json({ isAdmin: false, reason: 'not_configured' });
     }
 
     const isAdmin = ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '');

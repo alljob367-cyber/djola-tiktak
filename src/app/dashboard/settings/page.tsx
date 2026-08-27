@@ -218,23 +218,14 @@ export default function SettingsPage() {
   const handleDeactivate = async () => {
     setDeactivating(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Non autorisé');
-
-      const res = await fetch('/api/profiles', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          business_name: '',
-          slug: '',
-          description: '',
-          phone: '',
-          email: '',
-          currency: 'XAF',
-          timezone: 'Africa/Malabo',
-          is_active: false,
-        }),
+      const res = await fetch('/api/profiles/deactivate', {
+        method: 'POST',
       });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Erreur lors de la désactivation');
+      }
 
       toast.info('Compte désactivé');
       await supabase.auth.signOut();

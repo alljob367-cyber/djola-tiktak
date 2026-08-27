@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { clientSchema } from '@/lib/validation/schemas';
 
 // DELETE — supprimer un client
 export async function DELETE(
@@ -49,7 +50,7 @@ export async function DELETE(
   }
 }
 
-// PUT — mettre à jour un client
+// PUT — mettre à jour un client (avec validation Zod)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -64,11 +65,18 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, phone, email, notes } = body;
 
-    if (!name?.trim() || !phone?.trim()) {
-      return NextResponse.json({ error: 'Nom et téléphone requis' }, { status: 400 });
+    // Zod validation
+    const parsed = clientSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0];
+      return NextResponse.json(
+        { error: firstError.message },
+        { status: 400 },
+      );
     }
+
+    const { name, phone, email, notes } = parsed.data;
 
     // Vérifier l'appartenance du client
     const { data: existing, error: findError } = await supabase
@@ -85,10 +93,10 @@ export async function PUT(
     const { data, error } = await supabase
       .from('clients')
       .update({
-        name: name.trim(),
-        phone: phone.trim(),
-        email: email?.trim() || '',
-        notes: notes?.trim() || '',
+        name,
+        phone,
+        email: email || '',
+        notes,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

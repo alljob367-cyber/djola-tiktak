@@ -60,7 +60,10 @@ export const appointmentCreateSchema = z.object({
   client_name: z.string().min(1, 'Le nom est requis').max(100),
   client_phone: z.string().min(1, 'Le téléphone est requis').max(20),
   client_email: z.string().email('Email invalide').optional().or(z.literal('')).default(''),
-  starts_at: z.string().min(1, 'La date est requise'),
+  starts_at: z.string().min(1, 'La date est requise').refine(
+    (v) => !isNaN(Date.parse(v)),
+    { message: 'Format de date ISO invalide' },
+  ),
   notes: z.string().max(300).optional().default(''),
 });
 
@@ -76,8 +79,14 @@ export const availabilitySchema = z.object({
 });
 
 export const blockedSlotSchema = z.object({
-  starts_at: z.string().min(1, 'La date de début est requise'),
-  ends_at: z.string().min(1, 'La date de fin est requise'),
+  starts_at: z.string().min(1, 'La date de début est requise').refine(
+    (v) => !isNaN(Date.parse(v)),
+    { message: 'Format de date ISO invalide' },
+  ),
+  ends_at: z.string().min(1, 'La date de fin est requise').refine(
+    (v) => !isNaN(Date.parse(v)),
+    { message: 'Format de date ISO invalide' },
+  ),
   reason: z.string().max(200).default(''),
 });
 
@@ -86,7 +95,10 @@ export const publicBookingSchema = z.object({
   client_name: z.string().min(1, 'Le nom est requis').max(100),
   client_phone: z.string().min(1, 'Le téléphone est requis').max(20),
   client_email: z.string().email('Email invalide').optional().or(z.literal('')).default(''),
-  starts_at: z.string().min(1, 'La date est requise'),
+  starts_at: z.string().min(1, 'La date est requise').refine(
+    (v) => !isNaN(Date.parse(v)),
+    { message: 'Format de date ISO invalide' },
+  ),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;

@@ -9,7 +9,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
 
 async function isAdmin(userEmail: string | undefined): Promise<boolean> {
   if (!userEmail) return false;
-  if (ADMIN_EMAILS.length === 0) return true; // dev mode
+  if (ADMIN_EMAILS.length === 0) return false; // No admin list configured
   return ADMIN_EMAILS.includes(userEmail.toLowerCase());
 }
 
