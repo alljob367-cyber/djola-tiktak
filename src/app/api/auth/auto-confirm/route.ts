@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-  return NextResponse.json({ error: 'Configuration serveur manquante.' }, { status: 500 });
-}
-
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
   .split(',')
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
 export async function POST(request: Request) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return NextResponse.json({ error: 'Configuration serveur manquante.' }, { status: 500 });
+  }
+
   try {
     // ── Auth check: only authenticated admins can auto-confirm ──
     const supabase = await createClient();
@@ -42,11 +42,11 @@ export async function POST(request: Request) {
 
     // Use Supabase REST Admin API directly to find user by email
     const listRes = await fetch(
-      `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
+      `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
       {
         headers: {
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'apikey': serviceRoleKey,
         },
       }
     );
@@ -74,12 +74,12 @@ export async function POST(request: Request) {
 
     // Confirm the user's email via Admin API
     const updateRes = await fetch(
-      `${SUPABASE_URL}/auth/v1/admin/users/${userId}`,
+      `${supabaseUrl}/auth/v1/admin/users/${userId}`,
       {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'apikey': serviceRoleKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email_confirm: true }),

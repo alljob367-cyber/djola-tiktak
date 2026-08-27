@@ -353,7 +353,6 @@ export default function RegisterPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                     aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                    tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -416,7 +415,6 @@ export default function RegisterPage() {
                     aria-label={
                       showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
                     }
-                    tabIndex={-1}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />

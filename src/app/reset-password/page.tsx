@@ -141,7 +141,7 @@ export default function ResetPasswordPage() {
                         <Input
                           id="password"
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Minimum 6 caractères"
+                          placeholder="Minimum 8 caractères"
                           value={password}
                           onChange={(e) => { setPassword(e.target.value); if (error) setError(undefined); }}
                           className="pl-10 pr-10 h-11"

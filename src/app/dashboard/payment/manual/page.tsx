@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Phone,
@@ -8,7 +8,6 @@ import {
   CheckCircle,
   ArrowLeft,
   Loader2,
-  CreditCard,
   MessageCircle,
   Shield,
   Clock,
@@ -517,5 +516,19 @@ function ManualPaymentContent() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function ManualPaymentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <ManualPaymentContent />
+    </Suspense>
   );
 }
