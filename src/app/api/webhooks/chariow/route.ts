@@ -242,8 +242,10 @@ async function handleSaleCompleted(
     billingPeriod,
   );
 
-  // d) Update profile chariow_customer_id if not set
-  if (saleData.customer?.email) {
+  // d) Update profile chariow_customer_id with the actual customer identifier
+  // Use customer email as the customer identifier (not the sale ID which is a transaction identifier)
+  const customerIdentifier = saleData.customer?.email;
+  if (customerIdentifier) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('chariow_customer_id')
@@ -253,7 +255,7 @@ async function handleSaleCompleted(
     if (profile && !profile.chariow_customer_id) {
       await supabase
         .from('profiles')
-        .update({ chariow_customer_id: saleId })
+        .update({ chariow_customer_id: customerIdentifier })
         .eq('id', profileId);
     }
   }

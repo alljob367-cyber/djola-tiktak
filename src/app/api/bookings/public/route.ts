@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     // Vérifier que le profil du professionnel est actif
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, is_active, timezone')
+      .select('id, is_active, timezone, plan, email')
       .eq('id', service.profile_id)
       .single();
 
@@ -200,6 +200,26 @@ export async function POST(request: NextRequest) {
         client:clients(*)
       `)
       .single();
+
+    // ── Post-insert overlap guard (defense against TOCTOU race) ──
+    // If 2 concurrent requests passed the pre-check, one may have inserted first.
+    // We verify no overlap was created; if so, we delete the duplicate and return 409.
+    if (appointment) {
+      const { data: postCheckOverlap } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('profile_id', service.profile_id)
+        .neq('status', 'cancelled')
+        .neq('id', appointment.id)
+        .lt('starts_at', ends_at)
+        .gt('ends_at', start);
+
+      if (postCheckOverlap && postCheckOverlap.length > 0) {
+        // Another appointment was inserted in the same slot — rollback ours
+        await supabase.from('appointments').delete().eq('id', appointment.id);
+        return NextResponse.json({ error: 'Ce créneau vient d\'être réservé. Veuillez en choisir un autre.' }, { status: 409 });
+      }
+    }
 
     if (aptError) {
       console.error('Erreur création rendez-vous public:', aptError);

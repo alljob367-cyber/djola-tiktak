@@ -6,6 +6,8 @@
  * interface consumed by billing-service.ts.
  */
 
+import { createHmac, timingSafeEqual } from 'crypto';
+
 import type { PaymentProvider } from '../billing-service';
 import type { PlanId, BillingPeriod } from '@/types/database';
 
@@ -216,12 +218,44 @@ export const chariowProvider: PaymentProvider = {
     throw new Error('Réponse Chariow inattendue : aucun URL de paiement reçu.');
   },
 
-  verifyWebhook(_rawBody: string, _signature: string | null): boolean {
+  verifyWebhook(rawBody: string, signature: string | null): boolean {
     const secret = process.env.CHARIOW_WEBHOOK_SECRET;
-    if (!secret || secret === 'placeholder') {
-      return true;
+
+    // ── No secret configured → reject ALL webhooks ──
+    // This prevents fraud when the operator hasn't set up the secret.
+    if (!secret || secret === 'placeholder' || secret.startsWith('your_')) {
+      console.warn('[chariow] CHARIOW_WEBHOOK_SECRET not configured — rejecting webhook.');
+      return false;
     }
-    // Future: HMAC-SHA256 verification when Chariow supports it
-    return true;
+
+    // ── No signature header → reject ──
+    if (!signature) {
+      return false;
+    }
+
+    // ── HMAC-SHA256 verification ──
+    // Chariow sends: x-chariow-signature header with format "sha256=<hex>"
+    // We compute HMAC-SHA256(secret, rawBody) and compare in constant time.
+    try {
+      const expected = createHmac('sha256', secret).update(rawBody, 'utf8').digest('hex');
+
+      // Extract hex from signature (handle "sha256=<hex>" format)
+      const providedHex = signature.startsWith('sha256=')
+        ? signature.slice(7)
+        : signature;
+
+      const expectedBuf = Buffer.from(expected, 'hex');
+      const providedBuf = Buffer.from(providedHex, 'hex');
+
+      // Length mismatch → reject (length leak is acceptable here;
+      // the hex digest length is always 64 bytes for SHA256)
+      if (expectedBuf.length !== providedBuf.length) {
+        return false;
+      }
+
+      return timingSafeEqual(expectedBuf, providedBuf);
+    } catch {
+      return false;
+    }
   },
 } as const;

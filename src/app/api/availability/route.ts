@@ -114,13 +114,22 @@ export async function PUT(request: NextRequest) {
     }
 
     // Insert succeeded — now safely remove old entries (different from new ones)
-    const newIds = (insertedData ?? []).map((item: { id?: string }) => item.id).filter(Boolean);
+    const newIds = (insertedData ?? [])
+      .map((item: { id?: string }) => item.id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
     if (newIds.length > 0) {
-      await supabase
-        .from('availability')
-        .delete()
-        .eq('profile_id', user.id)
-        .not('id', 'in', `(${newIds.join(',')})`);
+      // Delete old entries that are NOT in the new set, for this user only
+      // Use individual deletes per batch of 100 to avoid PostgREST URL length limits
+      const batchSize = 100;
+      for (let i = 0; i < newIds.length; i += batchSize) {
+        const batch = newIds.slice(i, i + batchSize);
+        await supabase
+          .from('availability')
+          .delete()
+          .eq('profile_id', user.id)
+          .not('id', 'in', `(${batch.join(',')})`);
+      }
     }
 
     return NextResponse.json({ data: insertedData });

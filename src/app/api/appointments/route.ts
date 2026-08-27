@@ -240,6 +240,23 @@ export async function POST(request: NextRequest) {
       `)
       .single();
 
+    // ── Post-insert overlap guard (defense against TOCTOU race) ──
+    if (appointment) {
+      const { data: postCheckOverlap } = await serviceRole
+        .from('appointments')
+        .select('id')
+        .eq('profile_id', user.id)
+        .neq('status', 'cancelled')
+        .neq('id', appointment.id)
+        .lt('starts_at', ends_at)
+        .gt('ends_at', start);
+
+      if (postCheckOverlap && postCheckOverlap.length > 0) {
+        await serviceRole.from('appointments').delete().eq('id', appointment.id);
+        return NextResponse.json({ error: 'Ce créneau vient d\'être réservé. Veuillez en choisir un autre.' }, { status: 409 });
+      }
+    }
+
     if (aptError) {
       console.error('Erreur création rendez-vous:', aptError);
       return NextResponse.json({ error: 'Erreur lors de la création du rendez-vous' }, { status: 500 });
