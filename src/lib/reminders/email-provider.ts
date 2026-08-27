@@ -45,7 +45,7 @@ function formatPrice(price: number, currency: string): string {
   return formatted;
 }
 
-const FROM_EMAIL = 'Djola TikTak <noreply@djola-tiktak.com>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Djola TikTak <onboarding@resend.dev>';
 
 export class EmailProvider implements NotificationProvider {
   readonly channel = 'email';
