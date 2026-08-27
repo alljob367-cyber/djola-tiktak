@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { appointmentCreateSchema } from '@/lib/validation/schemas';
 import type { AppointmentStatus } from '@/types/database';
+import { requireSubscription, PlanGateError } from '@/lib/plan-gate';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 // GET — lister les rendez-vous avec jointures service + client
 export async function GET(request: NextRequest) {
@@ -54,7 +56,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST — créer un rendez-vous
+// POST — créer un rendez-vous (avec vérification de limite du plan)
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -62,6 +64,76 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    // Récupérer le profil complet
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: 'Profil non trouvé' }, { status: 404 });
+    }
+
+    // ── Vérification de l'abonnement ──
+    try {
+      await requireSubscription(profile, user.email);
+    } catch (e) {
+      if (e instanceof PlanGateError) {
+        return NextResponse.json({ error: e.message, code: e.code, upgradeUrl: '/dashboard/billing' }, { status: e.statusCode });
+      }
+      throw e;
+    }
+
+    // ── Vérification de la limite de rendez-vous par jour ──
+    // On compte les RDV du jour (non annulés)
+    const today = new Date();
+    const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+    const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
+
+    const serviceRole = await createServiceRoleClient();
+    const { count: todayCount } = await serviceRole
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('profile_id', user.id)
+      .neq('status', 'cancelled')
+      .gte('starts_at', dayStart)
+      .lt('starts_at', dayEnd);
+
+    // Check plan limit for appointments per day
+    const plan = (profile.plan as 'starter' | 'pro' | 'business') || 'starter';
+    let apptLimit = -1;
+    try {
+      const { data: planLimit } = await serviceRole
+        .from('plan_limits')
+        .select('limit_value')
+        .eq('plan_id', plan)
+        .eq('limit_key', 'max_appointments_per_day')
+        .maybeSingle();
+      if (planLimit) apptLimit = planLimit.limit_value;
+    } catch {}
+
+    // Fallback defaults
+    if (apptLimit === -1) {
+      const defaults: Record<string, number> = { starter: 50, pro: 100, business: -1 };
+      apptLimit = defaults[plan] ?? -1;
+    }
+
+    // Admin bypass
+    const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
+      .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+    const isUserAdmin = ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '');
+
+    if (!isUserAdmin && apptLimit !== -1 && (todayCount ?? 0) >= apptLimit) {
+      return NextResponse.json({
+        error: `Votre plan « ${plan} » est limité à ${apptLimit} rendez-vous par jour. Passez à un plan supérieur.`,
+        code: 'PLAN_LIMIT_REACHED',
+        upgradeUrl: '/dashboard/billing',
+        limit: apptLimit,
+        current: todayCount ?? 0,
+      }, { status: 403 });
     }
 
     const body = await request.json();

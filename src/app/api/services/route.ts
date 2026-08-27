@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { serviceSchema } from '@/lib/validation/schemas';
+import { checkPlanLimit, requireSubscription, PlanGateError } from '@/lib/plan-gate';
 
 // GET — lister les services de l'utilisateur authentifié
 export async function GET(request: NextRequest) {
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     // Récupérer le profil de l'utilisateur
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id')
+      .select('*')
       .eq('id', user.id)
       .single();
 
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST — créer un service
+// POST — créer un service (avec vérification de limite du plan)
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -49,6 +50,39 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    // Récupérer le profil complet (avec infos d'abonnement)
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: 'Profil non trouvé' }, { status: 404 });
+    }
+
+    // ── Vérification de l'abonnement ──
+    try {
+      await requireSubscription(profile, user.email);
+    } catch (e) {
+      if (e instanceof PlanGateError) {
+        return NextResponse.json({ error: e.message, code: e.code, upgradeUrl: '/dashboard/billing' }, { status: e.statusCode });
+      }
+      throw e;
+    }
+
+    // ── Vérification de la limite du plan ──
+    const gate = await checkPlanLimit({
+      profile,
+      userEmail: user.email,
+      featureKey: 'max_services',
+      table: 'services',
+    });
+
+    if (!gate.allowed) {
+      return NextResponse.json({ error: gate.message, code: 'PLAN_LIMIT_REACHED', upgradeUrl: gate.upgradeUrl, limit: gate.limit, current: gate.current }, { status: 403 });
     }
 
     const body = await request.json();

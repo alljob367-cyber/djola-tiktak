@@ -18,6 +18,8 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
+  AlertTriangle,
+  ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -362,6 +364,47 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
             </DropdownMenu>
           </div>
         </header>
+
+        {/* ── Subscription expired/cancelled banner ── */}
+        {profile.subscription_status &&
+          ['expired', 'cancelled', 'past_due'].includes(profile.subscription_status) && (
+            <div className="border-b border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/40">
+              <div className="mx-auto flex max-w-7xl items-center gap-3">
+                <AlertTriangle size={18} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                <p className="flex-1 text-sm font-medium text-amber-800 dark:text-amber-300">
+                  {profile.subscription_status === 'expired'
+                    ? 'Votre abonnement a expiré. Renouvelez-le pour retrouver l\'accès complet.'
+                    : profile.subscription_status === 'cancelled'
+                      ? 'Votre abonnement est annulé. Choisissez un plan pour continuer.'
+                      : 'Votre abonnement a un problème de paiement. Mettez-le à jour.'}
+                </p>
+                <Link href="/dashboard/billing" className="shrink-0">
+                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+                    Choisir un plan
+                    <ArrowRight size={14} className="ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+        {/* ── No subscription banner ── */}
+        {!profile.subscription_status && (
+          <div className="border-b border-blue-300 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/40">
+            <div className="mx-auto flex max-w-7xl items-center gap-3">
+              <CreditCard size={18} className="shrink-0 text-blue-600 dark:text-blue-400" />
+              <p className="flex-1 text-sm font-medium text-blue-800 dark:text-blue-300">
+                Bienvenue ! Choisissez un plan pour commencer à utiliser Djola TikTak.
+              </p>
+              <Link href="/dashboard/billing" className="shrink-0">
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  Voir les plans
+                  <ArrowRight size={14} className="ml-1" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* ── Page content ──────────────────────────────────── */}
         <main className="flex-1 overflow-y-auto pb-20 lg:pb-6">

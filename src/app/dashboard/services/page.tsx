@@ -12,10 +12,10 @@ import {
   PackageOpen,
   Camera,
   X,
-  ImageOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { PlanLimitWarning, usePlanLimits } from '@/components/plan-gate/plan-limit-warning';
 import {
   Card,
   CardContent,
@@ -98,6 +98,9 @@ export default function ServicesPage() {
   const [deleting, setDeleting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const { data: planData } = usePlanLimits();
+  const servicesLimit = planData?.features.find((f) => f.key === 'max_services');
+  const servicesLimitReached = servicesLimit?.reached ?? false;
 
   // ── Fetch services ──────────────────────────────────────
   const fetchServices = useCallback(async () => {
@@ -198,6 +201,11 @@ export default function ServicesPage() {
 
       if (!res.ok) {
         const err = await res.json();
+        if (err.code === 'PLAN_LIMIT_REACHED' || err.code === 'SUBSCRIPTION_REQUIRED') {
+          toast.error(err.error, { action: { label: 'Voir les plans', onClick: () => window.location.href = err.upgradeUrl || '/dashboard/billing' } });
+          setDialogOpen(false);
+          return;
+        }
         throw new Error(err.error || 'Erreur serveur');
       }
 
@@ -238,13 +246,21 @@ export default function ServicesPage() {
           <h1 className="text-2xl font-bold tracking-tight">Services</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Gérez vos services et tarifs
+            {servicesLimit && !servicesLimit.unlimited && (
+              <span className="ml-2">
+                ({servicesLimit.current}/{servicesLimit.limit === -1 ? '∞' : servicesLimit.limit})
+              </span>
+            )}
           </p>
         </div>
-        <Button onClick={openCreate} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+        <Button onClick={openCreate} disabled={servicesLimitReached} className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50">
           <Plus size={16} className="mr-2" />
           Ajouter un service
         </Button>
       </div>
+
+      {/* Plan limit warning */}
+      <PlanLimitWarning featureKey="max_services" />
 
       {/* Content */}
       {loading ? (
