@@ -13,15 +13,23 @@ export async function GET() {
   try {
     await getAuthenticatedUser(); // ensure user is logged in
 
-    const plan = PLAN_PRICES.pro; // default plan for amount display
-    const instructions = getPaymentInstructions(plan.monthly, plan.name, 'monthly');
+    const omPhone = process.env.ORANGE_MONEY_PHONE;
+    const omName = process.env.ORANGE_MONEY_NAME;
+    const mtnPhone = process.env.MTN_MOMO_PHONE;
+    const mtnName = process.env.MTN_MOMO_NAME;
 
     return NextResponse.json({
-      orange_money: instructions.orange_money ?? null,
-      mtn_momo: instructions.mtn_momo ?? null,
+      plans: Object.entries(PLAN_PRICES).map(([id, p]) => ({
+        id,
+        name: p.name,
+        monthly: p.monthly,
+        yearly: p.yearly,
+      })),
       support_email: 'support@djola-tiktak.com',
       support_phone: process.env.SUPPORT_PHONE || null,
-      payee_name: process.env.ORANGE_MONEY_NAME || process.env.MTN_MOMO_NAME || 'Djola TikTak',
+      payee_name: omName || mtnName || 'Djola TikTak',
+      orange_money: (omPhone && omPhone !== 'placeholder') ? { phone: omPhone, name: omName || 'Djola TikTak' } : null,
+      mtn_momo: (mtnPhone && mtnPhone !== 'placeholder') ? { phone: mtnPhone, name: mtnName || 'Djola TikTak' } : null,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Non authentifié.') {
@@ -81,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     const { data: existingPending } = await supabase
       .from('payments')
-      .select('id, status, created_at')
+      .select('id, status, created_at, plan_id, plan_name, amount, billing_period')
       .eq('profile_id', user.id)
       .eq('provider', 'manual')
       .eq('status', 'pending')
@@ -90,17 +98,20 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (existingPending) {
-      // Return existing pending payment instead of creating a duplicate
-      const instructions = getPaymentInstructions(amount, plan.name, period);
+      // Return existing pending payment data (not the new request's plan)
+      const existingPlan = existingPending.plan_name || PLAN_PRICES[existingPending.plan_id as PlanId]?.name || selectedPlan;
+      const existingAmount = existingPending.amount;
+      const existingPeriod = (existingPending.billing_period || 'monthly') as BillingPeriod;
+      const instructions = getPaymentInstructions(existingAmount, existingPlan, existingPeriod);
       return NextResponse.json({
         paymentId: existingPending.id,
         status: 'pending',
-        message: 'Vous avez déjà une demande de paiement en attente. Effectuez le transfert et envoyez la capture de confirmation.',
-        planId: selectedPlan,
-        planName: plan.name,
-        amount,
+        message: 'Vous avez deja une demande de paiement en attente. Effectuez le transfert et envoyez la capture de confirmation.',
+        planId: existingPending.plan_id || selectedPlan,
+        planName: existingPlan,
+        amount: existingAmount,
         currency: 'XAF',
-        billingPeriod: period,
+        billingPeriod: existingPeriod,
         paymentMethod: paymentMethod || null,
         instructions,
         support_email: 'support@djola-tiktak.com',

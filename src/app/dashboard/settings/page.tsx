@@ -253,11 +253,16 @@ export default function SettingsPage() {
 
     setDeleting(true);
     try {
+      // Request account deletion via API
+      const res = await fetch('/api/profiles/deactivate', { method: 'POST' });
+      if (!res.ok) {
+        throw new Error('Erreur lors de la desactivation');
+      }
       await supabase.auth.signOut();
-      toast.success('Compte supprimé. Vous pouvez maintenant contacter le support pour supprimer définitivement vos données.');
+      toast.success('Compte desactive. Contactez le support pour une suppression definitive.');
       router.push('/login');
     } catch {
-      toast.error('Erreur lors de la suppression');
+      toast.error('Erreur lors de la desactivation du compte');
     } finally {
       setDeleting(false);
     }

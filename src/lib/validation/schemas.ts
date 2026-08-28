@@ -99,6 +99,8 @@ export const publicBookingSchema = z.object({
     (v) => !isNaN(Date.parse(v)),
     { message: 'Format de date ISO invalide' },
   ),
+  prepayment: z.enum(['pending', 'none', 'paid']).optional().default('none'),
+  notes: z.string().max(300).optional().default(''),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;

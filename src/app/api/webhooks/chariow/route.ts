@@ -43,43 +43,51 @@ export async function POST(request: NextRequest) {
   const eventType: string = payload.event;
   const saleId: string = saleData.id;
 
-  // --- 3. Upsert webhook_event (idempotent deduplication) ---
-  // Uses upsert to handle concurrent deliveries atomically.
-  // If (provider, event_id) already exists with 'success', we skip processing.
-  const { data: webhookEvent, error: insertEventError } = await supabase
+  // --- 3. Handle deduplication and stuck events ---
+  const { data: existingEvent } = await supabase
     .from('webhook_events')
-    .upsert({
-      provider: 'chariow',
-      event_type: eventType,
-      event_id: saleId,
-      payload: payload as unknown as Record<string, unknown>,
-      status: 'processing',
-    }, {
-      onConflict: 'provider,event_id',
-      ignoreDuplicates: true,
-    })
     .select('id, status')
+    .eq('provider', 'chariow')
+    .eq('event_id', saleId)
     .maybeSingle();
 
-  // If upsert didn't insert (duplicate), check if already processed
-  if (!webhookEvent || insertEventError) {
-    // Row already exists — check its status
-    if (!insertEventError) {
-      // Duplicate ignored, already exists
+  if (existingEvent) {
+    if (existingEvent.status === 'success') {
       return NextResponse.json({ received: true });
     }
-    console.error('[chariow-webhook] Erreur upsert webhook_event:', insertEventError?.message);
-    return NextResponse.json(
-      { error: 'Erreur interne du serveur.' },
-      { status: 500 },
-    );
+    // Stuck in 'processing' or 'failed' — reset and re-process
+    console.warn(`[chariow-webhook] Re-processing event ${saleId} (was: ${existingEvent.status})`);
+    const webhookEventId = existingEvent.id;
+    // Fall through to processing with this ID
+  } else {
+    // Insert new event
+    const { data: newEvent, error: insertError } = await supabase
+      .from('webhook_events')
+      .insert({
+        provider: 'chariow',
+        event_type: eventType,
+        event_id: saleId,
+        payload: payload as unknown as Record<string, unknown>,
+        status: 'processing',
+      })
+      .select('id, status')
+      .single();
+
+    if (insertError || !newEvent) {
+      console.error('[chariow-webhook] Erreur insertion webhook_event:', insertError?.message);
+      return NextResponse.json({ error: 'Erreur interne du serveur.' }, { status: 500 });
+    }
   }
 
-  if (webhookEvent.status === 'success') {
-    return NextResponse.json({ received: true });
-  }
+  // Get event ID for marking
+  const { data: eventForId } = await supabase
+    .from('webhook_events')
+    .select('id')
+    .eq('provider', 'chariow')
+    .eq('event_id', saleId)
+    .single();
 
-  const webhookEventId: string = webhookEvent.id;
+  const webhookEventId: string = eventForId?.id || '';
 
   // Helper to mark success / failure
   const markSuccess = async (profileId?: string | null, paymentId?: string | null) => {

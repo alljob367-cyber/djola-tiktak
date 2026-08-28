@@ -7,6 +7,23 @@ export const dynamic = 'force-dynamic';
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Djola TikTak <onboarding@resend.dev>';
 
+// Simple in-memory rate limit: max 3 emails per email per 15 minutes
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
+function isRateLimited(email: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(email);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(email, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) return true;
+  entry.count++;
+  return false;
+}
+
 function getResendClient(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || apiKey === 'placeholder' || !apiKey.startsWith('re_')) {
@@ -27,6 +44,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'E-mail requis.' }, { status: 400 });
     }
 
+    // Rate limiting
+    if (isRateLimited(email)) {
+      return NextResponse.json({ error: 'Trop de demandes. Reessayez dans 15 minutes.' }, { status: 429 });
+    }
+
+    // Prevent email enumeration — always return same response
     const supabase = await createServiceRoleClient();
 
     // 1. Find the user by email (unconfirmed)
@@ -57,14 +80,15 @@ export async function POST(request: NextRequest) {
     const users = adminData.users || [];
 
     if (users.length === 0) {
-      return NextResponse.json({ error: 'Aucun compte avec cet e-mail.' }, { status: 404 });
+      // Don't reveal whether email exists (prevent enumeration)
+      return NextResponse.json({ success: true, method: 'skipped' });
     }
 
     const user = users[0];
 
-    // 2. If user is already confirmed, no need to send
+    // 2. If user is already confirmed, silently succeed (prevent enumeration)
     if (user.email_confirmed_at) {
-      return NextResponse.json({ error: 'Cet e-mail est deja verifie. Connectez-vous.' }, { status: 400 });
+      return NextResponse.json({ success: true, method: 'skipped' });
     }
 
     // 3. Generate a verification token

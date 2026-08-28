@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getReminderService } from '@/lib/reminders/service';
 
+export const dynamic = 'force-dynamic';
+
 // Constant-time comparison to prevent timing attacks
 function safeCompare(a: string, b: string): boolean {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
