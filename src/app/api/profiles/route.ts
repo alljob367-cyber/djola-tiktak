@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { profileSchema } from '@/lib/validation/schemas';
 
@@ -40,7 +41,32 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const parsed = profileSchema.safeParse(body);
+
+    // Allow partial updates (e.g. avatar_url only)
+    const partialUpdate = !body.business_name || !body.slug;
+    const parsed = partialUpdate
+      ? z.object({
+          business_name: z.string().max(100).optional(),
+          slug: z.string().min(3).max(60).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+          description: z.string().max(500).optional(),
+          phone: z.string().max(20).optional(),
+          email: z.string().email('Email invalide').optional().or(z.literal('')).optional(),
+          currency: z.string().optional(),
+          timezone: z.string().optional(),
+          avatar_url: z.string().max(500).optional().or(z.literal('')).optional(),
+          whatsapp_url: z.string().max(300).optional().or(z.literal('')).optional(),
+          facebook_url: z.string().max(300).optional().or(z.literal('')).optional(),
+          instagram_url: z.string().max(300).optional().or(z.literal('')).optional(),
+          tiktok_url: z.string().max(300).optional().or(z.literal('')).optional(),
+          website_url: z.string().max(300).optional().or(z.literal('')).optional(),
+          payment_methods_enabled: z.boolean().optional(),
+          orange_money_phone: z.string().max(30).optional().or(z.literal('')).optional(),
+          orange_money_name: z.string().max(100).optional().or(z.literal('')).optional(),
+          mtn_momo_phone: z.string().max(30).optional().or(z.literal('')).optional(),
+          mtn_momo_name: z.string().max(100).optional().or(z.literal('')).optional(),
+          payment_instructions: z.string().max(500).optional().or(z.literal('')).optional(),
+        }).safeParse(body)
+      : profileSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -48,7 +74,7 @@ export async function PUT(request: NextRequest) {
 
     const { slug } = parsed.data;
 
-    // Vérifier l'unicité du slug
+    // Vérifier l'unicité du slug (only if slug is provided and changed)
     if (slug) {
       const { data: slugExisting, error: slugError } = await supabase
         .from('profiles')
