@@ -44,12 +44,19 @@ export function isAdmin(email: string | null | undefined): boolean {
 
 /**
  * Check if a profile has an active or trialing subscription.
+ * Also verifies that subscription_end has not passed (real-time).
  * Returns true for admins regardless.
  */
 export function hasActiveSubscription(profile: Profile): boolean {
   if (isAdmin(profile.email)) return true;
   const status = profile.subscription_status;
-  return status === 'active' || status === 'trialing';
+  if (status !== 'active' && status !== 'trialing') return false;
+  // Real-time date check: if subscription_end is in the past, treat as expired
+  if (profile.subscription_end) {
+    const end = new Date(profile.subscription_end).getTime();
+    if (end < Date.now()) return false;
+  }
+  return true;
 }
 
 /**
@@ -97,9 +104,13 @@ export async function checkPlanLimit(params: {
     };
   }
 
-  // ── Check subscription status ──
+  // ── Check subscription status (including real-time date check) ──
   const subStatus = profile.subscription_status ?? null;
-  if (!subStatus || subStatus === 'expired' || subStatus === 'cancelled' || subStatus === 'past_due') {
+  // Real-time: if subscription_end is in the past, treat as expired
+  const isDateExpired = profile.subscription_end
+    ? new Date(profile.subscription_end).getTime() < Date.now()
+    : false;
+  if (!subStatus || subStatus === 'expired' || subStatus === 'cancelled' || subStatus === 'past_due' || isDateExpired) {
     return {
       allowed: false,
       isAdmin: false,
@@ -221,9 +232,12 @@ export async function requireSubscription(profile: Profile, userEmail: string | 
   if (isAdmin(userEmail)) return;
 
   const status = profile.subscription_status;
-  if (!status || status === 'expired' || status === 'cancelled' || status === 'past_due') {
+  const isDateExpired = profile.subscription_end
+    ? new Date(profile.subscription_end).getTime() < Date.now()
+    : false;
+  if (!status || status === 'expired' || status === 'cancelled' || status === 'past_due' || isDateExpired) {
     throw new PlanGateError(
-      status === 'expired'
+      (status === 'expired' || isDateExpired)
         ? 'Votre abonnement a expiré.'
         : 'Aucun abonnement actif. Veuillez choisir un plan.',
       'SUBSCRIPTION_REQUIRED',

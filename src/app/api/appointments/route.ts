@@ -201,6 +201,41 @@ export async function POST(request: NextRequest) {
     if (existingClient) {
       client_id = existingClient.id;
     } else {
+      // ── Check max_clients plan limit before auto-creating ──
+      if (!isUserAdmin) {
+        let clientLimit: number | null = null;
+        try {
+          const { data: clientPlanLimit } = await serviceRole
+            .from('plan_limits')
+            .select('limit_value')
+            .eq('plan_id', plan)
+            .eq('limit_key', 'max_clients')
+            .maybeSingle();
+          if (clientPlanLimit) clientLimit = clientPlanLimit.limit_value;
+        } catch (err) {
+          console.warn('[appointments] max_clients limit query failed:', err);
+        }
+        if (clientLimit === null) {
+          const clientDefaults: Record<string, number> = { starter: 200, pro: -1, business: -1 };
+          clientLimit = clientDefaults[plan] ?? -1;
+        }
+        if (clientLimit !== -1) {
+          const { count: clientCount } = await serviceRole
+            .from('clients')
+            .select('id', { count: 'exact', head: true })
+            .eq('profile_id', user.id);
+          if ((clientCount ?? 0) >= clientLimit) {
+            return NextResponse.json({
+              error: `Votre plan est limité à ${clientLimit} clients. Passez à un plan supérieur.`,
+              code: 'CLIENT_LIMIT_REACHED',
+              upgradeUrl: '/dashboard/billing',
+              limit: clientLimit,
+              current: clientCount ?? 0,
+            }, { status: 403 });
+          }
+        }
+      }
+
       const { data: newClient, error: clientCreateError } = await supabase
         .from('clients')
         .insert({

@@ -109,11 +109,13 @@ export async function POST(request: NextRequest) {
     // This ensures we don't mark payment as completed without activation
     let subscriptionId: string | undefined;
     try {
+      // Calculate duration based on billing period
+      const durationDays = payment.billing_period === 'yearly' ? 365 : 30;
       subscriptionId = await subscriptionService.activateSubscription(
         payment.profile_id,
         payment.plan_id,
         paymentId,
-        30,
+        durationDays,
         payment.billing_period || 'monthly',
       );
     } catch (subError) {

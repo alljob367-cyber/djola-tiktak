@@ -326,6 +326,7 @@ export default function BillingPage() {
   const voiceAlert = alerts?.voice_credits;
   const hasActiveSubscription =
     sub.subscription_status !== null &&
+    sub.subscription_status !== 'none' &&
     sub.subscription_status !== 'expired' &&
     sub.subscription_status !== 'past_due' &&
     sub.subscription_status !== 'cancelled';

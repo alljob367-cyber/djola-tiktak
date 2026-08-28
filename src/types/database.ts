@@ -149,7 +149,8 @@ export type SubscriptionDbStatus =
   | 'active'
   | 'past_due'
   | 'cancelled'
-  | 'expired';
+  | 'expired'
+  | 'none';
 
 /** Application-level status derived from DB status + date checks. */
 export type SubscriptionStatus =
@@ -189,9 +190,12 @@ export interface Plan {
 export interface PlanLimit {
   id: string;
   plan_id: PlanId;
-  feature_key: string;
+  limit_key: string;
   limit_value: number;
+  cost_per_unit?: number;
+  unit_label?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface Subscription {

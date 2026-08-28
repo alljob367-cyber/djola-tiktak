@@ -229,9 +229,14 @@ export const subscriptionService = {
       );
     }
 
+    // Real-time date check: if subscription_end has passed, not active
+    const isDateExpired = profile.subscription_end
+      ? new Date(profile.subscription_end).getTime() < Date.now()
+      : false;
     const isActive =
-      profile.subscription_status === 'active' ||
-      profile.subscription_status === 'trialing';
+      !isDateExpired &&
+      (profile.subscription_status === 'active' ||
+       profile.subscription_status === 'trialing');
 
     const isTrial = profile.subscription_status === 'trialing';
 
