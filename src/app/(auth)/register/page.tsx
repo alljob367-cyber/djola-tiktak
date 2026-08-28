@@ -160,6 +160,21 @@ export default function RegisterPage() {
         return;
       }
 
+      // Envoyer l'e-mail de verification via notre API Resend
+      try {
+        const verifyRes = await fetch('/api/auth/send-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim() }),
+        });
+        if (!verifyRes.ok) {
+          const verifyData = await verifyRes.json();
+          console.warn('[register] Custom email send failed:', verifyData.error);
+        }
+      } catch (emailErr) {
+        console.warn('[register] Custom email send error:', emailErr);
+      }
+
       toast.success('Compte créé ! Vérifiez votre e-mail.', {
         description: 'Un lien de confirmation a été envoyé.',
         duration: 5000,

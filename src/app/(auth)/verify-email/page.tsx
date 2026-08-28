@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Mail, Loader2, ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,15 +24,23 @@ export default function VerifyEmailPage() {
   const handleResend = async () => {
     setLoading(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
+      // Utiliser notre API Resend au lieu de Supabase (qui bloque Gmail)
+      const res = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
-      if (error) throw error;
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'envoi.');
+      }
+
       setSent(true);
       toast.success('E-mail renvoyé !', {
-        description: 'Vérifiez votre boîte de réception.',
+        description: data.method === 'resend'
+          ? 'Vérifiez votre boîte de réception.'
+          : 'E-mail envoyé via le système par défaut.',
       });
     } catch (err) {
       toast.error('Erreur', {

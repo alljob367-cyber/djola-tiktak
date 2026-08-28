@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,6 +26,29 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  // Show toast if user was just verified
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('verified') === '1') {
+      toast.success('E-mail vérifié !', {
+        description: 'Votre compte est activé. Connectez-vous.',
+        duration: 6000,
+      });
+    }
+    const errorParam = params.get('error');
+    if (errorParam === 'token_expired') {
+      toast.error('Lien expire', {
+        description: 'Le lien de verification a expire. Renvoyez un nouvel e-mail.',
+        duration: 6000,
+      });
+    } else if (errorParam === 'invalid_token') {
+      toast.error('Lien invalide', {
+        description: 'Le lien de verification est invalide.',
+        duration: 6000,
+      });
+    }
+  }, []);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
