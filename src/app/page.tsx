@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion, useScroll, useSpring } from 'framer-motion';
 import {
   CalendarCheck,
   ArrowRight,
@@ -18,7 +19,6 @@ import {
   Store,
   Stethoscope,
   GraduationCap,
-  Users,
   CheckCircle2,
   ExternalLink,
   ChevronLeft,
@@ -27,6 +27,22 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/i18n/provider';
 import { LanguageSwitcher } from '@/i18n/language-switcher';
+import { AppMockups } from '@/components/landing/phone-mockups';
+import { PacksMarquee } from '@/components/landing/packs-marquee';
+import { SiteFooter } from '@/components/landing/site-footer';
+
+/* ──────────── ANIMATIONS ──────────── */
+
+/** Apparition douce en cascade (au scroll) */
+const fadeUp = {
+  hidden: { opacity: 0, y: 28 },
+  show: { opacity: 1, y: 0 },
+};
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09 } },
+};
 
 /* ──────────── DATA (icônes ; textes via i18n) ──────────── */
 
@@ -63,21 +79,17 @@ const calendarDays = [
 
 /* ──────────── COMPONENTS ──────────── */
 
-function LimeIcon({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lime ${className || ''}`}>
-      {children}
-    </div>
-  );
-}
-
 function BookingWidget() {
   const { t } = useI18n();
   const w = t.landing.widget;
   return (
     <div className="relative rounded-2xl border border-white/[0.08] bg-[#111816] p-6 shadow-2xl">
-      {/* Glow effect */}
-      <div className="absolute -inset-4 -z-10 rounded-3xl bg-lime/10 blur-[80px]" />
+      {/* Glow effect animé */}
+      <motion.div
+        animate={{ opacity: [0.4, 0.8, 0.4] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute -inset-4 -z-10 rounded-3xl bg-lime/10 blur-[80px]"
+      />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
@@ -108,7 +120,13 @@ function BookingWidget() {
                     idx === 0 ? 'border-lime' : 'border-white/30'
                   }`}
                 >
-                  {idx === 0 && <div className="h-2 w-2 rounded-full bg-lime" />}
+                  {idx === 0 && (
+                    <motion.div
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="h-2 w-2 rounded-full bg-lime"
+                    />
+                  )}
                 </div>
                 <div className="flex flex-col">
                   <span className={`text-sm font-medium ${idx === 0 ? 'text-white' : 'text-gray-300'}`}>{s.name}</span>
@@ -178,6 +196,11 @@ function BookingWidget() {
 export default function LandingPage() {
   const { t } = useI18n();
   const L = t.landing;
+
+  /* Barre de progression du scroll */
+  const { scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.4 });
+
   const navLinks: Array<{ label: string; href: string }> = [
     { label: L.nav.home, href: '#accueil' },
     { label: L.nav.features, href: '#fonctionnalités' },
@@ -185,16 +208,26 @@ export default function LandingPage() {
     { label: L.nav.about, href: '#à-propos' },
     { label: L.nav.faq, href: '#faq' },
   ];
+
   return (
     <div className="min-h-screen bg-[#0a0f0d] text-white">
       {/* ═══════ NAVBAR ═══════ */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.06] bg-black/40 backdrop-blur-xl">
+        {/* Barre de progression */}
+        <motion.div
+          style={{ scaleX: progress }}
+          className="absolute inset-x-0 top-0 h-0.5 origin-left bg-lime"
+        />
         <div className="mx-auto flex h-[72px] max-w-[1280px] items-center justify-between px-6 lg:px-12">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-lime/40 bg-lime/10">
+            <motion.div
+              whileHover={{ rotate: -8, scale: 1.05 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-lime/40 bg-lime/10"
+            >
               <CalendarCheck className="h-5 w-5 text-lime" />
-            </div>
+            </motion.div>
             <span className="text-lg font-bold tracking-tight text-white">
               Djola <span className="text-lime">TikTak</span>
             </span>
@@ -218,135 +251,267 @@ export default function LandingPage() {
             >
               {L.nav.login}
             </Link>
-            <Link
-              href="/register"
-              className="inline-flex items-center justify-center rounded-lg bg-lime px-6 py-2.5 text-sm font-semibold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
-            >
-              {L.nav.tryFree}
-            </Link>
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center rounded-lg bg-lime px-6 py-2.5 text-sm font-semibold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
+              >
+                {L.nav.tryFree}
+              </Link>
+            </motion.div>
           </div>
         </div>
       </nav>
 
       {/* ═══════ HERO ═══════ */}
-      <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28">
-        {/* Radial glow behind widget */}
-        <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-lime/[0.04] blur-[120px]" />
+      <section id="accueil" className="relative pt-32 pb-20 lg:pt-40 lg:pb-24">
+        {/* Halos animés */}
+        <motion.div
+          animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-lime/[0.04] blur-[120px]"
+        />
+        <motion.div
+          animate={{ opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          className="pointer-events-none absolute left-0 top-0 h-[400px] w-[400px] rounded-full bg-emerald-500/[0.05] blur-[100px]"
+        />
 
         <div className="relative mx-auto grid max-w-[1280px] gap-12 px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:px-12">
-          {/* Left — Copy */}
-          <div className="flex flex-col justify-center">
-            <span className="mb-6 inline-flex items-center rounded-full bg-lime/[0.08] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-lime">
+          {/* Left — Copy (entrée en cascade) */}
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            animate="show"
+            className="flex flex-col justify-center"
+          >
+            <motion.span
+              variants={fadeUp}
+              className="mb-6 inline-flex w-fit items-center rounded-full bg-lime/[0.08] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-lime"
+            >
+              <motion.span
+                animate={{ opacity: [1, 0.4, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-lime"
+              />
               {L.hero.badge}
-            </span>
+            </motion.span>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-extrabold leading-[1.1] tracking-tight">
+            <motion.h1
+              variants={fadeUp}
+              className="text-4xl sm:text-5xl lg:text-[56px] font-extrabold leading-[1.1] tracking-tight"
+            >
               {L.hero.titleA}
               <br />
               <span className="text-lime">{L.hero.titleB}</span>
-            </h1>
+            </motion.h1>
 
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-gray-400">
+            <motion.p variants={fadeUp} className="mt-6 max-w-xl text-lg leading-relaxed text-gray-400">
               {L.hero.subtitle}
-            </p>
+            </motion.p>
 
             {/* Checklist */}
-            <ul className="mt-8 flex flex-col gap-3">
+            <motion.ul variants={fadeUp} className="mt-8 flex flex-col gap-3">
               {L.hero.checks.map((item) => (
-                <li key={item} className="flex items-center gap-3 text-[15px] text-gray-200">
+                <motion.li
+                  key={item}
+                  variants={fadeUp}
+                  className="flex items-center gap-3 text-[15px] text-gray-200"
+                >
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-lime" />
                   {item}
-                </li>
+                </motion.li>
               ))}
-            </ul>
+            </motion.ul>
 
             {/* CTAs */}
-            <div className="mt-10 flex flex-wrap items-center gap-4">
-              <Link
-                href="/register"
-                className="inline-flex items-center gap-2 rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
-              >
-                {L.hero.ctaPrimary}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
-              >
-                <Play className="h-4 w-4" />
-                {L.hero.ctaSecondary}
-              </Link>
-            </div>
+            <motion.div variants={fadeUp} className="mt-10 flex flex-wrap items-center gap-4">
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-2 rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
+                >
+                  {L.hero.ctaPrimary}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
+                >
+                  <Play className="h-4 w-4" />
+                  {L.hero.ctaSecondary}
+                </Link>
+              </motion.div>
+            </motion.div>
 
             {/* Trust line */}
-            <div className="mt-8 flex flex-wrap items-center gap-6">
-              <span className="text-[13px] text-gray-600">
-                {L.hero.trustLine}
-              </span>
+            <motion.div variants={fadeUp} className="mt-8 flex flex-wrap items-center gap-6">
+              <span className="text-[13px] text-gray-600">{L.hero.trustLine}</span>
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-2">
                   {['bg-amber-600', 'bg-rose-500', 'bg-sky-500', 'bg-violet-500'].map((c, i) => (
-                    <div
+                    <motion.div
                       key={i}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.9 + i * 0.12, type: 'spring', stiffness: 260 }}
                       className={`h-9 w-9 rounded-full ${c} ring-2 ring-[#0a0f0d] flex items-center justify-center text-[10px] font-bold text-white`}
                     >
                       {['AL', 'FC', 'KD', 'MN'][i]}
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      <motion.span
+                        key={i}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 1.3 + i * 0.08 }}
+                      >
+                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      </motion.span>
                     ))}
                     <span className="ml-1 text-sm font-bold text-white">4,9/5</span>
                   </div>
                   <span className="text-[11px] text-gray-500">{L.hero.trustRating}</span>
                 </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
-          {/* Right — Booking Widget */}
-          <div className="hidden lg:block">
-            <BookingWidget />
-          </div>
+          {/* Right — Booking Widget flottant */}
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.35, duration: 0.7, type: 'spring', stiffness: 50, damping: 16 }}
+            className="hidden lg:block"
+          >
+            <motion.div
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <BookingWidget />
+            </motion.div>
+          </motion.div>
         </div>
+
+        {/* Indicateur de scroll */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.8 }}
+          className="mt-14 flex justify-center"
+        >
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            className="flex h-10 w-6 items-start justify-center rounded-full border border-white/15 p-1.5"
+          >
+            <div className="h-2 w-1 rounded-full bg-lime" />
+          </motion.div>
+        </motion.div>
       </section>
 
+      {/* ═══════ BANDE DÉFILANTE DES PACKS ═══════ */}
+      <PacksMarquee />
+
       {/* ═══════ FEATURES STRIP ═══════ */}
-      <section id="fonctionnalités" className="border-y border-white/[0.06] bg-[#0d1210] py-16">
-        <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-4 px-6 sm:grid-cols-3 lg:grid-cols-6 lg:gap-5 lg:px-12">
+      <section id="fonctionnalités" className="border-b border-white/[0.06] bg-[#0d1210] py-16">
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-60px' }}
+          className="mx-auto grid max-w-[1280px] grid-cols-2 gap-4 px-6 sm:grid-cols-3 lg:grid-cols-6 lg:gap-5 lg:px-12"
+        >
           {L.features.cards.map((f, i) => {
             const Icon = FEATURE_ICONS[i];
             return (
-              <div
+              <motion.div
                 key={f.title}
-                className="group rounded-xl border border-white/[0.06] bg-[#111816] p-6 transition-colors hover:border-white/[0.12]"
+                variants={fadeUp}
+                whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                className="group rounded-xl border border-white/[0.06] bg-[#111816] p-6 transition-colors hover:border-lime/20"
               >
-                <Icon className="h-7 w-7 text-lime" strokeWidth={1.5} />
+                <motion.div
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.2 + i * 0.08, type: 'spring', stiffness: 200 }}
+                >
+                  <Icon className="h-7 w-7 text-lime" strokeWidth={1.5} />
+                </motion.div>
                 <h3 className="mt-4 text-[15px] font-semibold text-white">{f.title}</h3>
-                <p className="mt-2 text-[13px] leading-relaxed text-gray-500">{f.desc}</p>
-              </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-gray-400">{f.desc}</p>
+              </motion.div>
             );
           })}
+        </motion.div>
+      </section>
+
+      {/* ═══════ APPLICATION MOBILE (MOCKUPS) ═══════ */}
+      <section id="application" className="relative py-20 lg:py-24">
+        {/* En-tête de section */}
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-12">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6 }}
+            className="text-center"
+          >
+            <span className="inline-flex items-center gap-2 rounded-full bg-lime/[0.08] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-lime">
+              <Smartphone className="h-3.5 w-3.5" />
+              {L.appSection.badge}
+            </span>
+            <h2 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
+              {L.appSection.title}
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-[17px] leading-relaxed text-gray-400">
+              {L.appSection.subtitle}
+            </p>
+          </motion.div>
         </div>
+
+        {/* Téléphones animés */}
+        <AppMockups />
       </section>
 
       {/* ═══════ PRO SHOWCASE ═══════ */}
-      <section className="py-20 lg:py-24">
+      <section className="border-y border-white/[0.06] bg-[#0d1210] py-20 lg:py-24">
         <div className="mx-auto grid max-w-[1200px] items-center gap-16 px-6 lg:grid-cols-2 lg:px-12">
           {/* Left — Image + Floating cards */}
-          <div className="relative">
+          <motion.div
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.7, type: 'spring', stiffness: 50, damping: 16 }}
+            className="relative"
+          >
             {/* Main image placeholder */}
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a2420] to-[#111816]">
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
-                <Sparkles className="h-16 w-16 text-lime/30 mb-3" />
+                <motion.div
+                  animate={{ rotate: [0, 8, -8, 0], scale: [1, 1.08, 1] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <Sparkles className="h-16 w-16 text-lime/30 mb-3" />
+                </motion.div>
                 <span className="text-sm">Photo professionnel</span>
               </div>
 
               {/* Floating card: RDV du jour */}
-              <div className="absolute top-[15%] -left-4 sm:-left-8 rounded-xl border border-white/[0.1] bg-[#111816]/95 p-4 backdrop-blur-xl shadow-xl">
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4, type: 'spring', stiffness: 90 }}
+                className="absolute top-[15%] -left-4 sm:-left-8 rounded-xl border border-white/[0.1] bg-[#111816]/95 p-4 backdrop-blur-xl shadow-xl"
+              >
                 <p className="text-[11px] uppercase tracking-wider text-gray-500">{L.showcase.todayAppointments}</p>
                 <p className="mt-1 text-3xl font-bold text-white">12</p>
                 <div className="mt-1 flex items-center gap-1.5">
@@ -363,34 +528,58 @@ export default function LandingPage() {
                     strokeLinejoin="round"
                   />
                 </svg>
-              </div>
+              </motion.div>
 
               {/* Floating card: CA */}
-              <div className="absolute bottom-[20%] -left-4 sm:-left-6 rounded-xl border border-white/[0.1] bg-[#111816]/95 p-4 backdrop-blur-xl shadow-xl">
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.6, type: 'spring', stiffness: 90 }}
+                className="absolute bottom-[20%] -left-4 sm:-left-6 rounded-xl border border-white/[0.1] bg-[#111816]/95 p-4 backdrop-blur-xl shadow-xl"
+              >
                 <p className="text-[11px] uppercase tracking-wider text-gray-500">{L.showcase.revenue}</p>
                 <p className="mt-1 text-2xl font-bold text-white">250 000 CFA</p>
                 <div className="mt-1 flex items-center gap-1.5">
                   <TrendingUp className="h-3.5 w-3.5 text-lime" />
                   <span className="text-xs text-lime font-medium">{L.showcase.revenueGrowth}</span>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Floating card: Next appointments */}
-              <div className="absolute -right-4 sm:-right-8 top-[25%] rounded-xl border border-white/[0.1] bg-[#111816]/95 p-4 backdrop-blur-xl shadow-xl">
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.8, type: 'spring', stiffness: 90 }}
+                className="absolute -right-4 sm:-right-8 top-[25%] rounded-xl border border-white/[0.1] bg-[#111816]/95 p-4 backdrop-blur-xl shadow-xl"
+              >
                 <p className="mb-3 text-[11px] uppercase tracking-wider text-gray-500">{L.showcase.nextAppointments}</p>
-                {nextAppointments.map((a) => (
-                  <div key={a.time} className="flex items-center gap-2.5 py-1">
+                {nextAppointments.map((a, i) => (
+                  <motion.div
+                    key={a.time}
+                    initial={{ opacity: 0, x: 12 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 1 + i * 0.12 }}
+                    className="flex items-center gap-2.5 py-1"
+                  >
                     <span className="h-1.5 w-1.5 rounded-full bg-lime" />
                     <span className="text-xs font-medium text-white">{a.time}</span>
                     <span className="text-xs text-gray-400">{a.name}</span>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Right — Content */}
-          <div>
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.7, type: 'spring', stiffness: 50, damping: 16 }}
+          >
             <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.12em] text-lime mb-5">
               {L.showcase.badge}
             </span>
@@ -406,40 +595,62 @@ export default function LandingPage() {
             </p>
 
             {/* Stats grid */}
-            <div className="mt-10 grid grid-cols-2 gap-6">
+            <motion.div
+              variants={stagger}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+              className="mt-10 grid grid-cols-2 gap-6"
+            >
               {L.showcase.stats.map((s) => (
-                <div key={s.label}>
+                <motion.div key={s.label} variants={fadeUp}>
                   <p className="text-3xl font-bold text-lime">{s.value}</p>
                   <p className="mt-1 text-[13px] text-gray-400">{s.label}</p>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             {/* CTAs */}
-            <div className="mt-10 flex flex-wrap gap-4">
-              <Link
-                href="/register"
-                className="inline-flex items-center gap-2 rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
-              >
-                Essayer gratuitement
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="#fonctionnalités"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
-              >
-                Voir toutes les fonctionnalités
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="mt-10 flex flex-wrap gap-4"
+            >
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-2 rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
+                >
+                  {L.showcase.ctaPrimary}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                <Link
+                  href="#fonctionnalités"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
+                >
+                  {L.showcase.ctaSecondary}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </motion.div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* ═══════ INDUSTRIES ═══════ */}
-      <section className="border-y border-white/[0.06] py-20 lg:py-24">
+      <section id="métiers" className="py-20 lg:py-24">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-12">
-          <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6 }}
+            className="text-center"
+          >
             <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.12em] text-lime mb-4">
               {L.industries.badge}
             </span>
@@ -447,14 +658,22 @@ export default function LandingPage() {
             <p className="mx-auto mt-4 max-w-xl text-[17px] text-gray-400">
               {L.industries.subtitle}
             </p>
-          </div>
+          </motion.div>
 
-          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-60px' }}
+            className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
             {L.industries.items.map((ind, i) => {
               const Icon = INDUSTRY_ICONS[i];
               return (
-              <div
+              <motion.div
                 key={ind.label}
+                variants={fadeUp}
+                whileHover={{ y: -8, transition: { duration: 0.25 } }}
                 className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111816] transition-all hover:border-lime/20 hover:shadow-[0_0_40px_rgba(200,255,0,0.04)]"
               >
                 {/* Image */}
@@ -479,18 +698,24 @@ export default function LandingPage() {
                   <h3 className="text-lg font-semibold text-white">{ind.label}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-gray-400">{ind.desc}</p>
                 </div>
-              </div>
+              </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* ═══════ PRICING ═══════ */}
-      <section id="tarifs" className="py-20 lg:py-24">
+      <section id="tarifs" className="border-t border-white/[0.06] bg-[#0d1210] py-20 lg:py-24">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-12">
           {/* Header */}
-          <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6 }}
+            className="text-center"
+          >
             <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.12em] text-lime mb-4">
               {L.pricing.badge}
             </span>
@@ -498,24 +723,36 @@ export default function LandingPage() {
             <p className="mx-auto mt-4 max-w-xl text-[17px] text-gray-400">
               {L.pricing.subtitle}
             </p>
-          </div>
+          </motion.div>
 
           {/* Plans grid */}
-          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-60px' }}
+            className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+          >
             {L.pricing.plans.map((plan, i) => (
-              <div
+              <motion.div
                 key={plan.name}
+                variants={fadeUp}
+                whileHover={{ y: -8, transition: { duration: 0.25 } }}
                 className={`relative flex flex-col rounded-2xl border p-7 transition-all ${
                   i === 1
-                    ? 'border-lime/40 bg-[#111816] shadow-[0_0_60px_rgba(200,255,0,0.06)] scale-[1.02]'
+                    ? 'border-lime/40 bg-[#111816] shadow-[0_0_60px_rgba(200,255,0,0.06)] lg:scale-[1.03]'
                     : 'border-white/[0.08] bg-[#111816] hover:border-white/15'
                 }`}
               >
                 {/* Badge */}
                 {i === 1 && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-lime px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-black">
+                  <motion.span
+                    animate={{ boxShadow: ['0 0 0px rgba(200,255,0,0)', '0 0 20px rgba(200,255,0,0.3)', '0 0 0px rgba(200,255,0,0)'] }}
+                    transition={{ duration: 2.5, repeat: Infinity }}
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-lime px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-black"
+                  >
                     {L.pricing.popular}
-                  </span>
+                  </motion.span>
                 )}
 
                 {/* Plan name */}
@@ -539,42 +776,71 @@ export default function LandingPage() {
 
                 {/* Features */}
                 <ul className="flex flex-col gap-3 flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-[14px]">
+                  {plan.features.map((f, j) => (
+                    <motion.li
+                      key={f}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.3 + j * 0.06 }}
+                      className="flex items-start gap-2.5 text-[14px]"
+                    >
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
                       <span className="text-gray-300">{f}</span>
-                    </li>
+                    </motion.li>
                   ))}
                 </ul>
 
                 {/* CTA */}
-                <Link
-                  href={i === 3 ? '#' : '/register'}
-                  className={`mt-7 inline-flex items-center justify-center rounded-lg px-6 py-3 text-[14px] font-semibold transition-all ${
-                    i === 1
-                      ? 'bg-lime text-black hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]'
-                      : 'border border-white/15 text-white hover:bg-white/5'
-                  }`}
-                >
-                  {plan.cta}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </div>
+                <div className="mt-7">
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Link
+                      href={i === 3 ? '#' : '/register'}
+                      className={`inline-flex w-full items-center justify-center rounded-lg px-6 py-3 text-[14px] font-semibold transition-all ${
+                        i === 1
+                          ? 'bg-lime text-black hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]'
+                          : 'border border-white/15 text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {plan.cta}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </motion.div>
+                </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           {/* Bottom note */}
-          <p className="mt-10 text-center text-[13px] text-gray-600">
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+            className="mt-10 text-center text-[13px] text-gray-600"
+          >
             {L.pricing.note}
-          </p>
+          </motion.p>
         </div>
       </section>
 
       {/* ═══════ BOTTOM CTA ═══════ */}
-      <section className="py-20">
+      <section id="à-propos" className="py-20">
         <div className="mx-auto max-w-[1100px] px-6 lg:px-12">
-          <div className="rounded-2xl border border-white/[0.08] bg-[#111816] px-8 py-12 sm:px-14 sm:py-14">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.98 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.6, type: 'spring', stiffness: 60, damping: 16 }}
+            className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111816] px-8 py-12 sm:px-14 sm:py-14"
+          >
+            {/* Halo animé */}
+            <motion.div
+              animate={{ x: ['-20%', '20%', '-20%'] }}
+              transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+              className="pointer-events-none absolute -top-32 left-1/2 h-64 w-[500px] -translate-x-1/2 rounded-full bg-lime/[0.06] blur-[80px]"
+            />
+            <div className="relative flex flex-col lg:flex-row items-center justify-between gap-8">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold">{L.cta.title}</h2>
                 <p className="mt-3 max-w-lg text-[15px] text-gray-400">
@@ -582,42 +848,40 @@ export default function LandingPage() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
-                <Link
-                  href="/register"
-                  className="inline-flex items-center justify-center rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
-                >
-                  {L.cta.primary}
-                </Link>
-                <Link
-                  href="#"
-                  className="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
-                >
-                  {L.cta.secondary}
-                </Link>
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  <Link
+                    href="/register"
+                    className="inline-flex items-center justify-center rounded-lg bg-lime px-7 py-3.5 text-[15px] font-bold text-black transition-all hover:brightness-110 hover:shadow-[0_4px_12px_rgba(184,255,57,0.25)]"
+                  >
+                    {L.cta.primary}
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  <Link
+                    href="#"
+                    className="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
+                  >
+                    {L.cta.secondary}
+                  </Link>
+                </motion.div>
               </div>
             </div>
-            <div className="mt-6 flex flex-wrap justify-center lg:justify-end gap-6 text-[12px] text-gray-600">
-              <span>{L.cta.noCard}</span>
-              <span>{L.cta.demo}</span>
+            <div className="relative mt-6 flex flex-wrap justify-center lg:justify-end gap-6 text-[12px] text-gray-600">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-lime/70" />
+                {L.cta.noCard}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-lime/70" />
+                {L.cta.demo}
+              </span>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* ═══════ FOOTER ═══════ */}
-      <footer className="border-t border-white/[0.06] py-8">
-        <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-4 px-6 sm:flex-row lg:px-12">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md border border-lime/40 bg-lime/10">
-              <CalendarCheck className="h-4 w-4 text-lime" />
-            </div>
-            <span className="text-sm font-semibold text-white">
-              Djola <span className="text-lime">TikTak</span>
-            </span>
-          </Link>
-          <p className="text-sm text-gray-600">{L.footer.tagline}</p>
-        </div>
-      </footer>
+      {/* ═══════ FOOTER COMPLET ═══════ */}
+      <SiteFooter />
     </div>
   );
 }

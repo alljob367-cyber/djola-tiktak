@@ -192,6 +192,333 @@ export const en: Dictionary = {
     footer: {
       tagline: 'Appointment scheduling by Djola',
     },
+
+    // ── Mobile app mockups section ─────────────────────────────
+    appSection: {
+      badge: 'Mobile app',
+      title: 'Your business in your pocket',
+      subtitle:
+        'Manage your appointments wherever you are with the Djola TikTak app. Booking, calendar and automatic reminders — everything is there.',
+    },
+
+    // ── Screens shown in the phone mockups ────────────────────
+    appScreens: {
+      hello: 'Hello 👋',
+      nextAppointment: 'Next appointment',
+      appointmentName: 'Marie L. — Braids',
+      appointmentTime: 'Today • 2:00 PM',
+      popularServices: 'Popular services',
+      services: [
+        { name: 'Braids', price: '5,000 FCFA' },
+        { name: 'Facial care', price: '8,000 FCFA' },
+      ],
+      todayCount: "Today's appts",
+      todayRevenue: 'FCFA collected',
+      searchPlaceholder: 'Search for a service…',
+      pickDate: 'Pick a date',
+      pickTime: 'Pick a time slot',
+      confirmTitle: 'Booking confirmed!',
+      confirmSubtitle: 'Reminder sent to the client',
+      bookButton: 'Confirm booking',
+      remindersTitle: 'Automatic reminders',
+      remindersSubtitle: 'Your clients are notified, effortlessly',
+      reminderWhatsApp: 'Message sent to 12 clients',
+      reminderVoice: 'AI voice reminder',
+      reminderVoiceDesc: 'Personalized call scheduled',
+      reminderEmail: 'Email reminder',
+      reminderEmailDesc: 'Confirmations and D-1 reminders',
+      sent: 'sent',
+      successRate: 'Success rate',
+      noShowReduction: 'fewer missed appointments',
+      screenHomeLabel: 'Dashboard',
+      screenBookingLabel: 'Online booking',
+      screenRemindersLabel: 'Automatic reminders',
+    },
+
+    // ── Scrolling packs banner ─────────────────────────────────
+    marquee: {
+      title: 'Our subscription plans',
+      packs: [
+        { name: 'Free trial', price: '7 days', highlight: false },
+        { name: 'Starter', price: '3,000 FCFA/mo', highlight: false },
+        { name: 'Pro', price: '10,000 FCFA/mo', highlight: true },
+        { name: 'Business', price: '25,000 FCFA/mo', highlight: false },
+        { name: 'Enterprise', price: 'On quote', highlight: false },
+      ],
+    },
+
+    // ── Full footer v2 ─────────────────────────────────────────
+    footerV2: {
+      followUs: 'Follow us',
+      description:
+        'The appointment scheduling solution designed for African professionals. Online bookings, automatic reminders and mobile money payments — all in one place.',
+      contact: {
+        address: 'Douala, Cameroon',
+      },
+      product: {
+        title: 'Product',
+        features: 'Features',
+        pricing: 'Pricing',
+        app: 'Mobile app',
+        industries: 'Industries',
+        faq: 'FAQ',
+      },
+      company: {
+        title: 'Company',
+        about: 'About',
+        contact: 'Contact',
+        demo: 'Free demo',
+        affiliates: 'Partner program',
+      },
+      legal: {
+        title: 'Legal',
+        mentions: 'Legal notice',
+        cgu: 'Terms of use',
+        cgv: 'Terms of sale',
+        privacy: 'Privacy policy',
+        cookies: 'Cookie policy',
+      },
+      paymentsTitle: 'Accepted payment methods',
+      paymentsNote:
+        'Secure payment via Mobile Money (Orange Money, MTN MoMo), credit card or e-wallet.',
+      rights: 'All rights reserved.',
+      madeIn: 'Made with ❤️ in Cameroon',
+    },
+  },
+
+  // ── Legal pages (/legal/...) ───────────────────────────────
+  legal: {
+    backHome: 'Back to home',
+    updatedLabel: 'Last updated',
+    notFoundTitle: 'Document not found',
+    notFoundText:
+      'The legal document you are looking for does not exist or has been moved. Go back to the home page or check the other documents below.',
+    otherDocs: 'Other legal documents',
+    docs: {
+      'mentions-legales': {
+        title: 'Legal notice',
+        updated: 'August 29, 2026',
+        sections: [
+          {
+            h: 'Publisher',
+            p: [
+              'The website djola-tiktak.com (and its subdomains) is published by Djola TikTak, a company being incorporated in Cameroon, headquartered in Douala, Cameroon.',
+              'Publisher contact: contact@djola-tiktak.com — Phone: +237 6 90 00 00 00.',
+            ],
+          },
+          {
+            h: 'Publication director',
+            p: ['The publication director is the legal representative of Djola TikTak.'],
+          },
+          {
+            h: 'Hosting',
+            p: [
+              'The website is hosted by Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA (vercel.com).',
+              'The database and file storage are provided by Supabase (supabase.com). Data exchanges are encrypted via HTTPS.',
+            ],
+          },
+          {
+            h: 'Intellectual property',
+            p: [
+              'All website content (texts, visuals, logos, trademarks, graphic elements) is the exclusive property of Djola TikTak or its partners and is protected by intellectual property laws.',
+              'Any reproduction, representation, modification or exploitation, in whole or in part, without prior written authorization is prohibited and constitutes infringement.',
+            ],
+          },
+          {
+            h: 'External links',
+            p: [
+              'The website may contain links to third-party sites. Djola TikTak exercises no control over these sites and accepts no liability for their content or practices.',
+            ],
+          },
+        ],
+      },
+      cgu: {
+        title: 'Terms of use',
+        updated: 'August 29, 2026',
+        sections: [
+          {
+            h: 'Purpose',
+            p: [
+              'These terms of use (ToU) govern access to and use of the Djola TikTak platform, an appointment management service for professionals and their clients.',
+              'By creating an account or using the service, you accept these ToU without reservation.',
+            ],
+          },
+          {
+            h: 'Registration and account',
+            p: [
+              'Creating a professional account requires a valid email address and accurate information. You are responsible for keeping your credentials confidential.',
+              'A free 7-day trial is offered on all plans, no credit card required. After the trial, a paid subscription is required to continue using the service.',
+            ],
+          },
+          {
+            h: 'Use of the service',
+            p: [
+              'Djola TikTak provides appointment booking tools, calendar management, automatic reminders (email, SMS, WhatsApp, voice) and online payment.',
+              'You agree to use the service for its intended purpose, without infringing the rights of third parties or public order.',
+            ],
+          },
+          {
+            h: 'User responsibilities',
+            p: [
+              'The professional remains solely responsible for the services they offer, their prices, their execution and their relationship with their clients.',
+              'Djola TikTak acts as a technical intermediary and cannot be held liable for commercial disputes between professionals and clients.',
+            ],
+          },
+          {
+            h: 'Suspension and termination',
+            p: [
+              'Djola TikTak reserves the right to suspend or terminate an account in the event of non-compliance with these ToU, payment fraud or abusive use of the service.',
+              'You may cancel your subscription at any time from your Billing area. Cancellation takes effect at the end of the current period, with no pro-rata refund.',
+            ],
+          },
+          {
+            h: 'Changes to the ToU',
+            p: [
+              'Djola TikTak may modify these ToU at any time. Users are notified by email at least 15 days before substantial changes take effect.',
+              'Continued use of the service after the changes take effect constitutes acceptance of the new ToU.',
+            ],
+          },
+        ],
+      },
+      cgv: {
+        title: 'Terms of sale',
+        updated: 'August 29, 2026',
+        sections: [
+          {
+            h: 'Products and pricing',
+            p: [
+              'Djola TikTak sells monthly or annual subscriptions to its platform: Starter (3,000 FCFA/month), Pro (10,000 FCFA/month), Business (25,000 FCFA/month) and Enterprise (on quote).',
+              'Prices are expressed in CFA francs (FCFA), all taxes included. The main features of each plan are detailed on the Pricing page.',
+            ],
+          },
+          {
+            h: 'Order and free trial',
+            p: [
+              'All orders are placed online from the Billing area after account creation. A free 7-day trial is granted before any first payment.',
+              'The order is final and binding once payment is validated.',
+            ],
+          },
+          {
+            h: 'Payment methods',
+            p: [
+              'Payment is made by Mobile Money (Orange Money, MTN MoMo), credit card (Visa, Mastercard) or via our payment partner Chariow.',
+              'For Mobile Money payments, validation is performed manually by our team after transaction verification, usually within 24 business hours.',
+            ],
+          },
+          {
+            h: 'Invoicing',
+            p: [
+              'An electronic invoice is available in your Billing area after each payment. It is your responsibility to check the accuracy of the information it contains.',
+            ],
+          },
+          {
+            h: 'Duration, renewal and termination',
+            p: [
+              'Subscriptions are taken out for one month or one year and renewed automatically at expiry unless you cancel.',
+              'You may cancel at any time; the service remains active until the end of the period already paid.',
+            ],
+          },
+          {
+            h: 'Right of withdrawal',
+            p: [
+              'In accordance with applicable regulations, you have 14 days from subscription to exercise your right of withdrawal, unless you expressly requested immediate performance of the service.',
+              'To exercise this right, contact us at contact@djola-tiktak.com.',
+            ],
+          },
+          {
+            h: 'Liability and applicable law',
+            p: [
+              'Djola TikTak undertakes to provide a compliant service with 99.9% availability, excluding announced maintenance operations.',
+              'These terms of sale are governed by Cameroonian law. In the event of a dispute, an amicable solution will be sought first; failing that, the courts of Douala have jurisdiction.',
+            ],
+          },
+        ],
+      },
+      confidentialite: {
+        title: 'Privacy policy',
+        updated: 'August 29, 2026',
+        sections: [
+          {
+            h: 'Data collected',
+            p: [
+              'We collect only the data strictly necessary for the service: the professional’s identity and contact details (name, email, phone), booking information (client names and phone numbers, services, dates), billing data and technical logs.',
+              'No sensitive data (health, opinions, etc.) is intentionally collected through the platform.',
+            ],
+          },
+          {
+            h: 'Purpose of processing',
+            p: [
+              'Your data is used exclusively to: provide the appointment management service, send automatic reminders, process payments, provide customer support and improve the platform.',
+            ],
+          },
+          {
+            h: 'Legal basis',
+            p: [
+              'Processing is based on contract performance (provision of the service), consent (marketing communications) and legitimate interest (security and service improvement).',
+            ],
+          },
+          {
+            h: 'Retention period',
+            p: [
+              'Data is kept for the duration of the subscription, then archived for the applicable legal period before permanent deletion.',
+              'Billing data is kept in accordance with accounting obligations in force.',
+            ],
+          },
+          {
+            h: 'Your rights',
+            p: [
+              'You have a right of access, rectification, objection and erasure of your data, as well as the right to data portability.',
+              'To exercise these rights, write to contact@djola-tiktak.com. We respond within 30 days at most. You may also refer the matter to the competent data protection authority.',
+            ],
+          },
+          {
+            h: 'Security and processors',
+            p: [
+              'Data is hosted within the European Union by Supabase and protected by strict access rules (Row Level Security), encryption in transit and regular backups.',
+              'Our technical providers (Vercel hosting, Resend emails, Chariow payments) act as processors and are bound by confidentiality commitments.',
+            ],
+          },
+          {
+            h: 'Data transfers',
+            p: [
+              'Some providers are established outside Cameroon and the European Union (notably in the United States). These transfers are covered by appropriate safeguards.',
+            ],
+          },
+        ],
+      },
+      cookies: {
+        title: 'Cookie policy',
+        updated: 'August 29, 2026',
+        sections: [
+          {
+            h: 'What is a cookie?',
+            p: [
+              'A cookie is a small text file placed on your device during your visit. It is used in particular to remember your preferences and measure site traffic.',
+            ],
+          },
+          {
+            h: 'Cookies used',
+            p: [
+              'Essential cookies: necessary for the website to work (authentication session, security). They cannot be disabled.',
+              'Preference cookies: remember your choices (dark/light theme, display language).',
+              'Analytics cookies: help us understand how the site is used so we can improve it.',
+            ],
+          },
+          {
+            h: 'Managing cookies',
+            p: [
+              'You can configure your browser at any time to refuse or delete cookies. Note that blocking essential cookies may affect how the site works.',
+            ],
+          },
+          {
+            h: 'Contact',
+            p: [
+              'For any question about cookies, write to us at contact@djola-tiktak.com.',
+            ],
+          },
+        ],
+      },
+    },
   },
 
   auth: {

@@ -29,6 +29,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useI18n } from '@/i18n/provider';
 import { LanguageSwitcher } from '@/i18n/language-switcher';
+import { SiteFooter } from '@/components/landing/site-footer';
 
 function getButtonClass(style: 'primary' | 'amber' | 'outline'): string {
   switch (style) {
@@ -226,6 +227,7 @@ export default function PricingPage() {
           </div>
         </section>
       </div>
+      <SiteFooter />
     </main>
   );
 }
