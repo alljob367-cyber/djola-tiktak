@@ -26,12 +26,15 @@ import {
   Zap,
   Copy,
   CheckCheck,
+  Ticket,
+  X,
 } from 'lucide-react';
 import {
   formatCurrency,
   DAY_NAMES_SHORT_FR,
   MONTH_NAMES_FR,
 } from '@/lib/availability/engine';
+import { computeDiscount } from '@/lib/promo';
 
 // ------------------------------------------------------------------
 // Types
@@ -68,7 +71,14 @@ interface Slot {
 
 interface BookingPageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ service?: string }>;
+  searchParams: Promise<{ service?: string; promo?: string }>;
+}
+
+interface AppliedPromo {
+  code: string;
+  type: 'promo' | 'welcome' | 'referral';
+  discount_type: 'percent' | 'fixed';
+  value: number;
 }
 
 // ------------------------------------------------------------------
@@ -166,9 +176,62 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   const [submitting, setSubmitting] = useState(false);
   const [booked, setBooked] = useState(false);
 
+  // ---- promo state ----
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
+  const [promoChecking, setPromoChecking] = useState(false);
+  const [promoError, setPromoError] = useState('');
+
   // ---- Dynamic steps based on payment methods availability ----
   const hasPaymentMethods = profile?.payment_methods_enabled && (profile.orange_money_phone || profile.mtn_momo_phone);
   const STEPS = hasPaymentMethods ? BASE_STEPS : STEPS_NO_PAYMENT;
+
+  // ---- Promo : remise appliquée sur le prix du service ----
+  const discountAmount = useMemo(
+    () => (appliedPromo && selectedService ? computeDiscount(selectedService.price, appliedPromo) : 0),
+    [appliedPromo, selectedService],
+  );
+  const finalPrice = selectedService ? Math.max(0, selectedService.price - discountAmount) : 0;
+
+  const applyPromo = useCallback(
+    async (code: string) => {
+      const trimmed = code.trim().toUpperCase();
+      if (!trimmed) {
+        setAppliedPromo(null);
+        setPromoError('');
+        return;
+      }
+      setPromoChecking(true);
+      setPromoError('');
+      try {
+        const res = await fetch('/api/promo/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, code: trimmed }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (json?.valid && json.promo) {
+          setAppliedPromo(json.promo as AppliedPromo);
+        } else {
+          setAppliedPromo(null);
+          setPromoError(json?.message || 'Code invalide, expiré ou épuisé');
+        }
+      } catch {
+        setPromoError('Erreur réseau, réessayez');
+      } finally {
+        setPromoChecking(false);
+      }
+    },
+    [slug],
+  );
+
+  // Pré-remplissage depuis un lien de partage ?promo=CODE
+  useEffect(() => {
+    if (sp.promo) {
+      setPromoInput(sp.promo.toUpperCase());
+      applyPromo(sp.promo);
+    }
+  }, [sp.promo, applyPromo]);
 
   // ---- Fetch profile & services ----
   useEffect(() => {
@@ -347,6 +410,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           client_email: clientInfo.client_email || '',
           starts_at: selectedSlot.starts_at,
           prepayment: wantsAdvancePayment ? 'pending' : 'none',
+          promo_code: appliedPromo?.code || '',
         }),
       });
 
@@ -684,6 +748,78 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             <p className="text-xs text-destructive">{clientErrors.client_email}</p>
           )}
         </div>
+
+        {/* Code promo (facultatif) */}
+        <div className="space-y-2 rounded-xl border border-dashed border-emerald-300/70 bg-emerald-50/40 p-3.5 dark:border-emerald-700/50 dark:bg-emerald-950/20">
+          <Label htmlFor="promo_code" className="flex items-center gap-1.5 text-sm">
+            <Ticket className="size-4 text-emerald-600" />
+            Code promo{' '}
+            <span className="text-muted-foreground">(facultatif)</span>
+          </Label>
+
+          {appliedPromo ? (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-300 bg-white px-3 py-2.5 dark:border-emerald-700 dark:bg-white/5">
+              <div className="min-w-0">
+                <p className="font-mono text-sm font-bold tracking-wide text-emerald-700 dark:text-emerald-400">
+                  {appliedPromo.code}
+                </p>
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  {appliedPromo.discount_type === 'percent'
+                    ? `Réduction de ${appliedPromo.value} % appliquée`
+                    : `Réduction de ${Math.round(appliedPromo.value).toLocaleString('fr-FR')} ${profile?.currency ?? 'XAF'} appliquée`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAppliedPromo(null);
+                  setPromoInput('');
+                  setPromoError('');
+                }}
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted"
+                aria-label="Retirer le code promo"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                id="promo_code"
+                type="text"
+                placeholder="Ex : BIENVENUE"
+                value={promoInput}
+                onChange={(e) => {
+                  setPromoInput(e.target.value.toUpperCase());
+                  if (promoError) setPromoError('');
+                }}
+                className="min-h-[44px] font-mono uppercase"
+                maxLength={24}
+                autoComplete="off"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => applyPromo(promoInput)}
+                disabled={promoChecking || !promoInput.trim()}
+                className="min-h-[44px] shrink-0 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400"
+              >
+                {promoChecking ? (
+                  <span className="size-4 animate-spin rounded-full border-2 border-emerald-600/30 border-t-emerald-600" />
+                ) : (
+                  'Appliquer'
+                )}
+              </Button>
+            </div>
+          )}
+
+          {promoError && (
+            <p className="flex items-center gap-1 text-xs text-destructive">
+              <AlertCircle className="size-3.5" />
+              {promoError}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -726,7 +862,18 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             <div>
               <p className="text-sm font-medium">Je paie en avance</p>
               <p className="text-xs text-muted-foreground">
-                {formatCurrency(selectedService.price, profile.currency)}
+                {discountAmount > 0 ? (
+                  <>
+                    <span className="mr-1 line-through opacity-60">
+                      {formatCurrency(selectedService.price, profile.currency)}
+                    </span>
+                    <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                      {formatCurrency(finalPrice, profile.currency)}
+                    </span>
+                  </>
+                ) : (
+                  formatCurrency(selectedService.price, profile.currency)
+                )}
               </p>
             </div>
           </div>
@@ -754,7 +901,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             className="space-y-3 overflow-hidden"
           >
             <p className="text-sm font-medium text-foreground">
-              Envoyez {formatCurrency(selectedService.price, profile.currency)} à :
+              Envoyez {formatCurrency(finalPrice, profile.currency)} à :
             </p>
 
             {profile.orange_money_phone && (
@@ -874,10 +1021,24 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             <CreditCard className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
               <p className="text-xs font-medium text-muted-foreground">Tarif</p>
-              <p className="font-bold text-emerald-700">
-                {selectedService &&
-                  formatCurrency(selectedService.price, profile?.currency)}
-              </p>
+              {discountAmount > 0 && selectedService ? (
+                <>
+                  <p className="text-sm text-muted-foreground line-through">
+                    {formatCurrency(selectedService.price, profile?.currency)}
+                  </p>
+                  <p className="font-bold text-emerald-700">
+                    {formatCurrency(finalPrice, profile?.currency)}
+                  </p>
+                  <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    Code {appliedPromo?.code} : −{formatCurrency(discountAmount, profile?.currency)}
+                  </p>
+                </>
+              ) : (
+                <p className="font-bold text-emerald-700">
+                  {selectedService &&
+                    formatCurrency(selectedService.price, profile?.currency)}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -987,6 +1148,19 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             <p className="text-xs font-medium text-muted-foreground">Professionnel</p>
             <p className="font-semibold text-foreground">{profile?.business_name}</p>
           </div>
+          {appliedPromo && discountAmount > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Réduction appliquée</p>
+              <p className="font-semibold text-emerald-700 dark:text-emerald-400">
+                −{formatCurrency(discountAmount, profile?.currency)} (code {appliedPromo.code})
+              </p>
+              {selectedService && (
+                <p className="text-xs text-muted-foreground">
+                  Prix final : {formatCurrency(finalPrice, profile?.currency)}
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1025,7 +1199,18 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             <p className="text-xs text-emerald-600">
               <Clock className="mr-1 inline-block size-3" />
               {selectedService.duration_minutes} min ·{' '}
-              {formatCurrency(selectedService.price, profile?.currency)}
+              {discountAmount > 0 ? (
+                <>
+                  <span className="line-through opacity-60">
+                    {formatCurrency(selectedService.price, profile?.currency)}
+                  </span>{' '}
+                  <span className="font-semibold">
+                    {formatCurrency(finalPrice, profile?.currency)}
+                  </span>
+                </>
+              ) : (
+                formatCurrency(selectedService.price, profile?.currency)
+              )}
             </p>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-const ALLOWED_BUCKETS = ['avatars', 'service-images'] as const;
+const ALLOWED_BUCKETS = ['avatars', 'service-images', 'banners'] as const;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 

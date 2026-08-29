@@ -18,6 +18,8 @@ import {
   MessageCircle,
   Instagram,
   Globe,
+  MapPin,
+  Youtube,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -45,6 +47,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { BUSINESS_TYPE_LIST } from '@/lib/business-types';
+import AppearanceCard from '@/components/dashboard/appearance-card';
+import PromoManager from '@/components/dashboard/promo-manager';
 import type { Profile } from '@/types/database';
 
 // ── Zod schema ─────────────────────────────────────────────
@@ -73,6 +77,8 @@ const profileFormSchema = z.object({
   instagram_url: z.string().max(300).optional().or(z.literal('')),
   tiktok_url: z.string().max(300).optional().or(z.literal('')),
   website_url: z.string().max(300).optional().or(z.literal('')),
+  google_maps_url: z.string().max(300).optional().or(z.literal('')),
+  youtube_url: z.string().max(300).optional().or(z.literal('')),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -119,6 +125,8 @@ export default function ProfilePage() {
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [resending, setResending] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [themeKey, setThemeKey] = useState<string>('emerald');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Check email verification ───────────────────────
@@ -159,6 +167,7 @@ export default function ProfilePage() {
       business_type: 'other',
       currency: 'XAF', timezone: 'Africa/Malabo',
       whatsapp_url: '', facebook_url: '', instagram_url: '', tiktok_url: '', website_url: '',
+      google_maps_url: '', youtube_url: '',
     },
   });
 
@@ -174,6 +183,8 @@ export default function ProfilePage() {
         const json = await res.json();
         const p: Profile = json.data;
         setProfile(p);
+        setBannerUrl(p.banner_url ?? null);
+        setThemeKey(p.theme || 'emerald');
         setValue('business_name', p.business_name);
         setValue('business_type', (p.business_type as ProfileFormValues['business_type']) || 'other');
         setValue('slug', p.slug || '');
@@ -187,6 +198,8 @@ export default function ProfilePage() {
         setValue('instagram_url', p.instagram_url || '');
         setValue('tiktok_url', p.tiktok_url || '');
         setValue('website_url', p.website_url || '');
+        setValue('google_maps_url', p.google_maps_url || '');
+        setValue('youtube_url', p.youtube_url || '');
       } catch {
         toast.error('Impossible de charger le profil');
       } finally {
@@ -507,8 +520,33 @@ export default function ProfilePage() {
                   <Label htmlFor="website"><span className="inline-flex items-center gap-2"><Globe size={14} className="text-emerald-600" />Site web</span></Label>
                   <Input id="website" placeholder="https://www.votre-site.com" {...register('website_url')} />
                 </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="gmaps"><span className="inline-flex items-center gap-2"><MapPin size={14} className="text-red-500" />Google Maps</span></Label>
+                    <Input id="gmaps" placeholder="https://maps.app.goo.gl/..." {...register('google_maps_url')} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="youtube"><span className="inline-flex items-center gap-2"><Youtube size={14} className="text-red-600" />YouTube</span></Label>
+                    <Input id="youtube" placeholder="https://youtube.com/@votre-chaine" {...register('youtube_url')} />
+                  </div>
+                </div>
               </CardContent>
             </Card>
+
+            {/* Apparence : bannière + thème */}
+            <AppearanceCard
+              bannerUrl={bannerUrl}
+              theme={themeKey}
+              onBannerChange={setBannerUrl}
+              onThemeChange={setThemeKey}
+            />
+
+            {/* Marketing : annonce + codes promo */}
+            <PromoManager
+              slug={profile?.slug ?? null}
+              currency={profile?.currency || 'XAF'}
+              initialAnnouncement={profile?.announcement ?? null}
+            />
           </motion.div>
         </div>
       </form>

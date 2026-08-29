@@ -24,6 +24,15 @@ export const businessTypeSchema = z.enum([
   'auto', 'shop', 'saas', 'artisan', 'other',
 ]);
 
+export const themeSchema = z.enum([
+  'emerald', 'ocean', 'sunset', 'royal', 'gold', 'rose', 'forest', 'midnight',
+]);
+
+export const announcementSchema = z.object({
+  enabled: z.boolean(),
+  text: z.string().min(1, 'Le texte de l\u2019annonce est requis').max(200, 'Maximum 200 caractères'),
+});
+
 export const profileSchema = z.object({
   business_name: z.string().min(1, 'Le nom est requis').max(100),
   business_type: businessTypeSchema.default('other'),
@@ -38,11 +47,16 @@ export const profileSchema = z.object({
   currency: z.string().default('XAF'),
   timezone: z.string().default('Africa/Malabo'),
   avatar_url: z.string().max(500).optional().or(z.literal('')),
-  whatsapp_url: z.string().max(300).optional().or(z.literal('')),
-  facebook_url: z.string().max(300).optional().or(z.literal('')),
-  instagram_url: z.string().max(300).optional().or(z.literal('')),
-  tiktok_url: z.string().max(300).optional().or(z.literal('')),
-  website_url: z.string().max(300).optional().or(z.literal('')),
+  banner_url: z.string().max(500).optional().or(z.literal('')),
+  theme: themeSchema.optional(),
+  announcement: announcementSchema.nullable().optional(),
+  whatsapp_url: z.string().max(300).optional().or(z.literal('')),  
+  google_maps_url: z.string().max(300).optional().or(z.literal('')),
+  youtube_url: z.string().max(300).optional().or(z.literal('')), 
+  facebook_url: z.string().max(300).optional().or(z.literal('')),  
+  instagram_url: z.string().max(300).optional().or(z.literal('')),  
+  tiktok_url: z.string().max(300).optional().or(z.literal('')),  
+  website_url: z.string().max(300).optional().or(z.literal('')),  
   // Local payment methods
   payment_methods_enabled: z.boolean().optional().default(false),
   orange_money_phone: z.string().max(30).optional().or(z.literal('')),
@@ -123,7 +137,30 @@ export const publicBookingSchema = z.object({
     { message: 'Format de date ISO invalide' },
   ),
   prepayment: z.enum(['pending', 'none', 'paid']).optional().default('none'),
+  promo_code: z.string().max(40).optional().or(z.literal('')),
   notes: z.string().max(300).optional().default(''),
+});
+
+// ── Codes promo (marketing) ──────────────────────────────────
+export const promoCodeCreateSchema = z.object({
+  code: z.string()
+    .min(3, 'Le code doit faire au moins 3 caractères')
+    .max(24, 'Maximum 24 caractères')
+    .regex(/^[A-Za-z0-9-]+$/, 'Lettres, chiffres et tirets uniquement'),
+  type: z.enum(['promo', 'welcome', 'referral']).default('promo'),
+  discount_type: z.enum(['percent', 'fixed']).default('percent'),
+  value: z.coerce.number().positive('La valeur doit être supérieure à 0'),
+  max_uses: z.coerce.number().int().min(1).nullable().optional(),
+  valid_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  valid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  show_on_page: z.boolean().default(false),
+});
+
+export const promoCodeUpdateSchema = z.object({
+  active: z.boolean().optional(),
+  show_on_page: z.boolean().optional(),
+  max_uses: z.coerce.number().int().min(1).nullable().optional(),
+  valid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;

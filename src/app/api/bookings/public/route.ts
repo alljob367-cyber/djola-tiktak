@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { publicBookingSchema } from '@/lib/validation/schemas';
 import { zonedTimeToUtc, formatDateISO } from '@/lib/availability/engine';
+import { findValidPromo, computeDiscount, type PromoCodeRecord } from '@/lib/promo';
 
 // Rate limiting: max 5 bookings per IP per hour
 const BOOKING_RATE_LIMIT = 5;
@@ -50,12 +51,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
 
-    const { service_id, client_name, client_phone, client_email, starts_at } = parsed.data;
+    const { service_id, client_name, client_phone, client_email, starts_at, promo_code } = parsed.data;
 
     // Vérifier que le service existe et est actif
     const { data: service, error: serviceError } = await supabase
       .from('services')
-      .select('id, duration_minutes, profile_id, is_active')
+      .select('id, duration_minutes, price, profile_id, is_active')
       .eq('id', service_id)
       .single();
 
@@ -122,6 +123,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── Validation du code promo (si fourni) ──
+    let validPromo: PromoCodeRecord | null = null;
+    let discountAmount = 0;
+    if (promo_code && promo_code.trim()) {
+      validPromo = await findValidPromo(supabase, service.profile_id, promo_code);
+      if (!validPromo) {
+        return NextResponse.json({ error: 'Code promo invalide, expiré ou épuisé' }, { status: 400 });
+      }
+      discountAmount = computeDiscount(service.price ?? 0, validPromo);
+    }
+
     // Calculer ends_at à partir de la durée du service
     const start = new Date(starts_at);
     const end = new Date(start.getTime() + service.duration_minutes * 60 * 1000);
@@ -184,6 +196,25 @@ export async function POST(request: NextRequest) {
       client_id = newClient.id;
     }
 
+    // ── Appliquer le code promo après création réussie ──
+    const applyPromoToAppointment = async (appointmentId: string) => {
+      if (!validPromo) return;
+      try {
+        await supabase
+          .from('appointments')
+          .update({ promo_code: validPromo.code, discount_amount: discountAmount })
+          .eq('id', appointmentId);
+        // Incrémenter le compteur d'utilisations (best-effort)
+        await supabase
+          .from('promo_codes')
+          .update({ used_count: validPromo.used_count + 1 })
+          .eq('id', validPromo.id);
+      } catch (err) {
+        // Ne pas faire échouer la réservation pour un souci de compteur
+        console.warn('[bookings/public] application code promo best-effort:', err);
+      }
+    };
+
     // ── Créer le rendez-vous (atomic via RPC, with fallback) ──
     // Try the Postgres RPC first (true atomicity, no TOCTOU race).
     // Falls back to the legacy insert + post-insert guard if the RPC
@@ -208,6 +239,11 @@ export async function POST(request: NextRequest) {
           { error: rpcResult.error || 'Ce créneau est déjà pris. Veuillez en choisir un autre.' },
           { status: 409 },
         );
+      }
+
+      const rpcAppointment = rpcResult.appointment as { id?: string } | null;
+      if (validPromo && rpcAppointment?.id) {
+        await applyPromoToAppointment(rpcAppointment.id);
       }
 
       return NextResponse.json({ data: rpcResult.appointment }, { status: 201 });
@@ -257,6 +293,10 @@ export async function POST(request: NextRequest) {
     if (aptError) {
       console.error('Erreur création rendez-vous public:', aptError);
       return NextResponse.json({ error: 'Erreur lors de la création du rendez-vous' }, { status: 500 });
+    }
+
+    if (appointment && validPromo) {
+      await applyPromoToAppointment(appointment.id);
     }
 
     return NextResponse.json({ data: appointment }, { status: 201 });

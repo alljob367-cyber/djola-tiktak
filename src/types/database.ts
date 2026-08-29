@@ -16,6 +16,10 @@ export interface Profile {
   phone: string;
   email: string;
   avatar_url: string;
+  // Apparence de la page publique (migration marketing v1.1.0)
+  banner_url?: string | null;
+  theme?: string | null;
+  announcement?: { enabled: boolean; text: string } | null;
   currency: string;
   timezone: string;
   is_active: boolean;
@@ -34,6 +38,8 @@ export interface Profile {
   instagram_url?: string | null;
   tiktok_url?: string | null;
   website_url?: string | null;
+  google_maps_url?: string | null;
+  youtube_url?: string | null;
   // Local payment methods for client advance payment
   payment_methods_enabled?: boolean | null;
   orange_money_phone?: string | null;
@@ -78,6 +84,26 @@ export interface Appointment {
   ends_at: string;
   status: AppointmentStatus;
   notes: string;
+  promo_code?: string | null;
+  discount_amount?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Codes promo — marketing (migration v1.1.0)
+export interface PromoCode {
+  id: string;
+  profile_id: string;
+  code: string;
+  type: 'promo' | 'welcome' | 'referral';
+  discount_type: 'percent' | 'fixed';
+  value: number;
+  max_uses: number | null;
+  used_count: number;
+  valid_from: string | null;
+  valid_until: string | null;
+  active: boolean;
+  show_on_page: boolean;
   created_at: string;
   updated_at: string;
 }

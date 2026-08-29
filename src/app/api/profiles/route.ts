@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { profileSchema, businessTypeSchema } from '@/lib/validation/schemas';
+import { profileSchema, businessTypeSchema, themeSchema, announcementSchema } from '@/lib/validation/schemas';
 
 // GET — récupérer son propre profil
 export async function GET(_request: NextRequest) {
@@ -55,7 +55,12 @@ export async function PUT(request: NextRequest) {
           currency: z.string().optional(),
           timezone: z.string().optional(),
           avatar_url: z.string().max(500).optional().or(z.literal('')).optional(),
+          banner_url: z.string().max(500).optional().or(z.literal('')).optional(),
+          theme: themeSchema.optional(),
+          announcement: announcementSchema.nullable().optional(),
           whatsapp_url: z.string().max(300).optional().or(z.literal('')).optional(),
+          google_maps_url: z.string().max(300).optional().or(z.literal('')).optional(),
+          youtube_url: z.string().max(300).optional().or(z.literal('')).optional(),
           facebook_url: z.string().max(300).optional().or(z.literal('')).optional(),
           instagram_url: z.string().max(300).optional().or(z.literal('')).optional(),
           tiktok_url: z.string().max(300).optional().or(z.literal('')).optional(),
