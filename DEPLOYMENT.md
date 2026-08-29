@@ -177,19 +177,48 @@ dans les variables Vercel. Sans configuration, les canaux passent en mode
    WHATSAPP_TEMPLATE_LANG=fr
    ```
 
-**Option B — Twilio (SMS + WhatsApp avec un seul compte)** :
+**Option B — Twilio WhatsApp (recommandé pour démarrer : sandbox gratuit)** :
 
-1. Créer un compte sur [https://www.twilio.com](https://www.twilio.com).
-2. Acheter un numéro émetteur (ou utiliser le numéro d'essai).
-3. Pour WhatsApp : Messaging → Try it out → **WhatsApp sandbox** (test gratuit),
-   puis demander un émetteur WhatsApp approuvé pour la production.
-4. Ajouter dans Vercel :
+> ⚠️ **IMPORTANT** : ne définis que les 3 variables ci-dessous.
+> **N'AJOUTE PAS** `TWILIO_PHONE_NUMBER` — sinon les rappels SMS seraient
+> aussi envoyés (~0,32 $/SMS au Cameroun). Sans cette variable, le canal
+> SMS reste en mode "placeholder" : seul WhatsApp est réellement envoyé.
+
+1. Créer un compte gratuit sur https://www.twilio.com (pas de carte bancaire
+   requise, ~15 $ de crédit d'essai offert).
+2. Récupérer les identifiants dans la console → **Dashboard** :
+   - **Account SID** (commence par `AC…`)
+   - **Auth Token** (cliquer sur l'œil pour l'afficher)
+3. Activer le sandbox WhatsApp (test 100 % gratuit) :
+   - Console Twilio → **Messaging** → **Try it out** → **Send a WhatsApp message**
+   - Noter le numéro sandbox : **+1 415 523 8886**
+   - Noter le code de connexion (ex : `join brown-cat`)
+4. Depuis son propre WhatsApp, chaque destinataire (et toi pour tester) doit
+   envoyer le code `join xxx-xxx` au **+1 415 523 8886** — cette étape est
+   **obligatoire** pour recevoir les messages en mode sandbox.
+5. Tester en local avant de déployer :
    ```
-   TWILIO_ACCOUNT_SID=votre-sid
-   TWILIO_AUTH_TOKEN=votre-token
-   TWILIO_PHONE_NUMBER=+1XXXXXXXXXX
-   TWILIO_WHATSAPP_FROM=+1XXXXXXXXXX
+   cp .env.example .env.local   # puis remplir les 3 valeurs TWILIO_*
+   node scripts/test-whatsapp.js +2376XXXXXXXX
    ```
+6. Ajouter dans Vercel (Settings → Environment Variables) :
+   ```
+   TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   TWILIO_AUTH_TOKEN=votre-token-auth
+   TWILIO_WHATSAPP_FROM=+14155238886
+   ```
+   puis **Redeploy** pour que les variables soient prises en compte.
+
+> 💡 **Sandbox → Production** : le sandbox suffit pour tester, mais chaque
+> destinataire doit rejoindre le sandbox (et le rejoindre à nouveau après
+> 72 h d'inactivité). Pour envoyer librement à tous les clients, il faut
+> demander un émetteur WhatsApp approuvé dans la console Twilio
+> (Messaging → Senders → WhatsApp senders) — sinon bascule sur l'option A
+> (Meta Cloud API, 1 000 conversations/mois gratuites).
+>
+> 💡 **Erreurs fréquentes** : code Twilio `63016` = le destinataire n'a pas
+> rejoint le sandbox ; `20003` = SID/Token incorrect ; `21211` = numéro
+> destinataire mal formaté (utiliser +2376XXXXXXXX).
 
 **Option C — Africa's Talking (SMS économiques pour l'Afrique)** :
 
