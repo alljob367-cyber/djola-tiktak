@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { profileSchema } from '@/lib/validation/schemas';
+import { profileSchema, businessTypeSchema } from '@/lib/validation/schemas';
 
 // GET — récupérer son propre profil
 export async function GET(_request: NextRequest) {
@@ -47,6 +47,7 @@ export async function PUT(request: NextRequest) {
     const parsed = partialUpdate
       ? z.object({
           business_name: z.string().max(100).optional(),
+          business_type: businessTypeSchema.optional(),
           slug: z.string().min(3).max(60).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
           description: z.string().max(500).optional(),
           phone: z.string().max(20).optional(),

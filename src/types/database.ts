@@ -10,6 +10,7 @@ export type ReminderStatus = 'pending' | 'sent' | 'failed';
 export interface Profile {
   id: string;
   business_name: string;
+  business_type?: string;
   slug: string | null;
   description: string;
   phone: string;
@@ -47,6 +48,8 @@ export interface Service {
   profile_id: string;
   name: string;
   description: string;
+  category?: string;
+  capacity?: number;
   price: number;
   duration_minutes: number;
   is_active: boolean;

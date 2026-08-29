@@ -25,6 +25,8 @@
    6. `supabase/security-hardening.sql` (**OBLIGATOIRE** — durcissement RLS :
       ferme la fuite PII des politiques public_read et interdit l'écriture
       client des tables payments/subscriptions)
+   7. `supabase/business-types-migration.sql` (types de business + catégories
+      de services + capacité par créneau — resto, salon, santé, SaaS...)
 6. Vérifier que toutes les tables, triggers, RLS policies sont créés sans erreur.
 
 > ⚠️ **PRODUCTION EXISTANTE** : si votre base tourne déjà, exécutez

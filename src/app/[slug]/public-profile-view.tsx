@@ -14,13 +14,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Clock, Phone, ChevronRight, MessageCircle, Globe, ImageOff,
-  Wallet, Star, Sparkles, CalendarCheck, MapPin,
+  Wallet, Star, Sparkles, CalendarCheck, MapPin, Users,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/availability/engine';
+import { getBusinessType } from '@/lib/business-types';
+import { useMemo } from 'react';
 
 export interface PublicProfileData {
   id: string;
   business_name: string;
+  business_type?: string | null;
   slug: string;
   description: string | null;
   avatar_url: string | null;
@@ -44,6 +47,8 @@ export interface PublicServiceData {
   id: string;
   name: string;
   description: string | null;
+  category?: string | null;
+  capacity?: number | null;
   price: number;
   duration_minutes: number;
   image_url: string | null;
@@ -84,12 +89,13 @@ const revealCard: Variants = {
 // ---------- Composants ----------
 
 function ServiceCard({
-  service, currency, slug, index,
+  service, currency, slug, index, bookingLabel,
 }: {
   service: PublicServiceData;
   currency: string;
   slug: string;
   index: number;
+  bookingLabel: string;
 }) {
   return (
     <motion.div
@@ -131,6 +137,13 @@ function ServiceCard({
               <Clock className="size-3" />
               {service.duration_minutes} min
             </span>
+            {/* Badge capacité (table / groupe) */}
+            {(service.capacity ?? 1) > 1 && (
+              <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[11px] font-semibold text-emerald-700 shadow-md backdrop-blur-sm dark:bg-gray-900/90 dark:text-emerald-400">
+                <Users className="size-3" />
+                {service.capacity} places
+              </span>
+            )}
           </Link>
 
           {/* Infos + CTA */}
@@ -147,7 +160,7 @@ function ServiceCard({
               href={`/${slug}/booking?service=${service.id}`}
               className="mt-auto inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 font-medium text-white shadow-sm transition-all duration-200 hover:bg-emerald-700 hover:shadow-md hover:shadow-emerald-600/25 active:scale-[0.98]"
             >
-              Réserver
+              {bookingLabel}
               <ChevronRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
           </div>
@@ -160,6 +173,30 @@ function ServiceCard({
 // ---------- Vue principale ----------
 
 export default function PublicProfileView({ profile, services, initials }: PublicProfileViewProps) {
+  const businessConfig = getBusinessType(profile.business_type);
+  const BusinessIcon = businessConfig.icon;
+
+  // Regroupement du catalogue par catégorie
+  const groupedServices = useMemo(() => {
+    const groups: Array<{ category: string; services: PublicServiceData[] }> = [];
+    const noCategory: PublicServiceData[] = [];
+    for (const s of services) {
+      const cat = (s.category || '').trim();
+      if (cat) {
+        let g = groups.find((x) => x.category === cat);
+        if (!g) { g = { category: cat, services: [] }; groups.push(g); }
+        g.services.push(s);
+      } else {
+        noCategory.push(s);
+      }
+    }
+    if (noCategory.length > 0) groups.push({ category: '', services: noCategory });
+    return groups;
+  }, [services]);
+
+  const hasCategoryGroups =
+    groupedServices.length > 1 || (groupedServices[0]?.category ?? '') !== '';
+
   const socialLinks: Array<{ label: string; href: string; icon: React.ReactNode; bg: string }> = [];
   if (profile.whatsapp_url) socialLinks.push({ label: 'WhatsApp', href: profile.whatsapp_url, icon: <MessageCircle size={16} />, bg: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' });
   if (profile.facebook_url) socialLinks.push({ label: 'Facebook', href: profile.facebook_url, icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>, bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' });
@@ -226,6 +263,18 @@ export default function PublicProfileView({ profile, services, initials }: Publi
                 {profile.business_name}
                 <Sparkles className="size-5 text-yellow-300 drop-shadow" aria-label="Professionnel vérifié" />
               </h1>
+              {/* Badge métier */}
+              {businessConfig.key !== 'other' && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4, type: 'spring', stiffness: 260, damping: 18 }}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-emerald-50 backdrop-blur-sm"
+                >
+                  <BusinessIcon className="size-3.5" />
+                  {businessConfig.label}
+                </motion.span>
+              )}
               {profile.description && (
                 <motion.p
                   className="max-w-md text-sm leading-relaxed text-emerald-50/95"
@@ -334,12 +383,12 @@ export default function PublicProfileView({ profile, services, initials }: Publi
         >
           <div className="flex items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600/10 text-emerald-600 dark:text-emerald-400">
-              <Sparkles className="size-5" />
+              <BusinessIcon className="size-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-foreground sm:text-xl">Notre catalogue</h2>
               <p className="text-xs text-muted-foreground">
-                {services.length} service{services.length > 1 ? 's' : ''} disponible{services.length > 1 ? 's' : ''}
+                {services.length} {businessConfig.serviceNoun}{services.length > 1 ? 's' : ''} disponible{services.length > 1 ? 's' : ''}
               </p>
             </div>
           </div>
@@ -371,10 +420,50 @@ export default function PublicProfileView({ profile, services, initials }: Publi
               </CardContent>
             </Card>
           </motion.div>
+        ) : hasCategoryGroups ? (
+          /* Catalogue organisé par catégories */
+          <div className="space-y-8">
+            {groupedServices.map((group) => (
+              <section key={group.category || 'general'}>
+                <motion.div
+                  initial={{ opacity: 0, x: -18 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className="mb-3.5 flex items-center gap-2.5"
+                >
+                  <span className="h-7 w-1 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500" />
+                  <h3 className="text-base font-bold text-foreground sm:text-lg">{group.category}</h3>
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                    {group.services.length}
+                  </span>
+                </motion.div>
+                <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4">
+                  {group.services.map((service, i) => (
+                    <ServiceCard
+                      key={service.id}
+                      service={service}
+                      currency={profile.currency}
+                      slug={profile.slug}
+                      index={i}
+                      bookingLabel={businessConfig.bookingLabel}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4">
             {services.map((service, i) => (
-              <ServiceCard key={service.id} service={service} currency={profile.currency} slug={profile.slug} index={i} />
+              <ServiceCard
+                key={service.id}
+                service={service}
+                currency={profile.currency}
+                slug={profile.slug}
+                index={i}
+                bookingLabel={businessConfig.bookingLabel}
+              />
             ))}
           </div>
         )}

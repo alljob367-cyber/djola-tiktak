@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 // Champs publics uniquement — ne JAMAIS sélectionner * (fuite PII :
 // email privé, statut d'abonnement, identifiant client Chariow...)
 const PUBLIC_FIELDS = [
-  'id', 'business_name', 'slug', 'description', 'avatar_url', 'phone',
+  'id', 'business_name', 'business_type', 'slug', 'description', 'avatar_url', 'phone',
   'currency', 'timezone',
   'whatsapp_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'website_url',
   'payment_methods_enabled',
@@ -21,7 +21,7 @@ const PUBLIC_FIELDS = [
 ].join(', ');
 
 const PUBLIC_SERVICE_FIELDS = [
-  'id', 'name', 'description', 'price', 'duration_minutes', 'image_url',
+  'id', 'name', 'description', 'category', 'capacity', 'price', 'duration_minutes', 'image_url',
 ].join(', ');
 
 // Métadonnées dynamiques pour le partage (Open Graph)
@@ -71,6 +71,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
     .select(PUBLIC_SERVICE_FIELDS)
     .eq('profile_id', profile.id)
     .eq('is_active', true)
+    .order('category', { ascending: true })
     .order('created_at', { ascending: true });
 
   const activeServices = (services as unknown as PublicServiceData[]) || [];

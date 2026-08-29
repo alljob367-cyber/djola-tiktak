@@ -44,11 +44,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { BUSINESS_TYPE_LIST } from '@/lib/business-types';
 import type { Profile } from '@/types/database';
 
 // ── Zod schema ─────────────────────────────────────────────
 const profileFormSchema = z.object({
   business_name: z.string().min(1, 'Le nom est requis').max(100),
+  business_type: z.enum([
+    'salon', 'restaurant', 'clinic', 'fitness', 'education',
+    'auto', 'shop', 'saas', 'artisan', 'other',
+  ]),
   slug: z
     .string()
     .min(3, 'Le slug doit faire au moins 3 caractères')
@@ -151,12 +156,14 @@ export default function ProfilePage() {
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       business_name: '', slug: '', description: '', phone: '', email: '',
+      business_type: 'other',
       currency: 'XAF', timezone: 'Africa/Malabo',
       whatsapp_url: '', facebook_url: '', instagram_url: '', tiktok_url: '', website_url: '',
     },
   });
 
   const slug = watch('slug');
+  const selectedBusinessType = watch('business_type');
 
   // ── Fetch profile ─────────────────────────────────────
   useEffect(() => {
@@ -168,6 +175,7 @@ export default function ProfilePage() {
         const p: Profile = json.data;
         setProfile(p);
         setValue('business_name', p.business_name);
+        setValue('business_type', (p.business_type as ProfileFormValues['business_type']) || 'other');
         setValue('slug', p.slug || '');
         setValue('description', p.description);
         setValue('phone', p.phone);
@@ -386,6 +394,35 @@ export default function ProfilePage() {
                   <Label htmlFor="biz-name">Nom de l'entreprise *</Label>
                   <Input id="biz-name" placeholder="Ex : Restaurant Le Baobab" {...register('business_name', { onBlur: (e) => handleNameBlur(e.target.value) })} />
                   {errors.business_name && <p className="text-xs text-red-500">{errors.business_name.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Type d'activité</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                    {BUSINESS_TYPE_LIST.map((bt) => {
+                      const Icon = bt.icon;
+                      const active = selectedBusinessType === bt.key;
+                      return (
+                        <button
+                          key={bt.key}
+                          type="button"
+                          onClick={() => setValue('business_type', bt.key, { shouldDirty: true })}
+                          className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-all ${
+                            active
+                              ? 'border-emerald-500 bg-emerald-50/70 ring-1 ring-emerald-500/30 dark:bg-emerald-950/30'
+                              : 'border-border hover:border-emerald-300 hover:bg-muted/40'
+                          }`}
+                        >
+                          <Icon size={18} className={active ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'} />
+                          <span className={`text-[11px] leading-tight font-medium ${active ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                            {bt.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Adapte les modèles de services, le catalogue et le libellé du bouton de réservation à votre métier.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="slug" className="flex items-center gap-2">

@@ -19,8 +19,14 @@ const timeString = z
     message: 'Format HH:mm requis (ex : 09:00)',
   });
 
+export const businessTypeSchema = z.enum([
+  'salon', 'restaurant', 'clinic', 'fitness', 'education',
+  'auto', 'shop', 'saas', 'artisan', 'other',
+]);
+
 export const profileSchema = z.object({
   business_name: z.string().min(1, 'Le nom est requis').max(100),
+  business_type: businessTypeSchema.default('other'),
   slug: z
     .string()
     .min(3, 'Le slug doit faire au moins 3 caractères')
@@ -49,6 +55,8 @@ export const profileSchema = z.object({
 export const serviceSchema = z.object({
   name: z.string().min(1, 'Le nom du service est requis').max(100),
   description: z.string().max(300).default(''),
+  category: z.string().max(60).default(''),
+  capacity: z.coerce.number().int().min(1, 'La capacité minimale est de 1').max(100, 'La capacité maximale est de 100').default(1),
   price: z.coerce.number().int().min(0, 'Le prix ne peut pas être négatif'),
   duration_minutes: z.coerce.number().int().min(5, 'La durée minimale est de 5 minutes').max(480, 'La durée maximale est de 8 heures'),
   is_active: z.boolean().default(true),
