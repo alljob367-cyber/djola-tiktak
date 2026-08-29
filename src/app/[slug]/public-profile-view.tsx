@@ -120,7 +120,7 @@ const YouTubeIcon = () => (
 // Composants
 // ============================================================
 
-/** Carte de service — style marketplace organisé */
+/** Carte de service — ALIGNEMENT HORIZONTAL (photo à gauche, contenu à droite) */
 function ServiceCard({
   service, currency, slug, index, bookingLabel, theme, t,
 }: {
@@ -142,65 +142,67 @@ function ServiceCard({
       viewport={{ once: true, margin: '-30px' }}
       whileHover={{ y: -4 }}
       transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-      className="group overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-shadow duration-300 hover:shadow-lg hover:shadow-black/5"
+      className="group flex overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-shadow duration-300 hover:shadow-lg hover:shadow-black/5"
     >
-      {/* Photo */}
+      {/* Photo — à gauche */}
       <Link
         href={`/${slug}/booking?service=${service.id}`}
-        className="relative block aspect-[16/10] overflow-hidden"
+        className="relative block w-[38%] min-w-[110px] shrink-0 self-stretch overflow-hidden"
       >
         {service.image_url ? (
           <img
             src={service.image_url}
             alt={service.name}
-            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             loading={index < 3 ? 'eager' : 'lazy'}
             referrerPolicy="no-referrer"
           />
         ) : (
           <div
-            className="flex h-full w-full items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center"
             style={{ background: `linear-gradient(135deg, ${theme.heroVia}30, ${theme.heroTo}4D)` }}
           >
-            <ImageOff size={30} style={{ color: theme.primary }} className="opacity-50" />
+            <ImageOff size={26} style={{ color: theme.primary }} className="opacity-50" />
           </div>
         )}
-        {/* Prix en badge */}
-        <span
-          className="absolute bottom-2 left-2 rounded-lg px-2.5 py-1 text-sm font-bold text-white shadow-md backdrop-blur-sm"
-          style={{ backgroundColor: theme.primary }}
-        >
-          {formatCurrency(service.price, currency)}
-        </span>
         {/* Durée */}
-        <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/55 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/55 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
           <Clock className="size-3" />
           {P.minutes(service.duration_minutes)}
         </span>
       </Link>
 
-      {/* Contenu */}
-      <div className="flex flex-col gap-2 p-3.5">
-        <h3 className="line-clamp-1 font-semibold leading-tight text-foreground">{service.name}</h3>
+      {/* Contenu — à droite */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5">
+        <h3 className="line-clamp-2 font-semibold leading-snug text-foreground">{service.name}</h3>
         {service.description && (
-          <p className="line-clamp-2 min-h-[2.4rem] text-xs leading-relaxed text-muted-foreground">
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
             {service.description}
           </p>
         )}
-        <div className="flex items-center justify-between gap-2">
-          {(service.capacity ?? 1) > 1 ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-              <Users className="size-3" />
-              {P.capacity(service.capacity ?? 1)}
+        {/* Bas : prix + bouton pleine largeur (aucune coupure) */}
+        <div className="mt-auto flex flex-col gap-1.5 pt-1.5">
+          <div className="flex items-center justify-between gap-2">
+            {(service.capacity ?? 1) > 1 ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                <Users className="size-3" />
+                {P.capacity(service.capacity ?? 1)}
+              </span>
+            ) : <span />}
+            <span
+              className="truncate text-base font-extrabold leading-tight"
+              style={{ color: theme.primaryDark }}
+            >
+              {formatCurrency(service.price, currency)}
             </span>
-          ) : <span />}
+          </div>
           <Link
             href={`/${slug}/booking?service=${service.id}`}
-            className="inline-flex min-h-[38px] flex-1 items-center justify-center gap-1 rounded-lg text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98] sm:flex-none sm:px-5"
+            className="inline-flex min-h-[38px] w-full items-center justify-center gap-1 rounded-lg text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
             style={{ backgroundColor: theme.primary }}
           >
-            {bookingLabel}
-            <ChevronRight className="size-4" />
+            <span className="truncate">{bookingLabel}</span>
+            <ChevronRight className="size-4 shrink-0" />
           </Link>
         </div>
       </div>
@@ -208,13 +210,12 @@ function ServiceCard({
   );
 }
 
-/** Carte offre (code promo) */
+/** Carte offre (code promo) — ALIGNEMENT HORIZONTAL compact */
 function PromoCard({
-  promo, slug, currency, theme, index, t,
+  promo, slug, theme, index, t,
 }: {
   promo: PublicPromoData;
   slug: string;
-  currency: string;
   theme: PublicTheme;
   index: number;
   t: ReturnType<typeof useI18n>['t'];
@@ -225,7 +226,7 @@ function PromoCard({
   const discountLabel =
     promo.discount_type === 'percent'
       ? `-${promo.value} %`
-      : `-${Math.round(promo.value).toLocaleString('fr-FR')} ${currency}`;
+      : `-${Math.round(promo.value).toLocaleString('fr-FR')}`;
 
   const typeLabel =
     promo.type === 'welcome' ? P.promoWelcome
@@ -244,48 +245,56 @@ function PromoCard({
       className="overflow-hidden rounded-xl border shadow-sm"
       style={{ borderColor: `${theme.primary}33`, background: `linear-gradient(135deg, ${theme.heroVia}12, ${theme.heroTo}20)` }}
     >
-      <div className="flex h-full flex-col gap-2.5 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: theme.primary }}>
-            <Gift className="size-3.5" />
-            {typeLabel}
-          </span>
-          <span className="text-xl font-extrabold" style={{ color: theme.primaryDark }}>
+      <div className="flex items-center gap-3.5 p-3.5">
+        {/* Bloc remise (gauche) */}
+        <div
+          className="flex w-[88px] shrink-0 flex-col items-center justify-center rounded-xl py-2.5"
+          style={{ backgroundColor: `${theme.primary}17` }}
+        >
+          <span className="text-lg font-extrabold leading-none" style={{ color: theme.primaryDark }}>
             {discountLabel}
+          </span>
+          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide" style={{ color: theme.primary }}>
+            <Gift className="size-3" />
+            {typeLabel}
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(promo.code);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            } catch { /* ignore */ }
-          }}
-          className="flex w-full items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2 transition-colors hover:bg-white/70 dark:hover:bg-white/10"
-          style={{ borderColor: `${theme.primary}55` }}
-        >
-          <code className="font-mono text-sm font-bold tracking-widest text-foreground">{promo.code}</code>
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-            {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
-            {copied ? P.copied : P.copyCode}
-          </span>
-        </button>
+        {/* Code + validité (milieu) */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(promo.code);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              } catch { /* ignore */ }
+            }}
+            className="flex w-full items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2 transition-colors hover:bg-white/70 dark:hover:bg-white/10"
+            style={{ borderColor: `${theme.primary}55` }}
+          >
+            <code className="truncate font-mono text-[13px] font-bold text-foreground">{promo.code}</code>
+            <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground">
+              {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+              {copied ? P.copied : P.copyCode}
+            </span>
+          </button>
+          {promo.valid_until && (
+            <p className="truncate text-[11px] text-muted-foreground">
+              {P.validUntil(new Date(promo.valid_until).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }))}
+            </p>
+          )}
+        </div>
 
-        {promo.valid_until && (
-          <p className="text-[11px] text-muted-foreground">
-            {P.validUntil(new Date(promo.valid_until).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }))}
-          </p>
-        )}
-
+        {/* CTA (droite) */}
         <Link
           href={`/${slug}/booking?promo=${promo.code}`}
-          className="mt-auto inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
+          title={P.useOffer}
+          className="inline-flex min-h-[42px] shrink-0 items-center justify-center gap-1 rounded-lg px-3.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98] sm:px-4"
           style={{ backgroundColor: theme.primary }}
         >
-          {P.useOffer}
+          <span className="hidden md:inline">{P.useOffer}</span>
           <ChevronRight className="size-4" />
         </Link>
       </div>
@@ -349,8 +358,8 @@ export default function PublicProfileView({ profile, services, promos, initials 
       style={themeCssVars(theme)}
       dir="ltr"
     >
-      {/* ======== CARTE PRINCIPALE (style page Facebook) ======== */}
-      <div className="mx-auto max-w-5xl px-0 pb-10 pt-0 sm:px-4 sm:pt-6">
+      {/* ======== CARTE PRINCIPALE (style page Facebook — large) ======== */}
+      <div className="mx-auto max-w-7xl px-0 pb-10 pt-0 sm:px-4 sm:pt-6">
         <div className="overflow-hidden bg-card shadow-md sm:rounded-xl">
 
           {/* ── 1. PHOTO DE COUVERTURE ── */}
@@ -535,7 +544,7 @@ export default function PublicProfileView({ profile, services, promos, initials 
           </div>
 
           {/* ── 4. CONTENU : colonne Intro + fil ── */}
-          <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[320px_1fr]">
+          <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[340px_1fr]">
 
             {/* ==== Colonne gauche : carte Intro ==== */}
             <aside className="space-y-4">
@@ -667,7 +676,7 @@ export default function PublicProfileView({ profile, services, promos, initials 
                   </h2>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {promos.map((promo, i) => (
-                      <PromoCard key={promo.code} promo={promo} slug={profile.slug} currency={profile.currency} theme={theme} index={i} t={t} />
+                      <PromoCard key={promo.code} promo={promo} slug={profile.slug} theme={theme} index={i} t={t} />
                     ))}
                   </div>
                 </motion.section>
@@ -707,7 +716,7 @@ export default function PublicProfileView({ profile, services, promos, initials 
                             </span>
                           </div>
                         )}
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
                           {group.services.map((service, i) => (
                             <ServiceCard
                               key={service.id}

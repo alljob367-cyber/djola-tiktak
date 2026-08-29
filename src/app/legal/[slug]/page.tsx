@@ -11,6 +11,7 @@ import { ArrowLeft, CalendarCheck, FileText, ShieldCheck } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useI18n } from '@/i18n/provider';
 import { SiteFooter } from '@/components/landing/site-footer';
+import { COMPANY, fillLegalPlaceholders } from '@/lib/company';
 
 export const LEGAL_SLUGS = ['mentions-legales', 'cgu', 'cgv', 'confidentialite', 'cookies'] as const;
 export type LegalSlug = (typeof LEGAL_SLUGS)[number];
@@ -33,7 +34,7 @@ export default function LegalPage() {
               <CalendarCheck className="h-5 w-5 text-lime" />
             </div>
             <span className="text-lg font-bold tracking-tight text-white">
-              Djola <span className="text-lime">TikTak</span>
+              {COMPANY.name.split(' ')[0]} <span className="text-lime">{COMPANY.name.split(' ').slice(1).join(' ') || 'TikTak'}</span>
             </span>
           </Link>
           <Link
@@ -91,7 +92,7 @@ export default function LegalPage() {
                   <div className="mt-4 flex flex-col gap-3 pl-9">
                     {section.p.map((paragraph, j) => (
                       <p key={j} className="text-[14px] leading-relaxed text-gray-400">
-                        {paragraph}
+                        {fillLegalPlaceholders(paragraph)}
                       </p>
                     ))}
                   </div>

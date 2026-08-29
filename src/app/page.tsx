@@ -29,6 +29,7 @@ import { useI18n } from '@/i18n/provider';
 import { LanguageSwitcher } from '@/i18n/language-switcher';
 import { AppMockups } from '@/components/landing/phone-mockups';
 import { PacksMarquee } from '@/components/landing/packs-marquee';
+import { FaqSection } from '@/components/landing/faq-section';
 import { SiteFooter } from '@/components/landing/site-footer';
 
 /* ──────────── ANIMATIONS ──────────── */
@@ -823,6 +824,9 @@ export default function LandingPage() {
           </motion.p>
         </div>
       </section>
+
+      {/* ═══════ FAQ ═══════ */}
+      <FaqSection />
 
       {/* ═══════ BOTTOM CTA ═══════ */}
       <section id="à-propos" className="py-20">

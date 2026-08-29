@@ -247,6 +247,51 @@ export const es: Dictionary = {
       ],
     },
 
+    // ── Preguntas frecuentes ──────────────────────────────────
+    faq: {
+      badge: 'Preguntas frecuentes',
+      title: 'Todo lo que quieres saber',
+      subtitle:
+        '¿Te preguntas cómo funciona Djola TikTak? Aquí tienes las respuestas a las preguntas que más nos hacen.',
+      items: [
+        {
+          q: '¿Qué es Djola TikTak?',
+          a: 'Djola TikTak es una plataforma de cita previa pensada para los profesionales africanos. Obtienes tu propia página de reservas personalizable (tu-nombre.djola-tiktak.com), un calendario inteligente, recordatorios automáticos para tus clientes (email, WhatsApp, llamada de voz) y cobros por Mobile Money — todo en un mismo lugar.',
+        },
+        {
+          q: '¿Cómo funciona la prueba gratis?',
+          a: 'Disfrutas de 7 días de prueba completa, con acceso a todas las funciones, sin tarjeta bancaria y sin compromiso. Al final de la prueba, eliges simplemente el plan que te convenga. Si no haces nada, tu cuenta pasa a modo lectura — nunca se te cobra nada.',
+        },
+        {
+          q: '¿Qué métodos de pago aceptáis?',
+          a: 'Aceptamos Orange Money y MTN Mobile Money para los pagos locales, así como tarjetas bancarias Visa y Mastercard a través de nuestro socio Chariow para los pagos internacionales. Todos los precios se muestran en francos CFA (FCFA), sin cargos ocultos.',
+        },
+        {
+          q: '¿Mis clientes necesitan crear una cuenta para reservar?',
+          a: 'No, nunca. Tus clientes reservan directamente desde tu página pública, en unos pocos clics y sin registrarse. Eligen el servicio, la fecha y el horario, dejan sus datos de contacto y reciben automáticamente una confirmación y un recordatorio antes de la cita.',
+        },
+        {
+          q: '¿Cómo funcionan los recordatorios automáticos?',
+          a: 'En cuanto se reserva una cita, tus clientes reciben una confirmación inmediata y luego un recordatorio automático 24 horas antes. Los recordatorios se envían por email, WhatsApp e incluso mediante una llamada de voz inteligente. Resultado: hasta un 78 % menos de citas perdidas, sin que muevas un dedo.',
+        },
+        {
+          q: '¿Puedo cancelar mi suscripción en cualquier momento?',
+          a: 'Sí. Puedes cancelar con un clic desde tu área de Facturación, en cualquier momento. Tu suscripción sigue activa hasta el final del periodo ya pagado, y tus datos se conservan durante 90 días por si quieres volver. Sin compromiso ni penalización.',
+        },
+        {
+          q: '¿En qué idiomas está disponible la aplicación?',
+          a: 'Djola TikTak está disponible íntegramente en francés, inglés y español — tanto para ti como para tus clientes, que pueden cambiar el idioma de tu página de reservas con un clic. Se añaden nuevos idiomas con regularidad.',
+        },
+        {
+          q: '¿Qué oficios pueden usar Djola TikTak?',
+          a: 'Todos los oficios que trabajan con citas: peluquerías y barberías, restaurantes, clínicas y consultorios, gimnasios y entrenadores, escuelas y centros de formación, talleres de coches, tiendas, artesanos y autónomos. La plataforma se adapta a tu actividad con plantillas de servicios listas para usar.',
+        },
+      ],
+      stillQuestion: '¿Otra pregunta?',
+      stillText: 'Nuestro equipo responde en menos de 24 h, de lunes a sábado.',
+      contactCta: 'Contáctanos',
+    },
+
     // ── Footer completo v2 ─────────────────────────────────────
     footerV2: {
       followUs: 'Síguenos',
@@ -297,18 +342,18 @@ export const es: Dictionary = {
     docs: {
       'mentions-legales': {
         title: 'Aviso legal',
-        updated: '29 de agosto de 2026',
+        updated: '30 de agosto de 2026',
         sections: [
           {
             h: 'Editor del sitio',
             p: [
-              'El sitio djola-tiktak.com (y sus subdominios) es editado por Djola TikTak, sociedad en constitución en Camerún, con domicilio en Douala, Camerún.',
-              'Contacto del editor: contact@djola-tiktak.com — Teléfono: +237 6 90 00 00 00.',
+              'El sitio djola-tiktak.com (y sus subdominios) es editado por {legalName}, con domicilio en {address}.',
+              'Contacto del editor: {email} — Teléfono: {phone}.',
             ],
           },
           {
             h: 'Director de la publicación',
-            p: ['El director de la publicación es el representante legal de Djola TikTak.'],
+            p: ['El director de la publicación es el representante legal de {company}.'],
           },
           {
             h: 'Alojamiento',
@@ -334,7 +379,7 @@ export const es: Dictionary = {
       },
       cgu: {
         title: 'Condiciones de uso',
-        updated: '29 de agosto de 2026',
+        updated: '30 de agosto de 2026',
         sections: [
           {
             h: 'Objeto',
@@ -382,7 +427,7 @@ export const es: Dictionary = {
       },
       cgv: {
         title: 'Condiciones de venta',
-        updated: '29 de agosto de 2026',
+        updated: '30 de agosto de 2026',
         sections: [
           {
             h: 'Productos y precios',
@@ -422,7 +467,7 @@ export const es: Dictionary = {
             h: 'Derecho de desistimiento',
             p: [
               'Conforme a la normativa aplicable, dispones de 14 días desde la suscripción para ejercer tu derecho de desistimiento, salvo que hayas solicitado expresamente la ejecución inmediata del servicio.',
-              'Para ejercer este derecho, escríbenos a contact@djola-tiktak.com.',
+              'Para ejercer este derecho, escríbenos a {email} o llámanos al {phone}.',
             ],
           },
           {
@@ -436,7 +481,7 @@ export const es: Dictionary = {
       },
       confidentialite: {
         title: 'Política de privacidad',
-        updated: '29 de agosto de 2026',
+        updated: '30 de agosto de 2026',
         sections: [
           {
             h: 'Datos recopilados',
@@ -468,7 +513,7 @@ export const es: Dictionary = {
             h: 'Tus derechos',
             p: [
               'Tienes derecho de acceso, rectificación, oposición y supresión de tus datos, así como derecho a la portabilidad.',
-              'Para ejercer estos derechos, escribe a contact@djola-tiktak.com. Respondemos en un máximo de 30 días. También puedes acudir a la autoridad de protección de datos competente.',
+              'Para ejercer estos derechos, escribe a {email} o llama al {phone}. Respondemos en un máximo de 30 días. También puedes acudir a la autoridad de protección de datos competente.',
             ],
           },
           {
@@ -488,7 +533,7 @@ export const es: Dictionary = {
       },
       cookies: {
         title: 'Política de cookies',
-        updated: '29 de agosto de 2026',
+        updated: '30 de agosto de 2026',
         sections: [
           {
             h: '¿Qué es una cookie?',
@@ -513,7 +558,7 @@ export const es: Dictionary = {
           {
             h: 'Contacto',
             p: [
-              'Para cualquier pregunta sobre las cookies, escríbenos a contact@djola-tiktak.com.',
+              'Para cualquier pregunta sobre las cookies, escríbenos a {email} o llama al {phone}.',
             ],
           },
         ],

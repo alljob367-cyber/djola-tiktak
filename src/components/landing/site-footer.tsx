@@ -10,6 +10,7 @@ import { CalendarCheck, Facebook, Instagram, Linkedin, Mail, MapPin, Phone, Twit
 import { useI18n } from '@/i18n/provider';
 import { LanguageSwitcher } from '@/i18n/language-switcher';
 import { PaymentLogosRow } from './payment-logos';
+import { COMPANY } from '@/lib/company';
 
 export function SiteFooter() {
   const { t } = useI18n();
@@ -25,7 +26,7 @@ export function SiteFooter() {
 
   const companyLinks = [
     { label: F.company.about, href: '/#à-propos' },
-    { label: F.company.contact, href: 'mailto:contact@djola-tiktak.com' },
+    { label: F.company.contact, href: `mailto:${COMPANY.email}` },
     { label: F.company.demo, href: '/register' },
     { label: F.company.affiliates, href: '/register' },
   ];
@@ -89,19 +90,19 @@ export function SiteFooter() {
               {F.description}
             </p>
 
-            {/* Contact */}
+            {/* Contact — valeurs centralisées dans src/lib/company.ts */}
             <div className="mt-6 flex flex-col gap-2.5 text-[13px] text-gray-500">
               <span className="flex items-center gap-2.5">
                 <MapPin className="h-4 w-4 shrink-0 text-lime/70" />
-                {F.contact.address}
+                {COMPANY.address}
               </span>
-              <a href="mailto:contact@djola-tiktak.com" className="flex items-center gap-2.5 transition-colors hover:text-gray-300">
+              <a href={`mailto:${COMPANY.email}`} className="flex items-center gap-2.5 transition-colors hover:text-gray-300">
                 <Mail className="h-4 w-4 shrink-0 text-lime/70" />
-                contact@djola-tiktak.com
+                {COMPANY.email}
               </a>
-              <a href="tel:+237690000000" className="flex items-center gap-2.5 transition-colors hover:text-gray-300">
+              <a href={COMPANY.phoneHref} className="flex items-center gap-2.5 transition-colors hover:text-gray-300">
                 <Phone className="h-4 w-4 shrink-0 text-lime/70" />
-                +237 6 90 00 00 00
+                {COMPANY.phone}
               </a>
             </div>
           </div>
@@ -165,7 +166,7 @@ export function SiteFooter() {
       <div className="border-t border-white/[0.05]">
         <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-4 px-6 py-6 sm:flex-row lg:px-12">
           <p className="text-[12px] text-gray-600">
-            © {new Date().getFullYear()} Djola TikTak. {F.rights}
+            © {new Date().getFullYear()} {COMPANY.name}. {F.rights}
           </p>
           <div className="flex items-center gap-5">
             <p className="text-[12px] text-gray-600">
