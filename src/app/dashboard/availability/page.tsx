@@ -161,10 +161,12 @@ export default function AvailabilityPage() {
         if (!dayMap[a.day_of_week]) {
           dayMap[a.day_of_week] = { slots: [], is_active: a.is_active };
         }
+        // Postgres TIME renvoie "HH:mm:ss" — tronquer vers "HH:mm" pour
+        // que les champs <input type="time"> et la validation restent propres
         dayMap[a.day_of_week].slots.push({
           id: a.id,
-          start_time: a.start_time,
-          end_time: a.end_time,
+          start_time: a.start_time?.slice(0, 5),
+          end_time: a.end_time?.slice(0, 5),
         });
       }
 

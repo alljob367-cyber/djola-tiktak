@@ -4,6 +4,21 @@ import { z } from 'zod';
 // Zod validation schemas for all entities
 // ============================================================
 
+// Heure "HH:mm" tolérante :
+// - Postgres TIME renvoie "09:00:00" (avec secondes) → "09:00"
+// - Certains navigateurs/envoi renvoient "9:5" ou "9:05" → "09:05"
+// - Rejette les heures invalides ("24:00", "09:61", "")
+const timeString = z
+  .string()
+  .transform((v) => {
+    const m = v.trim().match(/^(\d{1,2}):(\d{1,2})/);
+    if (!m) return v.trim();
+    return `${m[1].padStart(2, '0')}:${m[2].padStart(2, '0')}`;
+  })
+  .refine((v) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(v), {
+    message: 'Format HH:mm requis (ex : 09:00)',
+  });
+
 export const profileSchema = z.object({
   business_name: z.string().min(1, 'Le nom est requis').max(100),
   slug: z
@@ -73,8 +88,8 @@ export const appointmentUpdateStatusSchema = z.object({
 
 export const availabilitySchema = z.object({
   day_of_week: z.coerce.number().int().min(0).max(6),
-  start_time: z.string().regex(/^\d{2}:\d{2}$/, 'Format HH:mm requis'),
-  end_time: z.string().regex(/^\d{2}:\d{2}$/, 'Format HH:mm requis'),
+  start_time: timeString,
+  end_time: timeString,
   is_active: z.boolean().default(true),
 });
 
