@@ -14,9 +14,9 @@ export class ReminderService {
   constructor() {
     this.providers = new Map();
     this.registerProvider(new EmailProvider());
-    // Register additional providers as needed:
-    // this.registerProvider(new SMSProvider());
-    // this.registerProvider(new WhatsAppProvider());
+    this.registerProvider(new SMSProvider());
+    this.registerProvider(new WhatsAppProvider());
+    // VoiceProvider réservé à une utilisation future
     // this.registerProvider(new VoiceProvider());
   }
 

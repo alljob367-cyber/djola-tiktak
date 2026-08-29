@@ -152,6 +152,61 @@ Vérifier manuellement : onglet **Actions → Rappels RDV → Run workflow**.
 2. Obtenir une clé API dans les paramètres.
 3. Ajouter `ELEVENLABS_API_KEY` dans les variables Vercel.
 
+## Étape 7bis : Configurer les rappels SMS et WhatsApp (optionnel)
+
+Les rappels SMS/WhatsApp s'activent **automatiquement** dès qu'un client
+a renseigné son téléphone — à condition d'avoir configuré un fournisseur
+dans les variables Vercel. Sans configuration, les canaux passent en mode
+"placeholder" (aucun envoi réel, aucune erreur).
+
+**Option A — Meta WhatsApp Cloud API (gratuit jusqu'à 1 000 conversations/mois)** :
+
+1. Créer un compte Meta Business : [https://business.facebook.com](https://business.facebook.com).
+2. Dans Meta for Developers → créer une app → ajouter le produit **WhatsApp**.
+3. Ajouter un numéro de téléphone émetteur (différent du numéro WhatsApp personnel).
+4. Créer un template de catégorie **UTILITY** nommé `appointment_reminder`
+   (corps : `Bonjour {{1}}, rappel de votre RDV chez {{2}} le {{3}} à {{4}} pour {{5}} ({{6}})`)
+   et le faire approuver par Meta.
+5. Ajouter dans Vercel :
+   ```
+   WHATSAPP_TOKEN=votre-jeton-permanent
+   WHATSAPP_PHONE_NUMBER_ID=id-du-numero
+   WHATSAPP_TEMPLATE_NAME=appointment_reminder
+   WHATSAPP_TEMPLATE_LANG=fr
+   ```
+
+**Option B — Twilio (SMS + WhatsApp avec un seul compte)** :
+
+1. Créer un compte sur [https://www.twilio.com](https://www.twilio.com).
+2. Acheter un numéro émetteur (ou utiliser le numéro d'essai).
+3. Pour WhatsApp : Messaging → Try it out → **WhatsApp sandbox** (test gratuit),
+   puis demander un émetteur WhatsApp approuvé pour la production.
+4. Ajouter dans Vercel :
+   ```
+   TWILIO_ACCOUNT_SID=votre-sid
+   TWILIO_AUTH_TOKEN=votre-token
+   TWILIO_PHONE_NUMBER=+1XXXXXXXXXX
+   TWILIO_WHATSAPP_FROM=+1XXXXXXXXXX
+   ```
+
+**Option C — Africa's Talking (SMS économiques pour l'Afrique)** :
+
+1. Créer un compte sur [https://africastalking.com](https://africastalking.com).
+2. Créer un Sender ID (ou utiliser le nom d'utilisateur `sandbox` pour tester).
+3. Ajouter dans Vercel :
+   ```
+   AFRICASTALKING_API_KEY=votre-cle-api
+   AFRICASTALKING_USERNAME=votre-username
+   AFRICASTALKING_SENDER_ID=votre-sender-id
+   ```
+
+Priorité de détection automatique :
+- **SMS** : Africa's Talking > Twilio
+- **WhatsApp** : Meta Cloud API > Twilio
+
+Variable optionnelle : `DEFAULT_COUNTRY_CODE` (par défaut `237`, Cameroun)
+pour la normalisation des numéros locaux au format international.
+
 ## Étape 8 : Personnaliser le domaine (optionnel)
 
 1. Dans Vercel, aller dans **Settings > Domains**.

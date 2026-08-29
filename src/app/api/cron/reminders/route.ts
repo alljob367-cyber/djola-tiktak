@@ -137,11 +137,17 @@ export async function POST(request: NextRequest) {
       if (!client || !profile || !service) continue;
 
       // Déterminer les canaux disponibles
+      // — email si le client a un email
+      // — sms / whatsapp si le client a un téléphone
+      //   (les providers passent en mode placeholder s'ils ne sont
+      //    pas configurés côté variables d'environnement — aucun
+      //    envoi réel tant que les clés API ne sont pas ajoutées)
       const channels: string[] = [];
       if (client.email) channels.push('email');
-      // SMS et WhatsApp seront activés quand ces providers seront intégrés
-      // if (client.phone) channels.push('sms');
-      // if (client.phone) channels.push('whatsapp');
+      if (client.phone) {
+        channels.push('sms');
+        channels.push('whatsapp');
+      }
 
       for (const channel of channels) {
         const key = `${apt.id}:${channel}`;
