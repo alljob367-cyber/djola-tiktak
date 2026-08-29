@@ -1,8 +1,11 @@
 -- ============================================================
 -- Djola TikTak — Migration de durcissement sécurité (RLS)
 -- ============================================================
--- Version : 1.0.0
+-- Version : 1.0.1
 -- Date    : 2026-08-29
+-- FIX    : 1.0.1 — idempotence réelle : DROP POLICY IF EXISTS ajouté
+--          avant chaque CREATE POLICY (l'erreur 42710 "already exists"
+--          survenait si les politiques no_* existaient déjà).
 --
 -- OBJET :
 --   1. Supprimer les politiques "public_read" sur profiles et services
@@ -23,7 +26,7 @@
 --        confirmation admin, paiements manuels)
 --
 -- EXÉCUTION : Copier-coller dans le SQL Editor de Supabase → Run.
--- Idempotent : peut être exécuté plusieurs fois sans erreur.
+-- Idempotent : peut être exécuté plusieurs fois sans erreur (v1.0.1).
 -- ============================================================
 
 BEGIN;
@@ -50,6 +53,9 @@ DROP POLICY IF EXISTS services_public_read ON public.services;
 DROP POLICY IF EXISTS payments_insert ON public.payments;
 DROP POLICY IF EXISTS payments_update ON public.payments;
 DROP POLICY IF EXISTS payments_delete ON public.payments;
+DROP POLICY IF EXISTS payments_no_insert ON public.payments;
+DROP POLICY IF EXISTS payments_no_update ON public.payments;
+DROP POLICY IF EXISTS payments_no_delete ON public.payments;
 
 CREATE POLICY payments_no_insert ON public.payments
   FOR INSERT WITH CHECK (false);
@@ -67,12 +73,18 @@ CREATE POLICY payments_no_delete ON public.payments
 -- business avec une date de fin en 2099.
 DROP POLICY IF EXISTS subscriptions_insert ON public.subscriptions;
 DROP POLICY IF EXISTS subscriptions_update ON public.subscriptions;
+DROP POLICY IF EXISTS subscriptions_no_insert ON public.subscriptions;
+DROP POLICY IF EXISTS subscriptions_no_update ON public.subscriptions;
+DROP POLICY IF EXISTS subscriptions_no_delete ON public.subscriptions;
 
 CREATE POLICY subscriptions_no_insert ON public.subscriptions
   FOR INSERT WITH CHECK (false);
 
 CREATE POLICY subscriptions_no_update ON public.subscriptions
   FOR UPDATE USING (false);
+
+CREATE POLICY subscriptions_no_delete ON public.subscriptions
+  FOR DELETE USING (false);
 
 -- ============================================================
 -- 5. PROFILS — verrouiller les colonnes de facturation côté client
