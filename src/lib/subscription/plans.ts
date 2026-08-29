@@ -42,12 +42,30 @@ export function getPlan(planId: PlanId): PlanCommercial | null {
   return PLANS_DATA[planId] ?? null;
 }
 
-/** Chariow product ID mapping (to be configured via env vars) */
+/** Chariow product ID mapping (to be configured via env vars).
+ *  Mensuel : CHARIOW_PRODUCT_<PLAN> — Annuel : CHARIOW_PRODUCT_<PLAN>_YEARLY */
 export const CHARIOW_PRODUCT_IDS: Record<PlanId, string> = {
   starter: process.env.CHARIOW_PRODUCT_STARTER || 'starter_product_id',
   pro: process.env.CHARIOW_PRODUCT_PRO || 'pro_product_id',
   business: process.env.CHARIOW_PRODUCT_BUSINESS || 'business_product_id',
 };
+
+export const CHARIOW_PRODUCT_IDS_YEARLY: Record<PlanId, string> = {
+  starter: process.env.CHARIOW_PRODUCT_STARTER_YEARLY || '',
+  pro: process.env.CHARIOW_PRODUCT_PRO_YEARLY || '',
+  business: process.env.CHARIOW_PRODUCT_BUSINESS_YEARLY || '',
+};
+
+/** Resolve the Chariow product ID for a plan × billing period (null = non configuré). */
+export function getChariowProductId(planId: PlanId, period: 'monthly' | 'yearly'): string | null {
+  const id = period === 'yearly'
+    ? CHARIOW_PRODUCT_IDS_YEARLY[planId]
+    : CHARIOW_PRODUCT_IDS[planId];
+  if (!id || id.startsWith('starter_product_id') || id.startsWith('pro_product_id') || id.startsWith('business_product_id')) {
+    return null;
+  }
+  return id;
+}
 
 /** Ordered plan IDs from lowest to highest tier */
 export const PLAN_ORDER: PlanId[] = ['starter', 'pro', 'business'];

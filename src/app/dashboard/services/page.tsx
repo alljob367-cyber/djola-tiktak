@@ -61,6 +61,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/availability/engine';
 import type { Service } from '@/types/database';
+import { useI18n } from '@/i18n/provider';
 
 // ── Types ──────────────────────────────────────────────────────
 interface ServiceFormData {
@@ -98,6 +99,8 @@ const cardVariants = {
 
 // ── Component ──────────────────────────────────────────────────
 export default function ServicesPage() {
+  const { t } = useI18n();
+  const S = t.dashboard.services;
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -128,7 +131,7 @@ export default function ServicesPage() {
       const json = await res.json();
       setServices(json.data ?? []);
     } catch {
-      toast.error('Impossible de charger les services');
+      toast.error(S.loadError);
     } finally {
       setLoading(false);
     }
@@ -188,7 +191,7 @@ export default function ServicesPage() {
 
   const handleImportTemplates = async () => {
     if (selectedTemplates.length === 0) {
-      toast.error('Sélectionnez au moins un modèle');
+      toast.error(S.selectOne);
       return;
     }
     setImporting(true);
@@ -201,7 +204,7 @@ export default function ServicesPage() {
       const json = await res.json();
       if (!res.ok) {
         if (json.code === 'PLAN_LIMIT_REACHED' || json.code === 'SUBSCRIPTION_REQUIRED') {
-          toast.error(json.error, { action: { label: 'Voir les plans', onClick: () => window.location.href = json.upgradeUrl || '/dashboard/billing' } });
+          toast.error(json.error, { action: { label: S.seePlans, onClick: () => window.location.href = json.upgradeUrl || '/dashboard/billing' } });
           return;
         }
         throw new Error(json.error || 'Erreur serveur');
@@ -209,15 +212,13 @@ export default function ServicesPage() {
       const imported = json.data?.length ?? 0;
       const skipped = json.skipped ?? 0;
       const skippedByLimit = json.skippedByLimit ?? 0;
-      let msg = `${imported} modèle${imported > 1 ? 's' : ''} importé${imported > 1 ? 's' : ''}`;
-      if (skipped > 0) msg += ` · ${skipped} déjà existant${skipped > 1 ? 's' : ''}`;
-      if (skippedByLimit > 0) msg += ` · ${skippedByLimit} ignoré${skippedByLimit > 1 ? 's' : ''} (limite du plan)`;
+      let msg = `${imported} · ${skipped} · ${skippedByLimit}`;
       toast.success(msg);
       setTemplatesOpen(false);
       setSelectedTemplates([]);
       fetchServices();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de l\'import');
+      toast.error(err instanceof Error ? err.message : S.importError);
     } finally {
       setImporting(false);
     }
@@ -226,7 +227,7 @@ export default function ServicesPage() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error('Image trop volumineuse (max 5 Mo)'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error(S.imageTooLarge); return; }
     setUploadingImage(true);
     try {
       const formData = new FormData();
@@ -236,9 +237,9 @@ export default function ServicesPage() {
       if (!res.ok) throw new Error('Erreur upload');
       const { url } = await res.json();
       setForm((f) => ({ ...f, image_url: url }));
-      toast.success('Image ajoutée');
+      toast.success(S.imageAdded);
     } catch {
-      toast.error('Erreur lors de l\'upload de l\'image');
+      toast.error(S.imageError);
     } finally {
       setUploadingImage(false);
       if (imageInputRef.current) imageInputRef.current.value = '';
@@ -248,17 +249,17 @@ export default function ServicesPage() {
   // ── Submit (create / update) ────────────────────────────
   const handleSubmit = async () => {
     if (!form.name.trim()) {
-      toast.error('Le nom du service est requis');
+      toast.error(S.nameRequired);
       return;
     }
     const price = Number(form.price);
     if (isNaN(price) || price < 0) {
-      toast.error('Le prix doit être un nombre positif');
+      toast.error(S.priceInvalid);
       return;
     }
     const duration = Number(form.duration_minutes);
     if (isNaN(duration) || duration < 5) {
-      toast.error('La durée minimale est de 5 minutes');
+      toast.error(S.durationMin);
       return;
     }
 
@@ -287,18 +288,18 @@ export default function ServicesPage() {
       if (!res.ok) {
         const err = await res.json();
         if (err.code === 'PLAN_LIMIT_REACHED' || err.code === 'SUBSCRIPTION_REQUIRED') {
-          toast.error(err.error, { action: { label: 'Voir les plans', onClick: () => window.location.href = err.upgradeUrl || '/dashboard/billing' } });
+          toast.error(err.error, { action: { label: S.seePlans, onClick: () => window.location.href = err.upgradeUrl || '/dashboard/billing' } });
           setDialogOpen(false);
           return;
         }
         throw new Error(err.error || 'Erreur serveur');
       }
 
-      toast.success(editingId ? 'Service mis à jour' : 'Service créé');
+      toast.success(editingId ? S.updated : S.created);
       setDialogOpen(false);
       fetchServices();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement');
+      toast.error(err instanceof Error ? err.message : S.saveError);
     } finally {
       setSubmitting(false);
     }
@@ -317,10 +318,10 @@ export default function ServicesPage() {
         }
         throw new Error(err.error || 'Erreur serveur');
       }
-      toast.success('Service supprimé');
+      toast.success(S.deleted);
       fetchServices();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+      toast.error(err instanceof Error ? err.message : S.deleteError);
     } finally {
       setDeleting(false);
     }
@@ -332,9 +333,9 @@ export default function ServicesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Services</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{S.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gérez votre catalogue de {businessConfig.serviceNoun}s
+            {S.subtitle(businessConfig.serviceNoun)}
             {servicesLimit && !servicesLimit.unlimited && (
               <span className="ml-2">
                 ({servicesLimit.current}/{servicesLimit.limit === -1 ? '∞' : servicesLimit.limit})
@@ -349,11 +350,11 @@ export default function ServicesPage() {
             className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
           >
             <Wand2 size={16} className="mr-2" />
-            Importer des modèles
+            {S.importTemplates}
           </Button>
           <Button onClick={openCreate} disabled={servicesLimitReached} className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50">
             <Plus size={16} className="mr-2" />
-            Ajouter
+            {S.add}
           </Button>
         </div>
       </div>
@@ -366,11 +367,11 @@ export default function ServicesPage() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">{businessConfig.label}</p>
           <p className="text-xs text-muted-foreground">
-            {businessConfig.description} · Bouton public : « {businessConfig.bookingLabel} »
+            {businessConfig.description} · {S.publicButton} : « {businessConfig.bookingLabel} »
           </p>
         </div>
         <a href="/dashboard/profile" className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400 shrink-0">
-          Changer de type
+          {S.changeType}
         </a>
       </div>
 
@@ -386,7 +387,7 @@ export default function ServicesPage() {
                 : 'border-border bg-background text-muted-foreground hover:border-emerald-300'
             }`}
           >
-            Tous ({services.length})
+            {S.all} ({services.length})
           </button>
           {existingCategories.map((c) => {
             const count = services.filter((s) => (s.category || '') === c).length;
@@ -423,9 +424,9 @@ export default function ServicesPage() {
             <div className="rounded-full bg-emerald-50 p-4 mb-4 dark:bg-emerald-950/30">
               <PackageOpen size={32} className="text-emerald-500" />
             </div>
-            <h3 className="font-semibold text-lg">Aucun service</h3>
+            <h3 className="font-semibold text-lg">{S.emptyTitle}</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              Commencez par ajouter votre premier service pour permettre à vos clients de prendre rendez-vous.
+              {S.emptyDesc}
             </p>
             <Button
               onClick={openCreate}
@@ -433,7 +434,7 @@ export default function ServicesPage() {
               className="mt-4 border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
             >
               <Plus size={16} className="mr-2" />
-              Ajouter un service
+              {S.addFirst}
             </Button>
           </CardContent>
         </Card>
@@ -442,7 +443,7 @@ export default function ServicesPage() {
           {filteredServices.length === 0 && categoryFilter !== 'all' ? (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-                <p className="text-sm text-muted-foreground">Aucun service dans la catégorie « {categoryFilter} »</p>
+                <p className="text-sm text-muted-foreground">{S.emptyCategory(categoryFilter)}</p>
               </CardContent>
             </Card>
           ) : (
@@ -454,11 +455,11 @@ export default function ServicesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Service</TableHead>
-                      <TableHead>Prix</TableHead>
-                      <TableHead>Durée</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>{S.tableService}</TableHead>
+                      <TableHead>{S.tablePrice}</TableHead>
+                      <TableHead>{S.tableDuration}</TableHead>
+                      <TableHead>{S.tableStatus}</TableHead>
+                      <TableHead className="text-right">{S.tableActions}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -519,7 +520,7 @@ export default function ServicesPage() {
                                   : ''
                               }
                             >
-                              {s.is_active ? 'Actif' : 'Inactif'}
+                              {s.is_active ? S.active : S.inactive}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
@@ -544,20 +545,20 @@ export default function ServicesPage() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Supprimer ce service ?</AlertDialogTitle>
+                                    <AlertDialogTitle>{S.deleteTitle}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Cette action est irréversible. Le service «&nbsp;{s.name}&nbsp;» sera définitivement supprimé.
+                                      {S.deleteDesc.replace('Le service', `Le service « ${s.name} »`).replace('The service', `The service "${s.name}"`).replace('El servicio', `El servicio « ${s.name} »`)}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() => handleDelete(s.id)}
                                       disabled={deleting}
                                       className="bg-red-600 hover:bg-red-700 text-white"
                                     >
                                       {deleting && <Loader2 size={14} className="mr-2 animate-spin" />}
-                                      Supprimer
+                                      {t.common.delete}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -608,7 +609,7 @@ export default function ServicesPage() {
                                     : 'shrink-0'
                                 }
                               >
-                                {s.is_active ? 'Actif' : 'Inactif'}
+                                {s.is_active ? S.active : S.inactive}
                               </Badge>
                             </div>
                             {s.description && (
@@ -654,20 +655,20 @@ export default function ServicesPage() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Supprimer ce service ?</AlertDialogTitle>
+                                <AlertDialogTitle>{S.deleteTitle}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Cette action est irréversible. Le service «&nbsp;{s.name}&nbsp;» sera définitivement supprimé.
+                                  {S.deleteDesc.replace('Le service', `Le service « ${s.name} »`).replace('The service', `The service "${s.name}"`).replace('El servicio', `El servicio « ${s.name} »`)}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => handleDelete(s.id)}
                                   disabled={deleting}
                                   className="bg-red-600 hover:bg-red-700 text-white"
                                 >
                                   {deleting && <Loader2 size={14} className="mr-2 animate-spin" />}
-                                  Supprimer
+                                  {t.common.delete}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -690,12 +691,12 @@ export default function ServicesPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? 'Modifier le service' : 'Nouveau service'}
+              {editingId ? S.editTitle : S.createTitle}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="svc-name">Nom du service *</Label>
+              <Label htmlFor="svc-name">{S.nameLabel}</Label>
               <Input
                 id="svc-name"
                 placeholder={`Ex : ${businessConfig.templates[0]?.name ?? 'Consultation de 30 min'}`}
@@ -706,8 +707,8 @@ export default function ServicesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="svc-category">
-                  Catégorie
-                  <span className="ml-1 text-muted-foreground font-normal">(optionnel)</span>
+                  {S.categoryLabel}
+                  <span className="ml-1 text-muted-foreground font-normal">({S.optional})</span>
                 </Label>
                 <Input
                   id="svc-category"
@@ -721,12 +722,12 @@ export default function ServicesPage() {
                     <option key={c} value={c} />
                   ))}
                 </datalist>
-                <p className="text-[11px] text-muted-foreground">Regroupe les services dans votre catalogue public</p>
+                <p className="text-[11px] text-muted-foreground">{S.categoryHint}</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="svc-capacity">
-                  Places par créneau
-                  <span className="ml-1 text-muted-foreground font-normal">(table/groupe)</span>
+                  {S.capacityLabel}
+                  <span className="ml-1 text-muted-foreground font-normal">({S.capacityHint})</span>
                 </Label>
                 <Input
                   id="svc-capacity"
@@ -736,11 +737,11 @@ export default function ServicesPage() {
                   value={form.capacity}
                   onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
                 />
-                <p className="text-[11px] text-muted-foreground">1 = service individuel</p>
+                <p className="text-[11px] text-muted-foreground">{S.capacityHint2}</p>
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Image du service</Label>
+              <Label>{S.imageLabel}</Label>
               <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageUpload} />
               {form.image_url ? (
                 <div className="relative h-32 w-full rounded-lg overflow-hidden border bg-muted">
@@ -753,15 +754,15 @@ export default function ServicesPage() {
                 <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploadingImage}
                   className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-colors">
                   {uploadingImage ? <Loader2 size={20} className="animate-spin text-muted-foreground" /> : <Camera size={20} className="text-muted-foreground" />}
-                  <span className="text-xs text-muted-foreground">{uploadingImage ? 'Envoi en cours...' : 'Ajouter une photo'}</span>
+                  <span className="text-xs text-muted-foreground">{uploadingImage ? S.uploading : S.addPhoto}</span>
                 </button>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="svc-desc">Description</Label>
+              <Label htmlFor="svc-desc">{S.descLabel}</Label>
               <Textarea
                 id="svc-desc"
-                placeholder="Description courte du service..."
+                placeholder={S.descPlaceholder}
                 rows={2}
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -769,7 +770,7 @@ export default function ServicesPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="svc-price">Prix *</Label>
+                <Label htmlFor="svc-price">{S.priceLabel}</Label>
                 <Input
                   id="svc-price"
                   type="number"
@@ -780,7 +781,7 @@ export default function ServicesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="svc-dur">Durée (min) *</Label>
+                <Label htmlFor="svc-dur">{S.durationLabel}</Label>
                 <Input
                   id="svc-dur"
                   type="number"
@@ -794,9 +795,9 @@ export default function ServicesPage() {
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
-                <p className="text-sm font-medium">Service actif</p>
+                <p className="text-sm font-medium">{S.activeLabel}</p>
                 <p className="text-xs text-muted-foreground">
-                  Visible pour les clients
+                  {S.activeHint}
                 </p>
               </div>
               <Switch
@@ -811,7 +812,7 @@ export default function ServicesPage() {
               onClick={() => setDialogOpen(false)}
               disabled={submitting}
             >
-              Annuler
+              {t.common.cancel}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -819,7 +820,7 @@ export default function ServicesPage() {
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {submitting && <Loader2 size={14} className="mr-2 animate-spin" />}
-              {editingId ? 'Enregistrer' : 'Créer'}
+              {editingId ? S.save : S.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -831,12 +832,12 @@ export default function ServicesPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wand2 size={18} className="text-emerald-600" />
-              Modèles — {businessConfig.label}
+              {S.templatesTitle} — {businessConfig.label}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <p className="text-sm text-muted-foreground">
-              Cochez les {businessConfig.serviceNoun}s à ajouter à votre catalogue. Vous pourrez modifier prix et durées ensuite.
+              {S.templatesDesc(businessConfig.serviceNoun)}
             </p>
             <div className="flex items-center justify-between">
               <button
@@ -844,14 +845,14 @@ export default function ServicesPage() {
                 onClick={() => setSelectedTemplates(businessConfig.templates.map((_, i) => i))}
                 className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400"
               >
-                Tout sélectionner ({businessConfig.templates.length})
+                {S.selectAll} ({businessConfig.templates.length})
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedTemplates([])}
                 className="text-xs font-medium text-muted-foreground hover:underline"
               >
-                Tout désélectionner
+                {S.deselectAll}
               </button>
             </div>
             <div className="max-h-[45vh] overflow-y-auto space-y-1.5 pr-1">
@@ -903,7 +904,7 @@ export default function ServicesPage() {
               onClick={() => setTemplatesOpen(false)}
               disabled={importing}
             >
-              Annuler
+              {t.common.cancel}
             </Button>
             <Button
               onClick={handleImportTemplates}
@@ -911,7 +912,7 @@ export default function ServicesPage() {
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {importing && <Loader2 size={14} className="mr-2 animate-spin" />}
-              Importer {selectedTemplates.length > 0 && `(${selectedTemplates.length})`}
+              {S.importAction} {selectedTemplates.length > 0 && `(${selectedTemplates.length})`}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n/provider';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -65,18 +66,16 @@ const PLANS = [
   { id: 'business',name: 'Business', monthly: 25000, yearly: 250000 },
 ] as const;
 
-// ── Steps ─────────────────────────────────────────────────────
+// ── Steps (labels via i18n) ───────────────────────────────
 
-const STEPS = [
-  { num: 1, label: 'Choisir le plan' },
-  { num: 2, label: 'Choisir Mobile Money' },
-  { num: 3, label: 'Effectuer le transfert' },
-  { num: 4, label: 'Confirmer' },
-];
+const STEP_NUMS = [1, 2, 3, 4];
 
 // ── Component ─────────────────────────────────────────────────
 
 function ManualPaymentContent() {
+  const { t, intl } = useI18n();
+  const M = t.dashboard.manualPay;
+  const STEPS = STEP_NUMS.map((n) => ({ num: n, label: M.steps[n - 1] }));
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -101,7 +100,7 @@ function ManualPaymentContent() {
       const data: PaymentInfo = await res.json();
       setPaymentInfo(data);
     } catch {
-      toast.error('Impossible de charger les informations de paiement. Réessayez.');
+      toast.error(M.loadError);
     } finally {
       setLoadingInfo(false);
     }
@@ -140,7 +139,7 @@ function ManualPaymentContent() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erreur lors de la demande.');
+      if (!res.ok) throw new Error(data.error || M.requestError);
 
       setResult(data);
       setStep(4);
@@ -156,16 +155,16 @@ function ManualPaymentContent() {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedField(field);
-      toast.success('Copié !');
+      toast.success(M.copied);
       setTimeout(() => setCopiedField(null), 2000);
     } catch {
-      toast.error('Échec de la copie');
+      toast.error(M.copyFail);
     }
   };
 
   const plan = PLANS.find((p) => p.id === selectedPlan);
   const amount = plan ? (billingPeriod === 'yearly' ? plan.yearly : plan.monthly) : 0;
-  const formattedAmount = amount.toLocaleString('fr-FR');
+  const formattedAmount = amount.toLocaleString(intl);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-12">
@@ -178,13 +177,13 @@ function ManualPaymentContent() {
           onClick={() => router.push('/dashboard/billing')}
         >
           <ArrowLeft size={16} className="mr-1.5" />
-          Retour
+          {M.back}
         </Button>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Paiement par Mobile Money
+          {M.title}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Payez via Orange Money ou MTN Mobile Money
+          {M.subtitle}
         </p>
       </div>
 
@@ -226,8 +225,8 @@ function ManualPaymentContent() {
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Choisissez votre plan</CardTitle>
-            <CardDescription>Sélectionnez la formule qui vous convient</CardDescription>
+            <CardTitle className="text-lg">{M.step1Title}</CardTitle>
+            <CardDescription>{M.step1Desc}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {PLANS.map((p) => (
@@ -245,7 +244,7 @@ function ManualPaymentContent() {
                   <div>
                     <h3 className="font-bold text-foreground">{p.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {p.monthly.toLocaleString('fr-FR')} FCFA / mois
+                      {M.perMonth(p.monthly.toLocaleString(intl))}
                     </p>
                   </div>
                   {selectedPlan === p.id && (
@@ -266,7 +265,7 @@ function ManualPaymentContent() {
                     : 'bg-muted text-muted-foreground hover:bg-muted/80',
                 )}
               >
-                Mensuel
+                {M.monthly}
               </button>
               <button
                 onClick={() => setBillingPeriod('yearly')}
@@ -277,7 +276,7 @@ function ManualPaymentContent() {
                     : 'bg-muted text-muted-foreground hover:bg-muted/80',
                 )}
               >
-                Annuel
+                {M.yearly}
                 <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 text-xs">
                   -17%
                 </Badge>
@@ -288,7 +287,7 @@ function ManualPaymentContent() {
               className="w-full mt-2"
               onClick={() => setStep(2)}
             >
-              Continuer
+              {M.continue}
             </Button>
           </CardContent>
         </Card>
@@ -298,8 +297,8 @@ function ManualPaymentContent() {
       {step === 2 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Choisissez votre opérateur Mobile Money</CardTitle>
-            <CardDescription>Montant : {formattedAmount} FCFA ({plan?.name} — {billingPeriod === 'yearly' ? 'Annuel' : 'Mensuel'})</CardDescription>
+            <CardTitle className="text-lg">{M.step2Title}</CardTitle>
+            <CardDescription>{M.amountLine(formattedAmount, plan?.name ?? '', billingPeriod === 'yearly' ? M.yearly : M.monthly)}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {/* Orange Money */}
@@ -317,7 +316,7 @@ function ManualPaymentContent() {
                 <div>
                   <h3 className="font-bold text-foreground">Orange Money</h3>
                   <p className="text-sm text-muted-foreground">
-                    Transférez via Orange Money
+                    {M.omTransfer}
                   </p>
                 </div>
               </div>
@@ -338,7 +337,7 @@ function ManualPaymentContent() {
                 <div>
                   <h3 className="font-bold text-foreground">MTN Mobile Money</h3>
                   <p className="text-sm text-muted-foreground">
-                    Transférez via MTN MoMo
+                    {M.mtnTransfer}
                   </p>
                 </div>
               </div>
@@ -350,7 +349,7 @@ function ManualPaymentContent() {
               onClick={() => setStep(1)}
             >
               <ArrowLeft size={14} className="mr-1.5" />
-              Retour
+              {M.back}
             </Button>
           </CardContent>
         </Card>
@@ -362,10 +361,10 @@ function ManualPaymentContent() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Banknote size={20} className="text-emerald-600" />
-              Effectuez le transfert
+              {M.step3Title}
             </CardTitle>
             <CardDescription>
-              Transférez <span className="font-bold text-foreground">{formattedAmount} FCFA</span> au numéro ci-dessous
+              {M.step3Desc.replace('le montant', `${formattedAmount} FCFA`)}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -393,12 +392,12 @@ function ManualPaymentContent() {
                             </p>
                           ) : (
                             <p className="text-lg font-bold text-red-500 mt-1">
-                              Numéro non configuré
+                              {M.notConfigured}
                             </p>
                           );
                         })()}
                         <p className="text-sm text-muted-foreground mt-1">
-                          Nom du bénéficiaire : <span className="font-medium text-foreground">{paymentInfo.payee_name}</span>
+                          {M.payeeName} <span className="font-medium text-foreground">{paymentInfo.payee_name}</span>
                         </p>
                       </div>
                       {(() => {
@@ -420,7 +419,7 @@ function ManualPaymentContent() {
 
                     <div className="flex items-center gap-2 text-sm">
                       <CircleDot size={14} className="text-emerald-500" />
-                      <span className="font-medium text-foreground">Montant exact : {formattedAmount} FCFA</span>
+                      <span className="font-medium text-foreground">{M.exactAmount(formattedAmount)}</span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -428,7 +427,7 @@ function ManualPaymentContent() {
                         onClick={() => copyToClipboard(String(amount), 'amount')}
                       >
                         {copiedField === 'amount' ? <CheckCircle size={12} className="text-emerald-500" /> : <Copy size={12} className="mr-1" />}
-                        Copier
+                        {M.copy}
                       </Button>
                     </div>
                   </div>
@@ -436,16 +435,9 @@ function ManualPaymentContent() {
 
                 {/* Steps to follow */}
                 <div className="space-y-3">
-                  <h4 className="font-semibold text-foreground text-sm">Comment procéder :</h4>
+                  <h4 className="font-semibold text-foreground text-sm">{M.howTo}</h4>
                   <ol className="space-y-2">
-                    {[
-                      `Ouvrez votre application ${paymentMethod === 'orange_money' ? 'Orange Money' : 'MTN MoMo'}`,
-                      'Sélectionnez « Transfert d\'argent » ou « Send Money »',
-                      'Entrez le numéro du bénéficiaire ci-dessus',
-                      `Entrez le montant exact : ${formattedAmount} FCFA`,
-                      'Confirmez avec votre code secret',
-                      'Cliquez sur « J\'ai effectué le transfert » ci-dessous',
-                    ].map((text, i) => (
+                    {M.howToSteps(paymentMethod === 'orange_money' ? 'Orange Money' : 'MTN MoMo', formattedAmount).map((text, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
                         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
                           {i + 1}
@@ -462,16 +454,16 @@ function ManualPaymentContent() {
                     <MessageCircle size={18} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                     <div className="text-sm">
                       <p className="font-medium text-blue-800 dark:text-blue-300">
-                        Envoyez la capture d'écran de confirmation
+                        {M.sendScreenshot}
                       </p>
                       <p className="text-blue-700/80 dark:text-blue-400 mt-1">
                         {paymentInfo.support_phone ? (
                           <>
-                            WhatsApp : <span className="font-mono font-bold">{paymentInfo.support_phone}</span>
+                            {M.whatsapp} : <span className="font-mono font-bold">{paymentInfo.support_phone}</span>
                             {' — '}
                           </>
                         ) : null}
-                        Email : <span className="font-mono font-bold">{paymentInfo.support_email}</span>
+                        {M.email} : <span className="font-mono font-bold">{paymentInfo.support_email}</span>
                       </p>
                     </div>
                   </div>
@@ -480,14 +472,14 @@ function ManualPaymentContent() {
             ) : (
               <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-950/30">
                 <p className="text-sm text-red-700 dark:text-red-400">
-                  Impossible de charger les informations de paiement.
+                  {M.loadError}
                 </p>
                 <Button
                   variant="outline"
                   className="mt-3"
                   onClick={fetchPaymentInfo}
                 >
-                  Réessayer
+                  {M.retry}
                 </Button>
               </div>
             )}
@@ -496,7 +488,7 @@ function ManualPaymentContent() {
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
                 <ArrowLeft size={14} className="mr-1.5" />
-                Retour
+                {M.back}
               </Button>
               <Button
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700"
@@ -504,7 +496,7 @@ function ManualPaymentContent() {
                 disabled={loading || !paymentInfo?.[paymentMethod]}
               >
                 {loading && <Loader2 size={16} className="mr-1.5 animate-spin" />}
-                J'ai effectué le transfert
+                {M.transferDone}
               </Button>
             </div>
           </CardContent>
@@ -521,29 +513,29 @@ function ManualPaymentContent() {
 
             <div>
               <h2 className="text-xl font-bold text-foreground">
-                Demande de paiement enregistrée !
+                {M.successTitle}
               </h2>
               <p className="text-muted-foreground mt-2">
-                Votre demande a été enregistrée avec succès.
+                {M.successDesc}
               </p>
             </div>
 
             {/* Summary */}
             <div className="rounded-xl border bg-muted/30 p-4 text-left space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Plan</span>
+                <span className="text-muted-foreground">{M.plan}</span>
                 <span className="font-medium">{result.planName}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Montant</span>
-                <span className="font-bold">{result.amount.toLocaleString('fr-FR')} FCFA</span>
+                <span className="text-muted-foreground">{M.amount}</span>
+                <span className="font-bold">{result.amount.toLocaleString(intl)} FCFA</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Période</span>
-                <span className="font-medium">{result.billingPeriod === 'yearly' ? 'Annuel' : 'Mensuel'}</span>
+                <span className="text-muted-foreground">{M.period}</span>
+                <span className="font-medium">{result.billingPeriod === 'yearly' ? M.yearly : M.monthly}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Référence</span>
+                <span className="text-muted-foreground">{M.reference}</span>
                 <span className="font-mono text-xs">{result.paymentId.slice(0, 8)}...</span>
               </div>
             </div>
@@ -553,27 +545,27 @@ function ManualPaymentContent() {
               <div className="flex items-center gap-2 mb-3">
                 <Clock size={16} className="text-amber-600 dark:text-amber-400" />
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                  Prochaines étapes
+                  {M.nextSteps}
                 </p>
               </div>
               <ol className="space-y-2 text-sm text-amber-700 dark:text-amber-400">
                 <li className="flex items-start gap-2">
                   <Shield size={14} className="shrink-0 mt-0.5" />
-                  <span>Envoyez la capture d'écran de votre transfert par WhatsApp ou email</span>
+                  <span>{M.nextStep1}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Shield size={14} className="shrink-0 mt-0.5" />
-                  <span>Notre équipe vérifie et valide votre paiement (sous 30 min)</span>
+                  <span>{M.nextStep2}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Shield size={14} className="shrink-0 mt-0.5" />
-                  <span>Votre abonnement est activé automatiquement après validation</span>
+                  <span>{M.nextStep3}</span>
                 </li>
               </ol>
               {/* Support contact in confirmation */}
               <div className="mt-4 pt-3 border-t border-amber-200 dark:border-amber-700">
                 <p className="text-xs text-amber-700 dark:text-amber-400">
-                  Contact :{' '}
+                  {M.contact}{' '}
                   {result.support_phone && <span className="font-mono font-bold">WhatsApp {result.support_phone}</span>}
                   {result.support_phone && ' — '}
                   <span className="font-mono font-bold">{result.support_email || 'support@djola-tiktak.com'}</span>
@@ -585,7 +577,7 @@ function ManualPaymentContent() {
               className="w-full"
               onClick={() => router.push('/dashboard/billing')}
             >
-              Retour au tableau de bord
+              {M.backToDashboard}
             </Button>
           </CardContent>
         </Card>

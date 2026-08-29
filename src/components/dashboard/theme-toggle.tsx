@@ -10,21 +10,25 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n/provider';
 
-const themes = [
-  { name: 'default', label: 'Clair', icon: Sun, color: 'bg-white border border-gray-200' },
-  { name: 'dark', label: 'Sombre', icon: Moon, color: 'bg-gray-900' },
-  { name: 'emerald', label: 'Emeraude', icon: Palette, color: 'bg-emerald-100' },
-  { name: 'ocean', label: 'Océan', icon: Palette, color: 'bg-blue-100' },
-  { name: 'sunset', label: 'Coucher de soleil', icon: Palette, color: 'bg-orange-100' },
-  { name: 'rose', label: 'Rose', icon: Palette, color: 'bg-pink-100' },
-  { name: 'midnight', label: 'Minuit', icon: Moon, color: 'bg-indigo-900' },
+const THEME_DEFS = [
+  { name: 'default', icon: Sun, color: 'bg-white border border-gray-200' },
+  { name: 'dark', icon: Moon, color: 'bg-gray-900' },
+  { name: 'emerald', icon: Palette, color: 'bg-emerald-100' },
+  { name: 'ocean', icon: Palette, color: 'bg-blue-100' },
+  { name: 'sunset', icon: Palette, color: 'bg-orange-100' },
+  { name: 'rose', icon: Palette, color: 'bg-pink-100' },
+  { name: 'midnight', icon: Moon, color: 'bg-indigo-900' },
 ] as const;
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  const { t } = useI18n();
+  const themes = THEME_DEFS.map((d) => ({ ...d, label: t.dashboard.themes[d.name === 'default' ? 'light' : (d.name as 'dark' | 'emerald' | 'ocean' | 'sunset' | 'rose' | 'midnight')] }));
   const [mounted, setMounted] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- détection de montage standard
   useEffect(() => setMounted(true), []);
 
   if (!mounted) {

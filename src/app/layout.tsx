@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
+import { LanguageProvider } from '@/i18n/provider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -75,9 +76,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster richColors position="top-right" />
-          <PWAInstallPrompt />
+          <LanguageProvider>
+            {children}
+            <Toaster richColors position="top-right" />
+            <PWAInstallPrompt />
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

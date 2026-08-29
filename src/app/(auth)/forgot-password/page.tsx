@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Loader2, Mail, CalendarCheck, ArrowLeft, MailCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/i18n/provider';
+import { LanguageSwitcher } from '@/i18n/language-switcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +21,7 @@ import {
 } from '@/components/ui/card';
 
 export default function ForgotPasswordPage() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -26,11 +29,11 @@ export default function ForgotPasswordPage() {
 
   const validateForm = () => {
     if (!email.trim()) {
-      setError("L'e-mail est requis");
+      setError(t.auth.login.emailRequired);
       return false;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Format d'e-mail invalide");
+      setError(t.auth.login.emailInvalid);
       return false;
     }
     setError(undefined);
@@ -50,26 +53,26 @@ export default function ForgotPasswordPage() {
       });
 
       if (resetError) {
-        toast.error('Erreur lors de l\'envoi', {
+        toast.error(t.auth.forgot.sendError, {
           description: resetError.message,
         });
         return;
       }
 
       setIsSuccess(true);
-      toast.success('E-mail envoyé !', {
-        description: 'Consultez votre boîte de réception pour réinitialiser votre mot de passe.',
+      toast.success(t.auth.forgot.successToast, {
+        description: t.auth.forgot.successToastDesc,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue';
       if (message.includes('n\'est pas configuré')) {
-        toast.error('Service non configuré', {
-          description: 'Supabase n\'est pas encore configuré. Suivez le guide DEPLOYMENT.md pour configurer votre projet.',
+        toast.error(t.auth.common.serviceNotConfigured, {
+          description: t.auth.common.serviceNotConfiguredDesc,
           duration: 8000,
         });
       } else {
-        toast.error('Erreur de connexion', {
-          description: 'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
+        toast.error(t.auth.common.connectionError, {
+          description: t.auth.common.connectionErrorDesc,
         });
       }
     } finally {
@@ -78,6 +81,8 @@ export default function ForgotPasswordPage() {
   };
 
   return (
+    <>
+    <div className="fixed right-4 top-4 z-50"><LanguageSwitcher compact /></div>
     <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-stone-50 via-white to-emerald-50/40">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -99,7 +104,7 @@ export default function ForgotPasswordPage() {
             Djola TikTak
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gérez vos réservations en toute simplicité
+            {t.auth.common.tagline}
           </p>
         </motion.div>
 
@@ -114,10 +119,10 @@ export default function ForgotPasswordPage() {
               >
                 <CardHeader className="space-y-1 pb-4">
                   <CardTitle className="text-xl font-semibold text-center">
-                    Mot de passe oublié ?
+                    {t.auth.forgot.title}
                   </CardTitle>
                   <CardDescription className="text-center text-sm">
-                    Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+                    {t.auth.forgot.subtitle}
                   </CardDescription>
                 </CardHeader>
 
@@ -126,14 +131,14 @@ export default function ForgotPasswordPage() {
                     {/* Email */}
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-sm font-medium">
-                        Adresse e-mail
+                        {t.auth.login.email}
                       </Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                         <Input
                           id="email"
                           type="email"
-                          placeholder="vous@exemple.com"
+                          placeholder={t.auth.login.emailPlaceholder}
                           value={email}
                           onChange={(e) => {
                             setEmail(e.target.value);
@@ -174,7 +179,7 @@ export default function ForgotPasswordPage() {
                             className="flex items-center gap-2"
                           >
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            Envoi en cours…
+                            {t.auth.forgot.submitting}
                           </motion.span>
                         ) : (
                           <motion.span
@@ -183,7 +188,7 @@ export default function ForgotPasswordPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                           >
-                            Envoyer le lien de réinitialisation
+                            {t.auth.forgot.submit}
                           </motion.span>
                         )}
                       </AnimatePresence>
@@ -210,19 +215,19 @@ export default function ForgotPasswordPage() {
                     </motion.div>
                   </div>
                   <CardTitle className="text-xl font-semibold text-center">
-                    Vérifiez votre e-mail
+                    {t.auth.forgot.successTitle}
                   </CardTitle>
                   <CardDescription className="text-center text-sm leading-relaxed">
-                    Nous avons envoyé un lien de réinitialisation à{' '}
+                    {' '}{t.auth.forgot.successDesc}{' '}
                     <span className="font-medium text-foreground">{email}</span>.{' '}
-                    Le lien expire dans 1 heure.
+                    {t.auth.forgot.linkExpiry}
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
                   <div className="rounded-lg bg-emerald-50 border border-emerald-200/60 p-4">
                     <p className="text-sm text-emerald-800 leading-relaxed">
-                      <strong>Conseil :</strong> Si vous ne recevez pas l'e-mail, vérifiez votre dossier spam ou courrier indésirable.
+                      <strong>{t.auth.forgot.tip}</strong> {t.auth.forgot.tipDesc}
                     </p>
                   </div>
 
@@ -234,7 +239,7 @@ export default function ForgotPasswordPage() {
                     variant="outline"
                     className="w-full h-11 text-sm font-medium"
                   >
-                    Utiliser une autre adresse e-mail
+                    {t.auth.forgot.useOther}
                   </Button>
                 </CardContent>
               </motion.div>
@@ -245,12 +250,13 @@ export default function ForgotPasswordPage() {
             <Button asChild variant="ghost" className="text-sm text-muted-foreground hover:text-foreground gap-2 h-11">
               <Link href="/login">
                 <ArrowLeft className="h-4 w-4" />
-                Retour à la connexion
+                {t.auth.forgot.backToLogin}
               </Link>
             </Button>
           </CardFooter>
         </Card>
       </motion.div>
     </main>
+      </>
   );
 }

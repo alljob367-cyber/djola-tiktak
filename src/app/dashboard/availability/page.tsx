@@ -43,7 +43,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DAY_NAMES_SHORT_FR } from '@/lib/availability/engine';
+import { useI18n } from '@/i18n/provider';
 import type { Availability, BlockedSlot } from '@/types/database';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -78,9 +78,9 @@ function toDatetimeLocal(date: Date): string {
   return `${y}-${m}-${d}T${h}:${min}`;
 }
 
-function formatFrenchDateTime(iso: string): string {
+function formatLocalDateTime(iso: string, intl: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('fr-FR', {
+  return d.toLocaleDateString(intl, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -90,8 +90,8 @@ function formatFrenchDateTime(iso: string): string {
   });
 }
 
-function formatFrenchDateShort(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
+function formatLocalDateShort(iso: string, intl: string): string {
+  return new Date(iso).toLocaleDateString(intl, {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
@@ -117,6 +117,8 @@ const blockedVariants = {
 
 // ── Component ──────────────────────────────────────────────────
 export default function AvailabilityPage() {
+  const { t, intl } = useI18n();
+  const V = t.dashboard.availability;
   const [days, setDays] = useState<DayRow[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,7 +136,7 @@ export default function AvailabilityPage() {
   const buildInitialDays = (): DayRow[] =>
     WORK_DAYS.map((d) => ({
       day_of_week: d,
-      label: DAY_NAMES_SHORT_FR[d],
+      label: V.dayNames[d],
       is_active: false,
       slots: [{ start_time: '09:00', end_time: '17:00' }],
     }));
@@ -186,7 +188,7 @@ export default function AvailabilityPage() {
       setDays(merged);
       setBlockedSlots(rawBlocked);
     } catch {
-      toast.error('Impossible de charger les disponibilités');
+      toast.error(V.loadError);
     } finally {
       setLoading(false);
     }
@@ -268,9 +270,9 @@ export default function AvailabilityPage() {
         throw new Error(err.error || 'Erreur serveur');
       }
 
-      toast.success('Disponibilités enregistrées');
+      toast.success(V.saved);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement');
+      toast.error(err instanceof Error ? err.message : V.saveError);
     } finally {
       setSaving(false);
     }
@@ -279,11 +281,11 @@ export default function AvailabilityPage() {
   // ── Blocked slot: create ────────────────────────────────
   const handleBlockSubmit = async () => {
     if (!blockForm.starts_at || !blockForm.ends_at) {
-      toast.error('Les dates de début et fin sont requises');
+      toast.error(V.datesRequired);
       return;
     }
     if (new Date(blockForm.ends_at) <= new Date(blockForm.starts_at)) {
-      toast.error('La date de fin doit être après la date de début');
+      toast.error(V.endAfterStart);
       return;
     }
 
@@ -300,12 +302,12 @@ export default function AvailabilityPage() {
         throw new Error(err.error || 'Erreur serveur');
       }
 
-      toast.success('Créneau bloqué ajouté');
+      toast.success(V.blockAdded);
       setBlockDialogOpen(false);
       setBlockForm({ starts_at: '', ends_at: '', reason: '' });
       fetchData();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de l\'ajout');
+      toast.error(err instanceof Error ? err.message : V.blockAddError);
     } finally {
       setBlockSubmitting(false);
     }
@@ -320,10 +322,10 @@ export default function AvailabilityPage() {
         const err = await res.json();
         throw new Error(err.error || 'Erreur serveur');
       }
-      toast.success('Créneau bloqué supprimé');
+      toast.success(V.blockDeleted);
       fetchData();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+      toast.error(err instanceof Error ? err.message : V.deleteError);
     } finally {
       setBlockDeleting(null);
     }
@@ -335,9 +337,9 @@ export default function AvailabilityPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Disponibilités</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{V.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Définissez vos horaires de travail hebdomadaires
+            {V.subtitle}
           </p>
         </div>
         <Button
@@ -346,7 +348,7 @@ export default function AvailabilityPage() {
           className="bg-emerald-600 hover:bg-emerald-700 text-white"
         >
           {saving ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Save size={16} className="mr-2" />}
-          Enregistrer
+          {V.save}
         </Button>
       </div>
 
@@ -360,7 +362,7 @@ export default function AvailabilityPage() {
       ) : (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Horaires hebdomadaires</CardTitle>
+            <CardTitle className="text-base">{V.weeklyTitle}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {days.map((day, i) => (
@@ -390,7 +392,7 @@ export default function AvailabilityPage() {
                             : ''
                         }
                       >
-                        {day.is_active ? 'Actif' : 'Repos'}
+                        {day.is_active ? V.activeDay : V.restDay}
                       </Badge>
                     </div>
                     <Switch
@@ -446,7 +448,7 @@ export default function AvailabilityPage() {
                         className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
                       >
                         <Plus size={14} className="mr-1" />
-                        Ajouter un créneau
+                        {V.addSlot}
                       </Button>
                     </div>
                   )}
@@ -463,10 +465,10 @@ export default function AvailabilityPage() {
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Ban size={18} className="text-red-500" />
-              Jours bloqués
+              {V.blockedTitle}
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Bloquez des créneaux spécifiques (congés, événements…)
+              {V.blockedSubtitle}
             </p>
           </div>
           <Button
@@ -478,7 +480,7 @@ export default function AvailabilityPage() {
             className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
           >
             <Plus size={16} className="mr-2" />
-            Ajouter un blocage
+            {V.addBlock}
           </Button>
         </div>
 
@@ -488,7 +490,7 @@ export default function AvailabilityPage() {
               <div className="rounded-full bg-muted p-3 mb-3">
                 <ShieldOff size={28} className="text-muted-foreground" />
               </div>
-              <p className="text-sm text-muted-foreground">Aucun créneau bloqué</p>
+              <p className="text-sm text-muted-foreground">{V.noBlocked}</p>
             </CardContent>
           </Card>
         ) : (
@@ -508,10 +510,10 @@ export default function AvailabilityPage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 text-sm font-medium">
                             <Ban size={14} className="text-red-500 shrink-0" />
-                            <span className="truncate">{bs.reason || 'Sans motif'}</span>
+                            <span className="truncate">{bs.reason || V.noReason}</span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {formatFrenchDateTime(bs.starts_at)} — {formatFrenchDateShort(bs.ends_at)}
+                            {formatLocalDateTime(bs.starts_at, intl)} — {formatLocalDateShort(bs.ends_at, intl)}
                           </p>
                         </div>
                         <Button
@@ -541,11 +543,11 @@ export default function AvailabilityPage() {
       <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Ajouter un blocage</DialogTitle>
+            <DialogTitle>{V.blockTitle}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="bl-start">Date et heure de début *</Label>
+              <Label htmlFor="bl-start">{V.startLabel}</Label>
               <Input
                 id="bl-start"
                 type="datetime-local"
@@ -554,7 +556,7 @@ export default function AvailabilityPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bl-end">Date et heure de fin *</Label>
+              <Label htmlFor="bl-end">{V.endLabel}</Label>
               <Input
                 id="bl-end"
                 type="datetime-local"
@@ -563,10 +565,10 @@ export default function AvailabilityPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bl-reason">Motif</Label>
+              <Label htmlFor="bl-reason">{V.reasonLabel}</Label>
               <Textarea
                 id="bl-reason"
-                placeholder="Ex : Congés annuels, formation…"
+                placeholder={V.reasonPlaceholder}
                 rows={2}
                 value={blockForm.reason}
                 onChange={(e) => setBlockForm((f) => ({ ...f, reason: e.target.value }))}
@@ -579,7 +581,7 @@ export default function AvailabilityPage() {
               onClick={() => setBlockDialogOpen(false)}
               disabled={blockSubmitting}
             >
-              Annuler
+              {t.common.cancel}
             </Button>
             <Button
               onClick={handleBlockSubmit}
@@ -587,7 +589,7 @@ export default function AvailabilityPage() {
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               {blockSubmitting && <Loader2 size={14} className="mr-2 animate-spin" />}
-              Bloquer
+              {V.block}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -39,6 +39,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/i18n/provider';
+import { LanguageSwitcher } from '@/i18n/language-switcher';
 import type { Profile } from '@/types/database';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -54,24 +56,24 @@ interface NavItem {
   mobileOnly?: boolean;
 }
 
-// ── Navigation config ──────────────────────────────────────────
-const sidebarLinks: NavItem[] = [
-  { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/dashboard/services', label: 'Services', icon: CalendarCheck },
-  { href: '/dashboard/appointments', label: 'Rendez-vous', icon: CalendarDays },
-  { href: '/dashboard/clients', label: 'Clients', icon: Users },
-  { href: '/dashboard/availability', label: 'Disponibilités', icon: Clock },
-  { href: '/dashboard/billing', label: 'Abonnement', icon: CreditCard },
-  { href: '/dashboard/profile', label: 'Profil', icon: UserCircle },
-  { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
+// ── Navigation config (icônes ; labels via i18n) ──────────────
+const SIDEBAR_ICONS: Array<{ href: string; icon: React.ElementType; key: string }> = [
+  { href: '/dashboard', icon: LayoutDashboard, key: 'navHome' },
+  { href: '/dashboard/services', icon: CalendarCheck, key: 'navServices' },
+  { href: '/dashboard/appointments', icon: CalendarDays, key: 'navAppointments' },
+  { href: '/dashboard/clients', icon: Users, key: 'navClients' },
+  { href: '/dashboard/availability', icon: Clock, key: 'navAvailability' },
+  { href: '/dashboard/billing', icon: CreditCard, key: 'navBilling' },
+  { href: '/dashboard/profile', icon: UserCircle, key: 'navProfile' },
+  { href: '/dashboard/settings', icon: Settings, key: 'navSettings' },
 ];
 
-const mobileLinks: NavItem[] = [
-  { href: '/dashboard', label: 'Accueil', icon: LayoutDashboard },
-  { href: '/dashboard/appointments', label: 'RDV', icon: CalendarDays },
-  { href: '/dashboard/clients', label: 'Clients', icon: Users },
-  { href: '/dashboard/availability', label: 'Dispo', icon: Clock },
-  { href: '/dashboard/settings', label: 'Plus', icon: Menu },
+const MOBILE_ICONS: Array<{ href: string; icon: React.ElementType; key: string }> = [
+  { href: '/dashboard', icon: LayoutDashboard, key: 'mobileHome' },
+  { href: '/dashboard/appointments', icon: CalendarDays, key: 'mobileAppointments' },
+  { href: '/dashboard/clients', icon: Users, key: 'mobileClients' },
+  { href: '/dashboard/availability', icon: Clock, key: 'mobileAvailability' },
+  { href: '/dashboard/settings', icon: Menu, key: 'mobileMore' },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -93,10 +95,12 @@ function isActive(href: string, pathname: string): boolean {
 // ── Sidebar Link ───────────────────────────────────────────────
 function SidebarLink({
   item,
+  label,
   pathname,
   collapsed,
 }: {
-  item: NavItem;
+  item: { href: string; icon: React.ElementType };
+  label: string;
   pathname: string;
   collapsed: boolean;
 }) {
@@ -139,7 +143,7 @@ function SidebarLink({
             transition={{ duration: 0.2 }}
             className="truncate whitespace-nowrap"
           >
-            {item.label}
+            {label}
           </motion.span>
         )}
       </AnimatePresence>
@@ -151,7 +155,7 @@ function SidebarLink({
       <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
         <TooltipContent side="right" sideOffset={12}>
-          {item.label}
+          {label}
         </TooltipContent>
       </Tooltip>
     );
@@ -161,7 +165,7 @@ function SidebarLink({
 }
 
 // ── Mobile Nav Link ────────────────────────────────────────────
-function MobileNavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+function MobileNavLink({ item, label, pathname }: { item: { href: string; icon: React.ElementType }; label: string; pathname: string }) {
   const active = isActive(item.href, pathname);
   const Icon = item.icon;
 
@@ -185,7 +189,7 @@ function MobileNavLink({ item, pathname }: { item: NavItem; pathname: string }) 
           />
         )}
       </div>
-      <span className="truncate max-w-full">{item.label}</span>
+      <span className="truncate max-w-full">{label}</span>
     </Link>
   );
 }
@@ -194,6 +198,10 @@ function MobileNavLink({ item, pathname }: { item: NavItem; pathname: string }) 
 export function DashboardShell({ profile, children }: DashboardShellProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
+  const shell = t.dashboard.shell;
+  const sidebarLinks = SIDEBAR_ICONS.map(({ key, ...rest }) => ({ ...rest, label: shell[key] as string }));
+  const mobileLinks = MOBILE_ICONS.map(({ key, ...rest }) => ({ ...rest, label: shell[key] as string }));
   const [collapsed, setCollapsed] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
 
@@ -253,6 +261,7 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
             <SidebarLink
               key={item.href}
               item={item}
+              label={item.label}
               pathname={pathname}
               collapsed={collapsed}
             />
@@ -291,6 +300,7 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
 
           {/* User info + actions */}
           <div className="flex items-center gap-3">
+            <LanguageSwitcher compact />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
@@ -325,19 +335,19 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/profile" className="cursor-pointer">
                     <UserCircle size={16} />
-                    Mon profil
+                    {shell.myProfile}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/settings" className="cursor-pointer">
                     <Settings size={16} />
-                    Paramètres
+                    {shell.navSettings}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/billing" className="cursor-pointer">
                     <CreditCard size={16} />
-                    Abonnement
+                    {shell.navBilling}
                   </Link>
                 </DropdownMenuItem>
                 {showAdmin && (
@@ -346,8 +356,8 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                     <DropdownMenuItem asChild>
                       <Link href="/admin" className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600">
                         <Shield size={16} />
-                        Administration
-                      </Link>
+                        {shell.administration}
+                  </Link>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -358,7 +368,7 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                   className="cursor-pointer"
                 >
                   <LogOut size={16} />
-                  Se déconnecter
+                  {shell.logout}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -373,14 +383,14 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                 <AlertTriangle size={18} className="shrink-0 text-amber-600 dark:text-amber-400" />
                 <p className="flex-1 text-sm font-medium text-amber-800 dark:text-amber-300">
                   {profile.subscription_status === 'expired'
-                    ? 'Votre abonnement a expiré. Renouvelez-le pour retrouver l\'accès complet.'
+                    ? shell.bannerExpired
                     : profile.subscription_status === 'cancelled'
-                      ? 'Votre abonnement est annulé. Choisissez un plan pour continuer.'
-                      : 'Votre abonnement a un problème de paiement. Mettez-le à jour.'}
+                      ? shell.bannerCancelled
+                      : shell.bannerPastDue}
                 </p>
                 <Link href="/dashboard/billing" className="shrink-0">
                   <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
-                    Choisir un plan
+                    {shell.bannerChoosePlan}
                     <ArrowRight size={14} className="ml-1" />
                   </Button>
                 </Link>
@@ -394,11 +404,11 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
             <div className="mx-auto flex max-w-7xl items-center gap-3">
               <CreditCard size={18} className="shrink-0 text-blue-600 dark:text-blue-400" />
               <p className="flex-1 text-sm font-medium text-blue-800 dark:text-blue-300">
-                Bienvenue ! Choisissez un plan pour commencer à utiliser Djola TikTak.
+                {shell.bannerWelcome}
               </p>
               <Link href="/dashboard/billing" className="shrink-0">
                 <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                  Voir les plans
+                  {shell.bannerSeePlans}
                   <ArrowRight size={14} className="ml-1" />
                 </Button>
               </Link>
@@ -421,6 +431,7 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
             <MobileNavLink
               key={item.href}
               item={item}
+              label={item.label}
               pathname={pathname}
             />
           ))}

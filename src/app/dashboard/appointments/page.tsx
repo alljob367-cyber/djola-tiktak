@@ -33,6 +33,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import type { AppointmentWithDetails, AppointmentStatus } from '@/types/database';
+import { useI18n } from '@/i18n/provider';
 
 // ── Status config ─────────────────────────────────────────────
 type FilterTab = 'all' | AppointmentStatus;
@@ -45,55 +46,16 @@ interface StatusConfig {
   emptyDesc: string;
 }
 
-const STATUS_CONFIG: Record<string, StatusConfig> = {
-  pending: {
-    label: 'En attente',
-    icon: CircleDot,
-    color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
-    emptyTitle: 'Aucun rendez-vous en attente',
-    emptyDesc: 'Les nouvelles réservations apparaîtront ici.',
-  },
-  confirmed: {
-    label: 'Confirmé',
-    icon: CheckCircle2,
-    color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
-    emptyTitle: 'Aucun rendez-vous confirmé',
-    emptyDesc: 'Confirmez un rendez-vous en attente pour le voir ici.',
-  },
-  completed: {
-    label: 'Terminé',
-    icon: CheckCircle2,
-    color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400',
-    emptyTitle: 'Aucun rendez-vous terminé',
-    emptyDesc: 'Les rendez-vous marqués comme terminés apparaîtront ici.',
-  },
-  cancelled: {
-    label: 'Annulé',
-    icon: CalendarX2,
-    color: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
-    emptyTitle: 'Aucun rendez-vous annulé',
-    emptyDesc: 'Les rendez-vous annulés apparaîtront ici.',
-  },
-  no_show: {
-    label: 'Absent',
-    icon: UserX,
-    color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400',
-    emptyTitle: 'Aucun absent',
-    emptyDesc: 'Les rendez-vous où le client ne s\'est pas présenté apparaîtront ici.',
-  },
+const STATUS_STYLE: Record<string, { icon: React.ElementType; color: string }> = {
+  pending: { icon: CircleDot, color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' },
+  confirmed: { icon: CheckCircle2, color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' },
+  completed: { icon: CheckCircle2, color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400' },
+  cancelled: { icon: CalendarX2, color: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400' },
+  no_show: { icon: UserX, color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400' },
 };
 
-const TABS: { value: FilterTab; label: string }[] = [
-  { value: 'all', label: 'Tous' },
-  { value: 'pending', label: 'En attente' },
-  { value: 'confirmed', label: 'Confirmés' },
-  { value: 'completed', label: 'Terminés' },
-  { value: 'cancelled', label: 'Annulés' },
-  { value: 'no_show', label: 'Absents' },
-];
-
 // ── Helpers ────────────────────────────────────────────────────
-function formatFrenchDate(iso: string): string {
+function formatLocalDate(iso: string, intl: string): string {
   const d = new Date(iso);
   const options: Intl.DateTimeFormatOptions = {
     weekday: 'short',
@@ -101,12 +63,12 @@ function formatFrenchDate(iso: string): string {
     month: 'short',
     year: 'numeric',
   };
-  return d.toLocaleDateString('fr-FR', options);
+  return d.toLocaleDateString(intl, options);
 }
 
-function formatFrenchTime(iso: string): string {
+function formatLocalTime(iso: string, intl: string): string {
   const d = new Date(iso);
-  return d.toLocaleTimeString('fr-FR', {
+  return d.toLocaleTimeString(intl, {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -125,6 +87,23 @@ const itemVariants = {
 
 // ── Component ──────────────────────────────────────────────────
 export default function AppointmentsPage() {
+  const { t, intl } = useI18n();
+  const A = t.dashboard.appointments;
+  const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; emptyTitle: string; emptyDesc: string }> = {
+    pending: { label: t.dashboard.status.pending, icon: STATUS_STYLE.pending.icon, color: STATUS_STYLE.pending.color, emptyTitle: A.emptyPending, emptyDesc: A.emptyPendingDesc },
+    confirmed: { label: t.dashboard.status.confirmed, icon: STATUS_STYLE.confirmed.icon, color: STATUS_STYLE.confirmed.color, emptyTitle: A.emptyConfirmed, emptyDesc: A.emptyConfirmedDesc },
+    completed: { label: t.dashboard.status.completed, icon: STATUS_STYLE.completed.icon, color: STATUS_STYLE.completed.color, emptyTitle: A.emptyCompleted, emptyDesc: A.emptyCompletedDesc },
+    cancelled: { label: t.dashboard.status.cancelled, icon: STATUS_STYLE.cancelled.icon, color: STATUS_STYLE.cancelled.color, emptyTitle: A.emptyCancelled, emptyDesc: A.emptyCancelledDesc },
+    no_show: { label: t.dashboard.status.no_show, icon: STATUS_STYLE.no_show.icon, color: STATUS_STYLE.no_show.color, emptyTitle: A.emptyNoShow, emptyDesc: A.emptyNoShowDesc },
+  };
+  const TABS: { value: FilterTab; label: string }[] = [
+    { value: 'all', label: A.tabs.all },
+    { value: 'pending', label: A.tabs.pending },
+    { value: 'confirmed', label: A.tabs.confirmed },
+    { value: 'completed', label: A.tabs.completed },
+    { value: 'cancelled', label: A.tabs.cancelled },
+    { value: 'no_show', label: A.tabs.no_show },
+  ];
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
@@ -142,7 +121,7 @@ export default function AppointmentsPage() {
       const json = await res.json();
       setAppointments(json.data ?? []);
     } catch {
-      toast.error('Impossible de charger les rendez-vous');
+      toast.error(A.loadError);
     } finally {
       setLoading(false);
     }
@@ -162,10 +141,10 @@ export default function AppointmentsPage() {
         const err = await res.json();
         throw new Error(err.error || 'Erreur serveur');
       }
-      toast.success('Rendez-vous supprimé');
+      toast.success(A.deleted);
       fetchAppointments();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+      toast.error(err instanceof Error ? err.message : A.deleteError);
     } finally {
       setDeletingId(null);
     }
@@ -186,16 +165,16 @@ export default function AppointmentsPage() {
       }
       toast.success(
         status === 'confirmed'
-          ? 'Rendez-vous confirmé'
+          ? A.confirmed
           : status === 'completed'
-            ? 'Rendez-vous terminé'
+            ? A.completed
             : status === 'cancelled'
-              ? 'Rendez-vous annulé'
-              : 'Marqué comme absent'
+              ? A.cancelled
+              : A.markedNoShow
       );
       fetchAppointments();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
+      toast.error(err instanceof Error ? err.message : A.updateError);
     } finally {
       setUpdatingId(null);
     }
@@ -217,9 +196,9 @@ export default function AppointmentsPage() {
             <div className="rounded-full bg-emerald-50 p-4 mb-4 dark:bg-emerald-950/30">
               <CalendarDays size={32} className="text-emerald-500" />
             </div>
-            <h3 className="font-semibold text-lg">Aucun rendez-vous</h3>
+            <h3 className="font-semibold text-lg">{A.emptyTitle}</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              Vos rendez-vous apparaîtront ici dès que vos clients prennent réservation.
+              {A.emptyDesc}
             </p>
           </CardContent>
         </Card>
@@ -261,10 +240,10 @@ export default function AppointmentsPage() {
               <div className="flex sm:flex-col items-center sm:items-center gap-1 sm:gap-0 sm:min-w-[72px] shrink-0">
                 <Clock size={14} className="text-muted-foreground" />
                 <span className="text-sm font-semibold">
-                  {formatFrenchTime(apt.starts_at)}
+                  {formatLocalTime(apt.starts_at, intl)}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {formatFrenchDate(apt.starts_at)}
+                  {formatLocalDate(apt.starts_at, intl)}
                 </span>
               </div>
 
@@ -275,14 +254,14 @@ export default function AppointmentsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-medium truncate">
-                    {apt.client?.name ?? 'Client inconnu'}
+                    {apt.client?.name ?? A.unknownClient}
                   </p>
                   <Badge variant="secondary" className={cfg.color}>
                     {cfg.label}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {apt.service?.name ?? 'Service inconnu'}
+                  {apt.service?.name ?? A.unknownService}
                 </p>
               </div>
 
@@ -300,7 +279,7 @@ export default function AppointmentsPage() {
                       >
                         {isUpdating && <Loader2 size={13} className="mr-1.5 animate-spin" />}
                         <CheckCircle2 size={14} className="mr-1" />
-                        Confirmer
+                        {A.confirm}
                       </Button>
                     )}
                     <Button
@@ -311,7 +290,7 @@ export default function AppointmentsPage() {
                       className="border-teal-200 text-teal-700 hover:bg-teal-50 dark:border-teal-800 dark:text-teal-400 dark:hover:bg-teal-950/40"
                     >
                       <CheckCircle2 size={14} className="mr-1" />
-                      Terminer
+                      {A.complete}
                     </Button>
                     <Button
                       size="sm"
@@ -321,7 +300,7 @@ export default function AppointmentsPage() {
                       className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
                     >
                       <CalendarX2 size={14} className="mr-1" />
-                      Annuler
+                      {A.cancel}
                     </Button>
                     <Button
                       size="sm"
@@ -331,7 +310,7 @@ export default function AppointmentsPage() {
                       className="border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
                     >
                       <UserX size={14} className="mr-1" />
-                      <span className="hidden sm:inline">Absent</span>
+                      <span className="hidden sm:inline">{A.noShow}</span>
                     </Button>
                   </>
                 )}
@@ -348,18 +327,18 @@ export default function AppointmentsPage() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Supprimer ce rendez-vous ?</AlertDialogTitle>
+                      <AlertDialogTitle>{A.deleteTitle}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Cette action est irréversible. Le rendez-vous de {apt.client?.name ?? 'Client inconnu'} du {formatFrenchDate(apt.starts_at)} à {formatFrenchTime(apt.starts_at)} sera définitivement supprimé.
+                        Cette action est irréversible. Le rendez-vous de {apt.client?.name ?? A.unknownClient} du {formatLocalDate(apt.starts_at, intl)} à {formatLocalTime(apt.starts_at, intl)} sera définitivement supprimé.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => handleDelete(apt.id)}
                         className="bg-red-600 hover:bg-red-700 text-white"
                       >
-                        Supprimer
+                        {A.deleteConfirm}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -377,9 +356,9 @@ export default function AppointmentsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Rendez-vous</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{A.title}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Gérez et suivez vos réservations
+          {A.subtitle}
         </p>
       </div>
 

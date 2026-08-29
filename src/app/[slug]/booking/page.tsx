@@ -29,11 +29,9 @@ import {
   Ticket,
   X,
 } from 'lucide-react';
-import {
-  formatCurrency,
-  DAY_NAMES_SHORT_FR,
-  MONTH_NAMES_FR,
-} from '@/lib/availability/engine';
+import { formatCurrency } from '@/lib/availability/engine';
+import { useI18n } from '@/i18n/provider';
+import { localizedDayNames, localizedMonthNames } from '@/i18n/index';
 import { computeDiscount } from '@/lib/promo';
 
 // ------------------------------------------------------------------
@@ -86,9 +84,9 @@ interface AppliedPromo {
 // ------------------------------------------------------------------
 
 const clientInfoSchema = z.object({
-  client_name: z.string().min(1, 'Le nom est requis'),
-  client_phone: z.string().min(1, 'Le téléphone est requis'),
-  client_email: z.string().email('Email invalide').optional().or(z.literal('')),
+  client_name: z.string().min(1, 'nameRequired'),
+  client_phone: z.string().min(1, 'phoneRequired'),
+  client_email: z.string().email('emailInvalid').optional().or(z.literal('')),
 });
 
 type ClientInfo = z.infer<typeof clientInfoSchema>;
@@ -97,22 +95,8 @@ type ClientInfo = z.infer<typeof clientInfoSchema>;
 // Steps definition — payment step is conditional
 // ------------------------------------------------------------------
 
-const BASE_STEPS = [
-  { id: 'service', label: 'Service', icon: Sparkles },
-  { id: 'date', label: 'Date', icon: CalendarDays },
-  { id: 'time', label: 'Horaire', icon: Clock },
-  { id: 'info', label: 'Coordonnées', icon: User },
-  { id: 'payment', label: 'Paiement', icon: Wallet },
-  { id: 'confirm', label: 'Confirmer', icon: Check },
-] as const;
-
-const STEPS_NO_PAYMENT = [
-  { id: 'service', label: 'Service', icon: Sparkles },
-  { id: 'date', label: 'Date', icon: CalendarDays },
-  { id: 'time', label: 'Horaire', icon: Clock },
-  { id: 'info', label: 'Coordonnées', icon: User },
-  { id: 'confirm', label: 'Confirmer', icon: Check },
-] as const;
+const BASE_STEP_IDS = ['service', 'date', 'time', 'info', 'payment', 'confirm'] as const;
+const STEP_ICONS = { service: Sparkles, date: CalendarDays, time: Clock, info: User, payment: Wallet, confirm: Check } as const;
 
 type StepId = 'service' | 'date' | 'time' | 'info' | 'payment' | 'confirm';
 
@@ -143,6 +127,10 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   const { slug } = use(params);
   const sp = use(searchParams);
   const router = useRouter();
+  const { t, lang, intl } = useI18n();
+  const BK = t.booking;
+  const DAY_NAMES = localizedDayNames(lang);
+  const MONTH_NAMES = localizedMonthNames(lang);
 
   // ---- data state ----
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -184,7 +172,8 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
 
   // ---- Dynamic steps based on payment methods availability ----
   const hasPaymentMethods = profile?.payment_methods_enabled && (profile.orange_money_phone || profile.mtn_momo_phone);
-  const STEPS = hasPaymentMethods ? BASE_STEPS : STEPS_NO_PAYMENT;
+  const stepIds = hasPaymentMethods ? BASE_STEP_IDS : BASE_STEP_IDS.filter((id) => id !== 'payment');
+  const STEPS = stepIds.map((id) => ({ id, label: BK.steps[id as keyof typeof BK.steps], icon: STEP_ICONS[id as keyof typeof STEP_ICONS] }));
 
   // ---- Promo : remise appliquée sur le prix du service ----
   const discountAmount = useMemo(
@@ -214,10 +203,10 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           setAppliedPromo(json.promo as AppliedPromo);
         } else {
           setAppliedPromo(null);
-          setPromoError(json?.message || 'Code invalide, expiré ou épuisé');
+          setPromoError(json?.message || BK.promoInvalid);
         }
       } catch {
-        setPromoError('Erreur réseau, réessayez');
+        setPromoError(BK.promoNetwork);
       } finally {
         setPromoChecking(false);
       }
@@ -279,7 +268,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           }
         }
       } catch {
-        toast.error('Impossible de charger les informations');
+        toast.error(BK.loadError);
       } finally {
         setLoading(false);
       }
@@ -317,14 +306,14 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           `/api/bookings/availability?slug=${slug}&service_id=${selectedService.id}&date=${dateStr}`
         );
         if (!res.ok) {
-          toast.error('Erreur lors du chargement des créneaux');
+          toast.error(BK.slotsError);
           return;
         }
         const json = await res.json();
         const data = json.data;
         setSlots(Array.isArray(data) ? data : data?.slots || []);
       } catch {
-        toast.error('Erreur réseau');
+        toast.error(BK.networkError);
       } finally {
         setSlotsLoading(false);
       }
@@ -416,14 +405,14 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
 
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        toast.error(json.error || 'Erreur lors de la réservation');
+        toast.error(json.error || BK.bookingError);
         return;
       }
 
       setBooked(true);
       goNext();
     } catch {
-      toast.error('Erreur réseau, veuillez réessayer');
+      toast.error(BK.networkError);
     } finally {
       setSubmitting(false);
     }
@@ -433,31 +422,31 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Rendez-vous confirmé',
-          text: `Rendez-vous pour ${selectedService?.name} le ${formatDateFR(selectedDate!)} à ${formatTimeFR(selectedSlot!.starts_at)}`,
+          title: BK.shareTitle,
+          text: BK.shareText(selectedService?.name ?? '', formatDateFR(selectedDate!), formatTimeFR(selectedSlot!.starts_at)),
         });
       } catch {
         // user cancelled
       }
     } else {
       await navigator.clipboard.writeText(
-        `Rendez-vous pour ${selectedService?.name} le ${formatDateFR(selectedDate!)} à ${formatTimeFR(selectedSlot!.starts_at)}`
+        BK.shareText(selectedService?.name ?? '', formatDateFR(selectedDate!), formatTimeFR(selectedSlot!.starts_at))
       );
-      toast.success('Détails copiés dans le presse-papier');
+      toast.success(BK.shareCopied);
     }
   };
 
   const handleCopyPhone = (phone: string, label: string) => {
     navigator.clipboard.writeText(phone).then(() => {
       setCopiedPhone(label);
-      toast.success('Numéro copié !');
+      toast.success(BK.phoneCopied);
       setTimeout(() => setCopiedPhone(''), 2000);
     });
   };
 
   // ---- Formatting helpers ----
   function formatDateFR(date: Date): string {
-    return `${date.getDate()} ${MONTH_NAMES_FR[date.getMonth()]} ${date.getFullYear()}`;
+    return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
   }
 
   function formatTimeFR(iso: string): string {
@@ -465,13 +454,13 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
     // Affichage dans le fuseau du PROFESSIONNEL — le créneau est
     // défini par son calendrier local, pas celui du visiteur.
     try {
-      return d.toLocaleTimeString('fr-FR', {
+      return d.toLocaleTimeString(intl, {
         hour: '2-digit',
         minute: '2-digit',
         timeZone: profile?.timezone || 'Africa/Malabo',
       });
     } catch {
-      return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      return d.toLocaleTimeString(intl, { hour: '2-digit', minute: '2-digit' });
     }
   }
 
@@ -529,7 +518,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   const renderServiceStep = () => (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold text-foreground">
-        Choisissez un service
+        {BK.chooseService}
       </h2>
       {services.map((svc) => {
         const isSelected = selectedService?.id === svc.id;
@@ -584,12 +573,12 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   const renderDateStep = () => (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-foreground">
-        Choisissez une date
+        {BK.chooseDate}
       </h2>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
         {next14Days.map((day) => {
-          const dayName = DAY_NAMES_SHORT_FR[day.getDay()];
-          const monthName = MONTH_NAMES_FR[day.getMonth()];
+          const dayName = DAY_NAMES[day.getDay()].slice(0, 3);
+          const monthName = MONTH_NAMES[day.getMonth()];
           const dayNum = day.getDate();
           const isSelected =
             selectedDate &&
@@ -628,7 +617,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   const renderTimeStep = () => (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-foreground">
-        Choisissez un créneau
+        {BK.chooseSlot}
       </h2>
       <p className="text-sm text-muted-foreground">
         {selectedDate && formatDateFR(selectedDate)}
@@ -643,10 +632,10 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-muted-foreground/30 py-12 text-center">
           <AlertCircle className="size-10 text-muted-foreground/50" />
           <p className="text-sm font-medium text-muted-foreground">
-            Aucun créneau disponible
+            {BK.noSlots}
           </p>
           <p className="text-xs text-muted-foreground/70">
-            Essayez une autre date
+            {BK.noSlotsHint}
           </p>
         </div>
       ) : (
@@ -677,17 +666,17 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   const renderInfoStep = () => (
     <div className="space-y-5">
       <h2 className="text-lg font-semibold text-foreground">
-        Vos coordonnées
+        {BK.yourInfo}
       </h2>
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="client_name" className="text-sm">
-            Nom complet <span className="text-destructive">*</span>
+            {BK.fullName} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="client_name"
             type="text"
-            placeholder="Jean Dupont"
+            placeholder={BK.fullNamePlaceholder}
             value={clientInfo.client_name}
             onChange={(e) => {
               setClientInfo((prev) => ({ ...prev, client_name: e.target.value }));
@@ -699,18 +688,18 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             autoComplete="name"
           />
           {clientErrors.client_name && (
-            <p className="text-xs text-destructive">{clientErrors.client_name}</p>
+            <p className="text-xs text-destructive">{BK.nameRequired}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="client_phone" className="text-sm">
-            Téléphone <span className="text-destructive">*</span>
+            {BK.phone} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="client_phone"
             type="tel"
-            placeholder="+237 6XX XXX XXX"
+            placeholder={BK.phonePlaceholder}
             value={clientInfo.client_phone}
             onChange={(e) => {
               setClientInfo((prev) => ({ ...prev, client_phone: e.target.value }));
@@ -722,18 +711,18 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             autoComplete="tel"
           />
           {clientErrors.client_phone && (
-            <p className="text-xs text-destructive">{clientErrors.client_phone}</p>
+            <p className="text-xs text-destructive">{BK.phoneRequired}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="client_email" className="text-sm">
-            Email <span className="text-muted-foreground">(facultatif)</span>
+            {BK.email} <span className="text-muted-foreground">({BK.optional})</span>
           </Label>
           <Input
             id="client_email"
             type="email"
-            placeholder="jean@exemple.com"
+            placeholder={BK.emailPlaceholder}
             value={clientInfo.client_email}
             onChange={(e) => {
               setClientInfo((prev) => ({ ...prev, client_email: e.target.value }));
@@ -745,7 +734,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             autoComplete="email"
           />
           {clientErrors.client_email && (
-            <p className="text-xs text-destructive">{clientErrors.client_email}</p>
+            <p className="text-xs text-destructive">{BK.emailInvalid}</p>
           )}
         </div>
 
@@ -753,8 +742,8 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
         <div className="space-y-2 rounded-xl border border-dashed border-emerald-300/70 bg-emerald-50/40 p-3.5 dark:border-emerald-700/50 dark:bg-emerald-950/20">
           <Label htmlFor="promo_code" className="flex items-center gap-1.5 text-sm">
             <Ticket className="size-4 text-emerald-600" />
-            Code promo{' '}
-            <span className="text-muted-foreground">(facultatif)</span>
+            {BK.promoCode}{' '}
+            <span className="text-muted-foreground">({BK.optional})</span>
           </Label>
 
           {appliedPromo ? (
@@ -765,8 +754,8 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
                 </p>
                 <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                   {appliedPromo.discount_type === 'percent'
-                    ? `Réduction de ${appliedPromo.value} % appliquée`
-                    : `Réduction de ${Math.round(appliedPromo.value).toLocaleString('fr-FR')} ${profile?.currency ?? 'XAF'} appliquée`}
+                    ? BK.promoPercent(appliedPromo.value)
+                    : BK.promoFixed(appliedPromo.value, profile?.currency ?? 'XAF')}
                 </p>
               </div>
               <button
@@ -777,7 +766,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
                   setPromoError('');
                 }}
                 className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted"
-                aria-label="Retirer le code promo"
+                aria-label={BK.removePromo}
               >
                 <X className="size-4" />
               </button>
@@ -787,7 +776,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
               <Input
                 id="promo_code"
                 type="text"
-                placeholder="Ex : BIENVENUE"
+                placeholder={BK.promoPlaceholder}
                 value={promoInput}
                 onChange={(e) => {
                   setPromoInput(e.target.value.toUpperCase());
@@ -807,7 +796,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
                 {promoChecking ? (
                   <span className="size-4 animate-spin rounded-full border-2 border-emerald-600/30 border-t-emerald-600" />
                 ) : (
-                  'Appliquer'
+                  BK.apply
                 )}
               </Button>
             </div>
@@ -831,10 +820,10 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
     return (
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-foreground">
-          Paiement anticipé
+          {BK.advancePayment}
         </h2>
         <p className="text-sm text-muted-foreground">
-          Payez en avance pour confirmer votre réservation en priorité
+          {BK.advancePaymentDesc}
         </p>
 
         {/* Priority banner */}
@@ -845,11 +834,10 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             </div>
             <div>
               <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                Réservation prioritaire
+                {BK.priorityTitle}
               </p>
               <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
-                En payant en avance, votre créneau sera garanti et prioritaire.
-                Envoyez le montant et confirmez votre réservation.
+                {BK.priorityDesc}
               </p>
             </div>
           </div>
@@ -860,7 +848,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           <div className="flex items-center gap-3">
             <Wallet className="size-5 text-emerald-600" />
             <div>
-              <p className="text-sm font-medium">Je paie en avance</p>
+              <p className="text-sm font-medium">{BK.payAdvance}</p>
               <p className="text-xs text-muted-foreground">
                 {discountAmount > 0 ? (
                   <>
@@ -901,7 +889,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             className="space-y-3 overflow-hidden"
           >
             <p className="text-sm font-medium text-foreground">
-              Envoyez {formatCurrency(finalPrice, profile.currency)} à :
+              {BK.sendTo(formatCurrency(finalPrice, profile.currency))}
             </p>
 
             {profile.orange_money_phone && (
@@ -975,7 +963,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             <div className="flex items-start gap-2 rounded-lg bg-emerald-50 p-3 dark:bg-emerald-950/20">
               <Star className="mt-0.5 size-4 shrink-0 text-emerald-600" />
               <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                Après le transfert, confirmez votre réservation ci-dessous. Votre paiement sera vérifié par le professionnel.
+                {BK.afterTransfer}
               </p>
             </div>
           </motion.div>
@@ -988,21 +976,21 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   const renderConfirmStep = () => (
     <div className="space-y-5">
       <h2 className="text-lg font-semibold text-foreground">
-        Confirmez votre rendez-vous
+        {BK.confirmTitle}
       </h2>
       <Card className="border-emerald-200 bg-emerald-50/50">
         <CardContent className="space-y-3 p-4">
           <div className="flex items-start gap-3">
             <Sparkles className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">Service</p>
+              <p className="text-xs font-medium text-muted-foreground">{BK.summaryService}</p>
               <p className="font-semibold text-foreground">{selectedService?.name}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <CalendarDays className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">Date</p>
+              <p className="text-xs font-medium text-muted-foreground">{BK.summaryDate}</p>
               <p className="font-semibold text-foreground">
                 {selectedDate && formatDateFR(selectedDate)}
               </p>
@@ -1011,7 +999,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           <div className="flex items-start gap-3">
             <Clock className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">Horaire</p>
+              <p className="text-xs font-medium text-muted-foreground">{BK.summaryTime}</p>
               <p className="font-semibold text-foreground">
                 {selectedSlot && formatTimeFR(selectedSlot.starts_at)}
               </p>
@@ -1020,7 +1008,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           <div className="flex items-start gap-3">
             <CreditCard className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">Tarif</p>
+              <p className="text-xs font-medium text-muted-foreground">{BK.summaryPrice}</p>
               {discountAmount > 0 && selectedService ? (
                 <>
                   <p className="text-sm text-muted-foreground line-through">
@@ -1030,7 +1018,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
                     {formatCurrency(finalPrice, profile?.currency)}
                   </p>
                   <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    Code {appliedPromo?.code} : −{formatCurrency(discountAmount, profile?.currency)}
+                    {BK.codeApplied(appliedPromo?.code ?? '', formatCurrency(discountAmount, profile?.currency))}
                   </p>
                 </>
               ) : (
@@ -1044,7 +1032,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           <div className="flex items-start gap-3">
             <User className="mt-0.5 size-4 shrink-0 text-emerald-600" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">Client</p>
+              <p className="text-xs font-medium text-muted-foreground">{BK.summaryClient}</p>
               <p className="font-semibold text-foreground">{clientInfo.client_name}</p>
               <p className="text-sm text-muted-foreground">{clientInfo.client_phone}</p>
             </div>
@@ -1053,12 +1041,12 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             <div className="flex items-start gap-3">
               <Star className="mt-0.5 size-4 shrink-0 text-amber-500" />
               <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground">Paiement</p>
+                <p className="text-xs font-medium text-muted-foreground">{BK.summaryPayment}</p>
                 <p className="font-semibold text-amber-700 dark:text-amber-400">
-                  Paiement anticipé — Prioritaire
+                  {BK.advancePriority}
                 </p>
                 <p className="text-xs text-amber-600 dark:text-amber-500">
-                  N'oubliez pas d'envoyer le montant via {profile?.orange_money_phone ? 'Orange Money' : ''}{profile?.orange_money_phone && profile?.mtn_momo_phone ? ' ou ' : ''}{profile?.mtn_momo_phone ? 'MTN MoMo' : ''}
+                  {BK.sendVia(`${profile?.orange_money_phone ? 'Orange Money' : ''}${profile?.orange_money_phone && profile?.mtn_momo_phone ? ` ${BK.or} ` : ''}${profile?.mtn_momo_phone ? 'MTN MoMo' : ''}`)}
                 </p>
               </div>
             </div>
@@ -1074,10 +1062,10 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
         {submitting ? (
           <span className="flex items-center gap-2">
             <span className="inline-block size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            Réservation en cours…
+            {BK.booking}
           </span>
         ) : (
-          'Confirmer le rendez-vous'
+          BK.confirmCta
         )}
       </Button>
     </div>
@@ -1118,15 +1106,15 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
 
       <div className="space-y-2">
         <h2 className="text-2xl font-bold text-foreground">
-          Rendez-vous confirmé !
+          {BK.successTitle}
         </h2>
         <p className="text-sm text-muted-foreground">
-          Vous recevrez un rappel avant votre rendez-vous.
+          {BK.successDesc}
         </p>
         {wantsAdvancePayment && (
           <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
             <Star className="size-3" />
-            Réservation prioritaire — Pensez à envoyer le paiement
+            {BK.successPriority}
           </div>
         )}
       </div>
@@ -1134,29 +1122,29 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
       <Card className="w-full border-emerald-200 bg-emerald-50/50">
         <CardContent className="space-y-3 p-4">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Service</p>
+            <p className="text-xs font-medium text-muted-foreground">{BK.summaryService}</p>
             <p className="font-semibold text-foreground">{selectedService?.name}</p>
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Date & heure</p>
+            <p className="text-xs font-medium text-muted-foreground">{BK.summaryDateTime}</p>
             <p className="font-semibold text-foreground">
               {selectedDate && formatDateFR(selectedDate)} à{' '}
               {selectedSlot && formatTimeFR(selectedSlot.starts_at)}
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Professionnel</p>
+            <p className="text-xs font-medium text-muted-foreground">{BK.summaryPro}</p>
             <p className="font-semibold text-foreground">{profile?.business_name}</p>
           </div>
           {appliedPromo && discountAmount > 0 && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Réduction appliquée</p>
+              <p className="text-xs font-medium text-muted-foreground">{BK.discountApplied}</p>
               <p className="font-semibold text-emerald-700 dark:text-emerald-400">
                 −{formatCurrency(discountAmount, profile?.currency)} (code {appliedPromo.code})
               </p>
               {selectedService && (
                 <p className="text-xs text-muted-foreground">
-                  Prix final : {formatCurrency(finalPrice, profile?.currency)}
+                  {BK.finalPrice} {formatCurrency(finalPrice, profile?.currency)}
                 </p>
               )}
             </div>
@@ -1172,7 +1160,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           size="lg"
         >
           <Share2 className="size-4" />
-          Partager
+          {BK.share}
         </Button>
         <Button
           onClick={() => router.push(`/${slug}`)}
@@ -1180,7 +1168,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           size="lg"
         >
           <ArrowLeft className="size-4" />
-          Retour
+          {BK.back}
         </Button>
       </div>
     </motion.div>
@@ -1270,12 +1258,12 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             type="button"
             onClick={() => router.push(`/${slug}`)}
             className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-accent"
-            aria-label="Retour"
+            aria-label={BK.back}
           >
             <ArrowLeft className="size-5" />
           </button>
           <h1 className="text-lg font-semibold text-foreground">
-            Réserver un rendez-vous
+            {BK.title}
           </h1>
         </div>
 
@@ -1328,8 +1316,8 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
               size="lg"
             >
               {currentStep === STEPS.length - 1
-                ? 'Confirmer'
-                : 'Continuer'}
+                ? BK.confirm
+                : BK.continue}
             </Button>
           </div>
         )}

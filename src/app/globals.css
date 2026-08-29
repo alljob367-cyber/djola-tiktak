@@ -312,3 +312,12 @@
   background-color: hsl(var(--muted-foreground) / 0.3);
   border-radius: 3px;
 }
+
+/* Barre d'onglets page publique — masque la scrollbar */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

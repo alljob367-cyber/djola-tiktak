@@ -5,30 +5,17 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, CalendarCheck, Users, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/i18n/provider';
 import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
 
-const features = [
-  {
-    icon: CalendarCheck,
-    title: 'Gérez vos rendez-vous',
-    description: 'Créez vos services, définissez vos disponibilités et recevez des réservations automatiquement.',
-  },
-  {
-    icon: Users,
-    title: 'Fidélisez vos clients',
-    description: 'Chaque client a son profil. Suivez l\'historique et envoyez des rappels automatiques.',
-  },
-  {
-    icon: Zap,
-    title: 'Gagnez du temps',
-    description: 'Plus besoin de gérer vos rendez-vous par téléphone. Tout se fait en ligne, 24h/24.',
-  },
-];
 
 export function WelcomeModal({ businessName }: { businessName: string }) {
+  const { t } = useI18n();
+  const W = t.dashboard.welcome;
+  const FEATURE_ICONS = [CalendarCheck, Users, Zap];
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -59,7 +46,7 @@ export function WelcomeModal({ businessName }: { businessName: string }) {
                 <Image src="/logo.png" alt="Djola TikTak" width={48} height={48} className="rounded-xl shadow-lg" />
               </motion.div>
               <div>
-                <h2 className="text-xl font-bold">Bienvenue !</h2>
+                <h2 className="text-xl font-bold">{W.title}</h2>
                 <p className="text-emerald-100 text-sm mt-0.5">{businessName}</p>
               </div>
             </div>
@@ -72,8 +59,8 @@ export function WelcomeModal({ businessName }: { businessName: string }) {
             className="mt-4"
           >
             <p className="text-emerald-50 text-sm leading-relaxed">
-              Merci d\'avoir choisi <span className="font-bold">Djola TikTak</span> !
-              Vous êtes à quelques étapes de recevoir vos premières réservations en ligne.
+              {W.subtitle} <span className="font-bold">Djola TikTak</span>
+              {W.subtitleEnd}
             </p>
           </motion.div>
 
@@ -85,8 +72,8 @@ export function WelcomeModal({ businessName }: { businessName: string }) {
 
         {/* Features */}
         <div className="px-6 py-5 space-y-4">
-          {features.map((feature, i) => {
-            const Icon = feature.icon;
+          {W.features.map((feature, i) => {
+            const Icon = FEATURE_ICONS[i];
             return (
               <motion.div
                 key={feature.title}
@@ -113,13 +100,13 @@ export function WelcomeModal({ businessName }: { businessName: string }) {
             onClick={handleDismiss}
             className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all duration-200 shadow-md shadow-emerald-200 dark:shadow-emerald-900/30"
           >
-            Commencer maintenant
+            {W.startNow}
           </Button>
           <button
             onClick={handleDismiss}
             className="w-full text-center text-xs text-muted-foreground hover:text-foreground mt-3 transition-colors"
           >
-            Plus tard
+            {W.later}
           </button>
         </div>
       </DialogContent>

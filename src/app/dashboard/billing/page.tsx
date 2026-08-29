@@ -44,6 +44,7 @@ import { cn } from '@/lib/utils';
 import { UsageMeter } from '@/components/billing/usage-meter';
 import { PlanCard } from '@/components/billing/plan-card';
 import { SubscriptionBadge } from '@/components/billing/subscription-badge';
+import { AdminPaymentsPanel } from '@/components/billing/admin-payments-panel';
 import type {
   PlanId,
   Plan,
@@ -53,6 +54,7 @@ import type {
   SubscriptionInfo,
 } from '@/types/database';
 import type { ConsumptionAlertLevel } from '@/lib/billing/types';
+import { useI18n } from '@/i18n/provider';
 
 // ── API response shape ───────────────────────────────────────
 
@@ -76,9 +78,9 @@ interface BillingData {
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function formatDateTime(dateStr: string | null): string {
+function formatDateTime(dateStr: string | null, intl: string): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('fr-FR', {
+  return new Date(dateStr).toLocaleDateString(intl, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -87,46 +89,40 @@ function formatDateTime(dateStr: string | null): string {
   });
 }
 
-function formatDate(dateStr: string | null): string {
+function formatDate(dateStr: string | null, intl: string): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('fr-FR', {
+  return new Date(dateStr).toLocaleDateString(intl, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
 }
 
-const PAYMENT_STATUS_CONFIG: Record<
-  string,
-  { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
-> = {
-  completed: { label: 'Complété', variant: 'default' },
-  pending: { label: 'En attente', variant: 'outline' },
-  processing: { label: 'En cours', variant: 'outline' },
-  failed: { label: 'Échoué', variant: 'destructive' },
-  refunded: { label: 'Remboursé', variant: 'secondary' },
-  expired: { label: 'Expiré', variant: 'secondary' },
+const PAYMENT_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  completed: 'default',
+  pending: 'outline',
+  processing: 'outline',
+  failed: 'destructive',
+  refunded: 'secondary',
+  expired: 'secondary',
 };
 
-const VOICE_ALERT_MESSAGES: Record<
+const VOICE_ALERT_STYLES: Record<
   ConsumptionAlertLevel,
-  { message: string; bg: string; border: string; text: string } | null
+  { bg: string; border: string; text: string } | null
 > = {
   none: null,
   warning: {
-    message: 'Vous avez utilisé 70% de vos crédits vocaux.',
     bg: 'bg-amber-50 dark:bg-amber-950/30',
     border: 'border-amber-200 dark:border-amber-800',
     text: 'text-amber-800 dark:text-amber-300',
   },
   critical: {
-    message: 'Il vous reste seulement 15% de vos crédits.',
     bg: 'bg-orange-50 dark:bg-orange-950/30',
     border: 'border-orange-200 dark:border-orange-800',
     text: 'text-orange-800 dark:text-orange-300',
   },
   exhausted: {
-    message: 'Votre quota est épuisé.',
     bg: 'bg-red-50 dark:bg-red-950/30',
     border: 'border-red-200 dark:border-red-800',
     text: 'text-red-800 dark:text-red-300',
@@ -219,6 +215,8 @@ function BillingSkeleton() {
 // ── Main page ────────────────────────────────────────────────
 
 export default function BillingPage() {
+  const { t, intl } = useI18n();
+  const B = t.dashboard.billing;
   const router = useRouter();
   const [data, setData] = useState<BillingData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -293,7 +291,7 @@ export default function BillingPage() {
         throw new Error(errData.error || 'Erreur lors de l\'annulation');
       }
       const result = await res.json();
-      toast.success('Abonnement annulé. Il restera actif jusqu\'à la fin de la période.');
+      toast.success(B.cancelledToast);
       await fetchData();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Erreur inconnue');
@@ -351,7 +349,13 @@ export default function BillingPage() {
 
   // Voice credit alert config
   const voiceAlertConfig = voiceAlert
-    ? VOICE_ALERT_MESSAGES[voiceAlert.level]
+    ? VOICE_ALERT_STYLES[voiceAlert.level]
+    : null;
+  const voiceAlertMessage = voiceAlert
+    ? voiceAlert.level === 'warning' ? B.voiceWarn70
+      : voiceAlert.level === 'critical' ? B.voiceWarn15
+      : voiceAlert.level === 'exhausted' ? B.voiceExhausted
+      : null
     : null;
 
   return (
@@ -360,12 +364,15 @@ export default function BillingPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
           <Cog size={24} className="text-muted-foreground" />
-          Abonnement et Facturation
+          {B.title}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Gérez votre abonnement, surveillez votre utilisation et consultez votre historique de paiements.
+          {B.subtitle}
         </p>
       </div>
+
+      {/* ── Validation admin des paiements Mobile Money ────── */}
+      <AdminPaymentsPanel />
 
       {/* ── 2. Current Plan Section ────────────────────────── */}
       <Card className="border-border">
@@ -381,7 +388,7 @@ export default function BillingPage() {
                   <h2 className="text-xl font-bold text-foreground">{currentPlanName}</h2>
                   {hasActiveSubscription && (
                     <p className="text-sm text-muted-foreground">
-                      {currentPlanPrice.toLocaleString('fr-FR')} FCFA / mois
+                      {B.perMonth(currentPlanPrice.toLocaleString('fr-FR'))}
                     </p>
                   )}
                 </div>
@@ -401,12 +408,12 @@ export default function BillingPage() {
                   <div className="flex items-center gap-2">
                     <Clock size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
                     <p className="text-sm text-amber-800 dark:text-amber-300">
-                      Essai expire le {formatDate(sub.trial_end)}
+                      {B.trialExpires(formatDate(sub.trial_end, intl))}
                     </p>
                   </div>
                   <Button size="sm" onClick={() => document.getElementById('plans-section')?.scrollIntoView({ behavior: 'smooth' })}>
                     <ArrowRight size={14} className="mr-1.5" />
-                    Passer à un plan payant
+                    {B.goPaid}
                   </Button>
                 </div>
               </div>
@@ -415,7 +422,7 @@ export default function BillingPage() {
             {sub.subscription_status === 'active' && !sub.is_trial && (
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
                 <p className="text-sm text-muted-foreground">
-                  Prochaine facturation : {formatDate(sub.subscription_end)}
+                  {B.nextBilling(formatDate(sub.subscription_end, intl))}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -423,30 +430,30 @@ export default function BillingPage() {
                     size="sm"
                     onClick={() => document.getElementById('plans-section')?.scrollIntoView({ behavior: 'smooth' })}
                   >
-                    Changer de plan
+                    {B.changePlan}
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30">
-                        Annuler l&apos;abonnement
+                        {B.cancelSubscription}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                        <AlertDialogTitle>{B.cancelTitle}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Votre abonnement restera actif jusqu&apos;à la fin de la période en cours. Vous ne serez plus facturé après cette date.
+                          {B.cancelDesc}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={handleCancelSubscription}
                           disabled={cancelLoading}
                           className="bg-red-600 hover:bg-red-700 text-white"
                         >
                           {cancelLoading && <Loader2 size={14} className="mr-1.5 animate-spin" />}
-                          Confirmer l&apos;annulation
+                          {B.cancelConfirm}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -459,10 +466,10 @@ export default function BillingPage() {
               <div className="rounded-xl border border-dashed border-2 border-muted-foreground/20 bg-muted/30 p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <p className="text-sm text-muted-foreground">
-                    Choisissez un plan pour continuer à utiliser Djola TikTak.
+                    {B.choosePlanTo}
                   </p>
                   <Button size="sm" onClick={() => router.push('/pricing')}>
-                    Voir les plans
+                    {B.seePlans}
                     <ArrowRight size={14} className="ml-1.5" />
                   </Button>
                 </div>
@@ -477,10 +484,10 @@ export default function BillingPage() {
         <CardHeader>
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <BarChart3 size={18} className="text-muted-foreground" />
-            Utilisation ce mois
+            {B.usageTitle}
           </CardTitle>
           <CardDescription>
-            Suivez votre consommation par rapport aux limites de votre plan.
+            {B.usageDesc}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 p-4 lg:p-6 pt-0">
@@ -506,7 +513,7 @@ export default function BillingPage() {
                     )}
                   />
                   <p className={cn('text-sm font-medium', voiceAlertConfig.text)}>
-                    {voiceAlertConfig.message}
+                    {voiceAlertMessage}
                   </p>
                 </div>
                 {voiceAlert?.level === 'exhausted' && (
@@ -516,7 +523,7 @@ export default function BillingPage() {
                     onClick={() => document.getElementById('plans-section')?.scrollIntoView({ behavior: 'smooth' })}
                   >
                     <ArrowRight size={14} className="mr-1.5" />
-                    Passer au plan supérieur
+                    {B.upgrade}
                   </Button>
                 )}
               </div>
@@ -530,7 +537,7 @@ export default function BillingPage() {
                 used={voiceAlert?.used ?? voiceUsage.current_usage}
                 total={voiceAlert?.total ?? voiceUsage.limit_value}
                 remaining={voiceAlert?.remaining ?? voiceUsage.remaining}
-                unitLabel="Rappels vocaux IA"
+                unitLabel={B.voiceUnit}
                 alertLevel={voiceAlert?.level ?? getAlertLevel(voiceUsage)}
               />
             </div>
@@ -557,22 +564,22 @@ export default function BillingPage() {
       {/* ── 4. Plan Selection Section ──────────────────────── */}
       <div id="plans-section" className="space-y-4">
         <h2 className="text-lg font-semibold text-foreground">
-          {hasActiveSubscription ? 'Changer de plan' : 'Choisir un plan'}
+          {hasActiveSubscription ? B.selectPlanTitle : B.selectPlanTitleNew}
         </h2>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs text-muted-foreground">Paiement en ligne via Chariow</span>
+          <span className="text-xs text-muted-foreground">{B.payOnline}</span>
           <span className="text-xs text-muted-foreground">|</span>
           <button
             onClick={() => router.push('/dashboard/payment/manual' + (sub.plan ? `?plan=${sub.plan}` : ''))}
             className="text-xs font-medium text-amber-700 hover:text-amber-800 hover:underline flex items-center gap-1"
           >
             <Phone size={12} />
-            Ou payer par Mobile Money (Orange / MTN)
+            {B.payMobileMoney}
           </button>
         </div>
         {plans.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
-            Aucun plan disponible actuellement. Contactez le support.
+            {B.noPlans}
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
@@ -595,9 +602,9 @@ export default function BillingPage() {
         <CardHeader>
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <CreditCard size={18} className="text-muted-foreground" />
-            Historique des paiements
+            {B.historyTitle}
           </CardTitle>
-          <CardDescription>Vos transactions récentes</CardDescription>
+          <CardDescription>{B.historyDesc}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {payments.length > 0 ? (
@@ -605,22 +612,22 @@ export default function BillingPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs uppercase">Date</TableHead>
-                    <TableHead className="text-xs uppercase">Plan</TableHead>
-                    <TableHead className="text-xs uppercase">Montant</TableHead>
-                    <TableHead className="text-xs uppercase">Statut</TableHead>
+                    <TableHead className="text-xs uppercase">{B.thDate}</TableHead>
+                    <TableHead className="text-xs uppercase">{B.thPlan}</TableHead>
+                    <TableHead className="text-xs uppercase">{B.thAmount}</TableHead>
+                    <TableHead className="text-xs uppercase">{B.thStatus}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {payments.slice(0, 10).map((payment) => {
-                    const cfg = PAYMENT_STATUS_CONFIG[payment.status] ?? {
-                      label: payment.status,
-                      variant: 'outline' as const,
+                    const cfg = {
+                      label: B.statusLabels[payment.status as keyof typeof B.statusLabels] ?? payment.status,
+                      variant: (PAYMENT_STATUS_VARIANT[payment.status] ?? 'outline') as 'outline',
                     };
                     return (
                       <TableRow key={payment.id}>
                         <TableCell className="text-sm">
-                          {formatDateTime(payment.created_at)}
+                          {formatDateTime(payment.created_at, intl)}
                         </TableCell>
                         <TableCell className="text-sm font-medium">
                           {payment.plan_name}
@@ -646,7 +653,7 @@ export default function BillingPage() {
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <CreditCard size={40} className="text-muted-foreground/30 mb-3" />
               <p className="text-sm text-muted-foreground">
-                Aucun paiement pour le moment.
+                {B.noPayments}
               </p>
             </div>
           )}

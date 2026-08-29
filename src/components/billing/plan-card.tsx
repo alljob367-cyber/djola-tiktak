@@ -4,6 +4,7 @@ import { Check, Loader2, ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useI18n } from '@/i18n/provider';
 import { cn } from '@/lib/utils';
 import type { PlanId, Plan } from '@/types/database';
 
@@ -22,6 +23,8 @@ export function PlanCard({
   onSelect,
   loading,
 }: PlanCardProps) {
+  const { t, intl } = useI18n();
+  const BC = t.dashboard.billingCmp;
   const includedFeatures = (plan.features ?? [])
     .filter((f) => f.included)
     .slice(0, 6);
@@ -61,10 +64,10 @@ export function PlanCard({
       {/* Price */}
       <div className="mb-5">
         <span className="text-3xl font-extrabold tracking-tight text-foreground">
-          {plan.price_monthly.toLocaleString('fr-FR')}
+          {plan.price_monthly.toLocaleString(intl)}
         </span>
         <span className="text-sm text-muted-foreground ml-1">
-          FCFA / mois
+          {BC.perMonth}
         </span>
       </div>
 
@@ -97,10 +100,10 @@ export function PlanCard({
         {loading ? (
           <Loader2 size={16} className="animate-spin" />
         ) : isCurrentPlan ? (
-          'Plan actuel'
+          BC.currentPlan
         ) : (
           <>
-            Passer à {plan.name}
+            {BC.switchTo(plan.name)}
             <ArrowRight size={16} className="ml-1" />
           </>
         )}

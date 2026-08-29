@@ -52,6 +52,8 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/i18n/provider';
+import { LanguageSwitcher } from '@/i18n/language-switcher';
 
 // ── Animation ────────────────────────────────────────────────
 const containerVariants = {
@@ -69,6 +71,8 @@ const itemVariants = {
 
 // ── Component ────────────────────────────────────────────────
 export default function SettingsPage() {
+  const { t } = useI18n();
+  const S = t.dashboard.settings;
   const router = useRouter();
   const supabase = createClient();
 
@@ -136,7 +140,7 @@ export default function SettingsPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Non authentifié');
+        toast.error(S.notAuthed);
         setPmSaving(false);
         return;
       }
@@ -154,9 +158,9 @@ export default function SettingsPage() {
         .eq('id', user.id);
 
       if (error) throw error;
-      toast.success('Moyens de paiement enregistrés');
+      toast.success(S.paymentsSaved);
     } catch {
-      toast.error('Erreur lors de l\'enregistrement');
+      toast.error(S.paymentsSaveError);
     } finally {
       setPmSaving(false);
     }
@@ -167,7 +171,7 @@ export default function SettingsPage() {
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
-      toast.success('Copié !');
+      toast.success(S.copied);
       setTimeout(() => setCopied(false), 2000);
     });
   };
@@ -177,15 +181,15 @@ export default function SettingsPage() {
     setPwdError('');
 
     if (!newPassword) {
-      setPwdError('Le nouveau mot de passe est requis');
+      setPwdError(S.pwdRequired);
       return;
     }
     if (newPassword.length < 8) {
-      setPwdError('Le mot de passe doit contenir au moins 8 caractères');
+      setPwdError(S.pwdMin);
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPwdError('Les mots de passe ne correspondent pas');
+      setPwdError(S.pwdMismatch);
       return;
     }
 
@@ -197,13 +201,13 @@ export default function SettingsPage() {
 
       if (error) throw error;
 
-      toast.success('Mot de passe modifié avec succès');
+      toast.success(S.pwdChanged);
       setPwdDialogOpen(false);
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : 'Erreur lors de la modification';
+        err instanceof Error ? err.message : S.pwdChangeError;
       setPwdError(msg);
     } finally {
       setPwdSubmitting(false);
@@ -217,7 +221,7 @@ export default function SettingsPage() {
       router.push('/login');
       router.refresh();
     } catch {
-      toast.error('Erreur lors de la déconnexion');
+      toast.error(S.logoutError);
     }
   };
 
@@ -231,14 +235,14 @@ export default function SettingsPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Erreur lors de la désactivation');
+        throw new Error(err.error || S.deactivateError);
       }
 
-      toast.info('Compte désactivé');
+      toast.info(S.deactivatedToast);
       await supabase.auth.signOut();
       router.push('/login');
     } catch {
-      toast.error('Erreur lors de la désactivation');
+      toast.error(S.deactivateError);
     } finally {
       setDeactivating(false);
     }
@@ -247,7 +251,7 @@ export default function SettingsPage() {
   // ── Delete account ────────────────────────────────────
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'SUPPRIMER') {
-      toast.error('Veuillez taper SUPPRIMER pour confirmer');
+      toast.error(S.typeDeleteError);
       return;
     }
 
@@ -259,10 +263,10 @@ export default function SettingsPage() {
         throw new Error('Erreur lors de la desactivation');
       }
       await supabase.auth.signOut();
-      toast.success('Compte desactive. Contactez le support pour une suppression definitive.');
+      toast.success(S.deleteToast);
       router.push('/login');
     } catch {
-      toast.error('Erreur lors de la desactivation du compte');
+      toast.error(S.deleteError);
     } finally {
       setDeleting(false);
     }
@@ -278,9 +282,9 @@ export default function SettingsPage() {
     >
       {/* Header */}
       <motion.div variants={itemVariants}>
-        <h1 className="text-2xl font-bold tracking-tight">Paramètres</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{S.title}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Gérez votre compte et vos préférences
+          {S.subtitle}
         </p>
       </motion.div>
 
@@ -290,19 +294,19 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Wallet size={16} className="text-emerald-600" />
-              Moyens de paiement locaux
+              {S.paymentTitle}
             </CardTitle>
             <CardDescription>
-              Configurez vos numéros pour recevoir des paiements anticipés de vos clients. Les clients qui paient en avance seront en priorité.
+              {S.paymentDesc}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Toggle */}
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-sm font-medium">Activer les paiements anticipés</p>
+                <p className="text-sm font-medium">{S.enablePayments}</p>
                 <p className="text-xs text-muted-foreground">
-                  Vos clients pourront vous payer en avance pour être prioritaires
+                  {S.enablePaymentsHint}
                 </p>
               </div>
               <Switch
@@ -321,8 +325,8 @@ export default function SettingsPage() {
                   <div className="flex gap-2">
                     <Info size={16} className="mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
                     <div className="text-xs text-blue-700 dark:text-blue-300">
-                      <p className="font-medium">Comment ça marche ?</p>
-                      <p className="mt-1">Vos clients verront vos numéros de paiement sur votre page de réservation. Ils pourront vous envoyer le montant du service en avance via Orange Money ou MTN MoMo. Les réservations payées en avance seront marquées comme prioritaires.</p>
+                      <p className="font-medium">{S.howItWorks}</p>
+                      <p className="mt-1">{S.howItWorksDesc}</p>
                     </div>
                   </div>
                 </div>
@@ -334,13 +338,13 @@ export default function SettingsPage() {
                       <span className="text-sm font-bold text-orange-600 dark:text-orange-400">OM</span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Orange Money</p>
-                      <p className="text-xs text-muted-foreground">Numéro pour recevoir les paiements</p>
+                      <p className="text-sm font-medium">{S.omTitle}</p>
+                      <p className="text-xs text-muted-foreground">{S.phoneForPayments}</p>
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="om-phone" className="text-xs">Numéro Orange Money</Label>
+                      <Label htmlFor="om-phone" className="text-xs">{S.omPhoneLabel}</Label>
                       <Input
                         id="om-phone"
                         type="tel"
@@ -352,11 +356,11 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="om-name" className="text-xs">Nom du titulaire</Label>
+                      <Label htmlFor="om-name" className="text-xs">{S.holderName}</Label>
                       <Input
                         id="om-name"
                         type="text"
-                        placeholder="Jean Kamga"
+                        placeholder={S.holderPlaceholder}
                         value={omName}
                         onChange={(e) => setOmName(e.target.value)}
                         disabled={pmSaving}
@@ -375,13 +379,13 @@ export default function SettingsPage() {
                       <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">MTN</span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium">MTN Mobile Money</p>
-                      <p className="text-xs text-muted-foreground">Numéro pour recevoir les paiements</p>
+                      <p className="text-sm font-medium">{S.mtnTitle}</p>
+                      <p className="text-xs text-muted-foreground">{S.phoneForPayments}</p>
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="mtn-phone" className="text-xs">Numéro MTN MoMo</Label>
+                      <Label htmlFor="mtn-phone" className="text-xs">{S.mtnPhoneLabel}</Label>
                       <Input
                         id="mtn-phone"
                         type="tel"
@@ -393,11 +397,11 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="mtn-name" className="text-xs">Nom du titulaire</Label>
+                      <Label htmlFor="mtn-name" className="text-xs">{S.holderName}</Label>
                       <Input
                         id="mtn-name"
                         type="text"
-                        placeholder="Jean Kamga"
+                        placeholder={S.holderPlaceholder}
                         value={mtnName}
                         onChange={(e) => setMtnName(e.target.value)}
                         disabled={pmSaving}
@@ -412,11 +416,11 @@ export default function SettingsPage() {
                 {/* Custom instructions */}
                 <div className="space-y-1.5">
                   <Label htmlFor="pm-instructions" className="text-xs">
-                    Instructions personnalisées (facultatif)
+                    {S.instructionsLabel}
                   </Label>
                   <Textarea
                     id="pm-instructions"
-                    placeholder="Ex: Envoyez la capture d'écran de votre transfert à mon numéro WhatsApp après le paiement..."
+                    placeholder={S.instructionsPlaceholder}
                     value={pmInstructions}
                     onChange={(e) => setPmInstructions(e.target.value)}
                     disabled={pmSaving}
@@ -433,7 +437,7 @@ export default function SettingsPage() {
                 >
                   {pmSaving && <Loader2 size={16} className="mr-2 animate-spin" />}
                   <CreditCard size={16} className="mr-2" />
-                  Enregistrer les paiements
+                  {S.savePayments}
                 </Button>
               </>
             )}
@@ -447,26 +451,26 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Mail size={16} className="text-emerald-600" />
-              Compte
+              {S.accountTitle}
             </CardTitle>
             <CardDescription>
-              Informations liées à votre compte
+              {S.accountDesc}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Adresse email</p>
+                <p className="text-sm font-medium">{S.emailLabel}</p>
                 <p className="text-sm text-muted-foreground">
                   {loadingEmail ? (
                     <span className="inline-block w-48 h-4 bg-muted rounded animate-pulse" />
                   ) : (
-                    email || 'Non défini'
+                    email || S.emailNotSet
                   )}
                 </p>
               </div>
               <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
-                Authentifié
+                {S.authed}
               </Badge>
             </div>
 
@@ -474,9 +478,9 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Mot de passe</p>
+                <p className="text-sm font-medium">{S.passwordLabel}</p>
                 <p className="text-xs text-muted-foreground">
-                  Modifiez votre mot de passe de connexion
+                  {S.passwordDesc}
                 </p>
               </div>
               <Button
@@ -489,7 +493,7 @@ export default function SettingsPage() {
                 }}
               >
                 <Lock size={14} className="mr-2" />
-                Changer
+                {S.change}
               </Button>
             </div>
 
@@ -497,14 +501,14 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Déconnexion</p>
+                <p className="text-sm font-medium">{S.logoutTitle}</p>
                 <p className="text-xs text-muted-foreground">
-                  Se déconnecter de votre session actuelle
+                  {S.logoutDesc}
                 </p>
               </div>
               <Button variant="outline" onClick={handleLogout}>
                 <LogOut size={14} className="mr-2" />
-                Se déconnecter
+                {S.logout}
               </Button>
             </div>
           </CardContent>
@@ -517,19 +521,19 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2 text-red-600 dark:text-red-400">
               <AlertTriangle size={16} />
-              Zone dangereuse
+              {S.dangerTitle}
             </CardTitle>
             <CardDescription>
-              Actions irréversibles sur votre compte
+              {S.dangerDesc}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Deactivate */}
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-sm font-medium">Désactiver le compte</p>
+                <p className="text-sm font-medium">{S.deactivateTitle}</p>
                 <p className="text-xs text-muted-foreground">
-                  Votre page publique sera masquée. Vous pourrez réactiver plus tard.
+                  {S.deactivateDesc}
                 </p>
               </div>
               <AlertDialog>
@@ -539,25 +543,25 @@ export default function SettingsPage() {
                     className="border-amber-200 text-amber-700 hover:bg-amber-50 shrink-0 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
                   >
                     <ShieldOff size={14} className="mr-2" />
-                    Désactiver
+                    {S.deactivate}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Désactiver votre compte ?</AlertDialogTitle>
+                    <AlertDialogTitle>{S.deactivateConfirmTitle}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Votre page de réservation sera immédiatement masquée pour vos clients. Vous pourrez vous reconnecter et réactiver votre compte à tout moment.
+                      {S.deactivateConfirmDesc}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDeactivate}
                       disabled={deactivating}
                       className="bg-amber-600 hover:bg-amber-700 text-white"
                     >
                       {deactivating && <Loader2 size={14} className="mr-2 animate-spin" />}
-                      Désactiver
+                      {S.deactivate}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -569,9 +573,9 @@ export default function SettingsPage() {
             {/* Delete */}
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-sm font-medium">Supprimer le compte</p>
+                <p className="text-sm font-medium">{S.deleteTitle}</p>
                 <p className="text-xs text-muted-foreground">
-                  Suppression définitive de toutes vos données.
+                  {S.deleteDesc}
                 </p>
               </div>
               <Button
@@ -583,7 +587,7 @@ export default function SettingsPage() {
                 className="border-red-200 text-red-700 hover:bg-red-50 shrink-0 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
               >
                 <Trash2 size={14} className="mr-2" />
-                Supprimer
+                {S.delete}
               </Button>
             </div>
           </CardContent>
@@ -594,14 +598,14 @@ export default function SettingsPage() {
       <Dialog open={pwdDialogOpen} onOpenChange={setPwdDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Changer le mot de passe</DialogTitle>
+            <DialogTitle>{S.pwdTitle}</DialogTitle>
             <DialogDescription>
-              Choisissez un nouveau mot de passe sécurisé.
+              {S.pwdDesc}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="new-pwd">Nouveau mot de passe</Label>
+              <Label htmlFor="new-pwd">{S.newPwd}</Label>
               <Input
                 id="new-pwd"
                 type="password"
@@ -611,7 +615,7 @@ export default function SettingsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-pwd">Confirmer le mot de passe</Label>
+              <Label htmlFor="confirm-pwd">{S.confirmPwd}</Label>
               <Input
                 id="confirm-pwd"
                 type="password"
@@ -630,7 +634,7 @@ export default function SettingsPage() {
               onClick={() => setPwdDialogOpen(false)}
               disabled={pwdSubmitting}
             >
-              Annuler
+              {t.common.cancel}
             </Button>
             <Button
               onClick={handleChangePassword}
@@ -638,7 +642,7 @@ export default function SettingsPage() {
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {pwdSubmitting && <Loader2 size={14} className="mr-2 animate-spin" />}
-              Modifier
+              {S.modify}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -649,20 +653,20 @@ export default function SettingsPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-red-600 dark:text-red-400">
-              Supprimer définitivement votre compte ?
+              {S.deleteConfirmTitle}
             </DialogTitle>
             <DialogDescription>
-              Cette action est irréversible. Toutes vos données, services, clients et rendez-vous seront définitivement supprimés.
+              {S.deleteConfirmDesc}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/20">
               <p className="text-sm text-red-700 dark:text-red-400">
-                Pour confirmer, tapez <strong>SUPPRIMER</strong> ci-dessous :
+                {S.typeDelete} <strong>{S.deleteWord}</strong> :
               </p>
             </div>
             <Input
-              placeholder="Tapez SUPPRIMER"
+              placeholder={S.typeDeletePlaceholder}
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
             />
@@ -673,7 +677,7 @@ export default function SettingsPage() {
               onClick={() => setDeleteDialogOpen(false)}
               disabled={deleting}
             >
-              Annuler
+              {t.common.cancel}
             </Button>
             <Button
               onClick={handleDeleteAccount}
@@ -682,7 +686,7 @@ export default function SettingsPage() {
             >
               {deleting && <Loader2 size={14} className="mr-2 animate-spin" />}
               <Trash2 size={14} className="mr-2" />
-              Supprimer mon compte
+              {S.deleteMyAccount}
             </Button>
           </DialogFooter>
         </DialogContent>

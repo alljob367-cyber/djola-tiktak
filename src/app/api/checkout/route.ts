@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, createServiceRoleClient } from '@/lib/supabase/server';
 import { createCheckout } from '@/lib/subscription/chariow';
-import { CHARIOW_PRODUCT_IDS, getPlan } from '@/lib/subscription/plans';
+import { getChariowProductId, getPlan } from '@/lib/subscription/plans';
 import type { PlanId, BillingPeriod } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -40,16 +40,16 @@ export async function POST(request: NextRequest) {
     const planName: string = plan.name;
     const amount = period === 'yearly' ? plan.price_yearly : plan.price_monthly;
 
-    // 3. Get the Chariow product ID
-    const productId = CHARIOW_PRODUCT_IDS[selectedPlan];
-    if (
-      !productId ||
-      productId.startsWith('starter_product_id') ||
-      productId.startsWith('pro_product_id') ||
-      productId.startsWith('business_product_id')
-    ) {
+    // 3. Get the Chariow product ID for this plan × billing period
+    //    (annuel = produit distinct CHARIOW_PRODUCT_<PLAN>_YEARLY)
+    const productId = getChariowProductId(selectedPlan, period);
+    if (!productId) {
       return NextResponse.json(
-        { error: 'Le produit Chariow pour ce plan n\'est pas encore configuré. Veuillez contacter le support.' },
+        {
+          error: period === 'yearly'
+            ? 'Le paiement annuel pour ce plan n\'est pas encore disponible. Choisissez l\'abonnement mensuel ou payer par Mobile Money.'
+            : 'Le produit Chariow pour ce plan n\'est pas encore configuré. Veuillez contacter le support.',
+        },
         { status: 503 },
       );
     }
@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
         phone: profile.phone || '',
         profileId: user.id,
         planId: selectedPlan,
+        billingPeriod: period,
       });
 
       // 6. Update payment record with Chariow sale ID and checkout URL

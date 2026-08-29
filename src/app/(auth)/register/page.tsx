@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Loader2, Mail, Lock, Eye, EyeOff, Building2, CalendarCheck, Check, Phone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/i18n/provider';
+import { LanguageSwitcher } from '@/i18n/language-switcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +30,7 @@ interface FormErrors {
 }
 
 function PasswordStrength({ password }: { password: string }) {
+  const { t } = useI18n();
   const getStrength = (pw: string) => {
     let score = 0;
     if (pw.length >= 8) score++;
@@ -41,7 +44,7 @@ function PasswordStrength({ password }: { password: string }) {
   const strength = getStrength(password);
   if (!password) return null;
 
-  const labels = ['Très faible', 'Faible', 'Moyen', 'Fort', 'Très fort'];
+  const labels = [t.auth.register.strength[0], t.auth.register.strength[1], t.auth.register.strength[2], t.auth.register.strength[3], t.auth.register.strength[4]];
   const colors = [
     'bg-red-400',
     'bg-orange-400',
@@ -82,6 +85,7 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function RegisterPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -97,31 +101,31 @@ export default function RegisterPage() {
     const newErrors: FormErrors = {};
 
     if (!businessName.trim()) {
-      newErrors.business_name = 'Le nom de votre entreprise est requis';
+      newErrors.business_name = t.auth.register.businessNameRequired;
     } else if (businessName.trim().length < 2) {
-      newErrors.business_name = 'Le nom doit contenir au moins 2 caractères';
+      newErrors.business_name = t.auth.register.businessNameShort;
     }
 
     if (phone.trim() && !/^[+]?[0-9]{8,15}$/.test(phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Numéro de téléphone invalide';
+      newErrors.phone = t.auth.register.phoneInvalid;
     }
 
     if (!email.trim()) {
-      newErrors.email = "L'e-mail est requis";
+      newErrors.email = t.auth.login.emailRequired;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Format d'e-mail invalide";
+      newErrors.email = t.auth.login.emailInvalid;
     }
 
     if (!password) {
-      newErrors.password = 'Le mot de passe est requis';
+      newErrors.password = t.auth.login.passwordRequired;
     } else if (password.length < 8) {
-      newErrors.password = 'Le mot de passe doit contenir au moins 8 caractères';
+      newErrors.password = t.auth.register.passwordMin;
     }
 
     if (!confirmPassword) {
-      newErrors.confirmPassword = 'Veuillez confirmer votre mot de passe';
+      newErrors.confirmPassword = t.auth.register.confirmRequired;
     } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+      newErrors.confirmPassword = t.auth.register.confirmMismatch;
     }
 
     setErrors(newErrors);
@@ -149,11 +153,11 @@ export default function RegisterPage() {
 
       if (error) {
         if (error.message.includes('already registered')) {
-          toast.error('E-mail déjà utilisé', {
-            description: 'Un compte existe déjà avec cette adresse. Essayez de vous connecter.',
+          toast.error(t.auth.register.emailUsed, {
+            description: t.auth.register.emailUsedDesc,
           });
         } else {
-          toast.error('Erreur lors de l\'inscription', {
+          toast.error(t.common.error, {
             description: error.message,
           });
         }
@@ -175,8 +179,8 @@ export default function RegisterPage() {
         console.warn('[register] Custom email send error:', emailErr);
       }
 
-      toast.success('Compte créé ! Vérifiez votre e-mail.', {
-        description: 'Un lien de confirmation a été envoyé.',
+      toast.success(t.auth.register.successToast, {
+        description: t.auth.register.successToastDesc,
         duration: 5000,
       });
 
@@ -185,13 +189,13 @@ export default function RegisterPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue';
       if (message.includes('n\'est pas configuré')) {
-        toast.error('Service non configuré', {
-          description: 'Supabase n\'est pas encore configuré. Suivez le guide DEPLOYMENT.md pour configurer votre projet.',
+        toast.error(t.auth.common.serviceNotConfigured, {
+          description: t.auth.common.serviceNotConfiguredDesc,
           duration: 8000,
         });
       } else {
-        toast.error('Erreur de connexion', {
-          description: 'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
+        toast.error(t.auth.common.connectionError, {
+          description: t.auth.common.connectionErrorDesc,
         });
       }
     } finally {
@@ -200,6 +204,8 @@ export default function RegisterPage() {
   };
 
   return (
+    <>
+    <div className="fixed right-4 top-4 z-50"><LanguageSwitcher compact /></div>
     <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-stone-50 via-white to-emerald-50/40">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -221,17 +227,17 @@ export default function RegisterPage() {
             Djola TikTak
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Rejoignez des centaines de professionnels
+            {t.auth.register.tagline}
           </p>
         </motion.div>
 
         <Card className="border-0 shadow-xl shadow-black/5">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-xl font-semibold text-center">
-              Créer votre compte
+              {t.auth.register.title}
             </CardTitle>
             <CardDescription className="text-center text-sm">
-              Inscrivez votre entreprise et commencez à recevoir des réservations
+              {t.auth.register.subtitle}
             </CardDescription>
           </CardHeader>
 
@@ -240,14 +246,14 @@ export default function RegisterPage() {
               {/* Business Name */}
               <div className="space-y-2">
                 <Label htmlFor="business_name" className="text-sm font-medium">
-                  Nom de l'entreprise
+                  {t.auth.register.businessName}
                 </Label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="business_name"
                     type="text"
-                    placeholder="Ex : Restaurant Le Baobab"
+                    placeholder={t.auth.register.businessNamePlaceholder}
                     value={businessName}
                     onChange={(e) => {
                       setBusinessName(e.target.value);
@@ -276,14 +282,14 @@ export default function RegisterPage() {
               {/* Phone */}
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-sm font-medium">
-                  Numéro de téléphone <span className="text-muted-foreground font-normal">(optionnel)</span>
+                  {t.auth.register.phone} <span className="text-muted-foreground font-normal">({t.common.optional})</span>
                 </Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="+237 6XX XXX XXX"
+                    placeholder={t.auth.register.phonePlaceholder}
                     value={phone}
                     onChange={(e) => {
                       setPhone(e.target.value);
@@ -311,7 +317,7 @@ export default function RegisterPage() {
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">
-                  Adresse e-mail
+                  {t.auth.login.email}
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -346,7 +352,7 @@ export default function RegisterPage() {
               {/* Password */}
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium">
-                  Mot de passe
+                  {t.auth.login.password}
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -367,7 +373,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    aria-label={showPassword ? t.auth.login.hidePassword : t.auth.login.showPassword}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -390,7 +396,7 @@ export default function RegisterPage() {
               {/* Confirm Password */}
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword" className="text-sm font-medium">
-                  Confirmer le mot de passe
+                  {t.auth.register.confirmPassword}
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -428,7 +434,7 @@ export default function RegisterPage() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                     aria-label={
-                      showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
+                      showConfirmPassword ? t.auth.login.hidePassword : t.auth.login.showPassword
                     }
                   >
                     {showConfirmPassword ? (
@@ -468,7 +474,7 @@ export default function RegisterPage() {
                       className="flex items-center gap-2"
                     >
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Création du compte…
+                      {t.auth.register.submitting}
                     </motion.span>
                   ) : (
                     <motion.span
@@ -477,7 +483,7 @@ export default function RegisterPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                     >
-                      Créer mon compte
+                      {t.auth.register.submit}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -491,11 +497,11 @@ export default function RegisterPage() {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Déjà inscrit ?</span>
+                <span className="bg-card px-2 text-muted-foreground">{t.auth.register.alreadyRegistered}</span>
               </div>
             </div>
             <Button asChild variant="outline" className="w-full h-11 text-sm font-medium">
-              <Link href="/login">Se connecter</Link>
+              <Link href="/login">{t.auth.register.login}</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -507,17 +513,18 @@ export default function RegisterPage() {
           transition={{ delay: 0.6 }}
           className="text-center text-xs text-muted-foreground mt-6"
         >
-          En créant un compte, vous acceptez nos{' '}
+          {' '}{t.auth.register.termsPre}{' '}
           <span className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors">
-            conditions d&rsquo;utilisation
+            {t.auth.common.terms}
           </span>{' '}
-          et notre{' '}
+          {t.auth.common.and}{' '}
           <span className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors">
-            politique de confidentialité
+            {t.auth.common.privacy}
           </span>
           .
         </motion.p>
       </motion.div>
     </main>
+      </>
   );
 }

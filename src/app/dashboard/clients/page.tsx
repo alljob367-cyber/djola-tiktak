@@ -51,6 +51,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Client } from '@/types/database';
+import { useI18n } from '@/i18n/provider';
 
 // ── Types ──────────────────────────────────────────────────────
 interface ClientFormData {
@@ -79,8 +80,8 @@ const cardVariants = {
 };
 
 // ── Helpers ────────────────────────────────────────────────────
-function formatDateFR(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
+function formatDateLocal(iso: string, intl: string): string {
+  return new Date(iso).toLocaleDateString(intl, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -89,6 +90,8 @@ function formatDateFR(iso: string): string {
 
 // ── Component ──────────────────────────────────────────────────
 export default function ClientsPage() {
+  const { t, intl } = useI18n();
+  const C = t.dashboard.clients;
   const [clients, setClients] = useState<Client[]>([]);
   const [appointmentCounts, setAppointmentCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -121,7 +124,7 @@ export default function ClientsPage() {
       const json = await res.json();
       setClients(json.data ?? []);
     } catch {
-      toast.error('Impossible de charger les clients');
+      toast.error(C.loadError);
     } finally {
       setLoading(false);
     }
@@ -179,15 +182,15 @@ export default function ClientsPage() {
   // ── Submit ──────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!form.name.trim()) {
-      toast.error('Le nom est requis');
+      toast.error(C.nameRequired);
       return;
     }
     if (!form.phone.trim()) {
-      toast.error('Le téléphone est requis');
+      toast.error(C.phoneRequired);
       return;
     }
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      toast.error('Email invalide');
+      toast.error(C.emailInvalid);
       return;
     }
 
@@ -213,11 +216,11 @@ export default function ClientsPage() {
         throw new Error(err.error || 'Erreur serveur');
       }
 
-      toast.success(editingId ? 'Client mis à jour' : 'Client ajouté');
+      toast.success(editingId ? C.updated : C.created);
       setDialogOpen(false);
       fetchClients();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de l'enregistrement");
+      toast.error(err instanceof Error ? err.message : C.saveError);
     } finally {
       setSubmitting(false);
     }
@@ -232,10 +235,10 @@ export default function ClientsPage() {
         const err = await res.json();
         throw new Error(err.error || 'Erreur serveur');
       }
-      toast.success('Client supprimé');
+      toast.success(C.deleted);
       fetchClients();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+      toast.error(err instanceof Error ? err.message : C.deleteError);
     } finally {
       setDeleting(false);
     }
@@ -247,14 +250,14 @@ export default function ClientsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{C.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {clients.length} client{clients.length !== 1 ? 's' : ''} enregistré{clients.length !== 1 ? 's' : ''}
+            {C.subtitle(clients.length)}
           </p>
         </div>
         <Button onClick={openCreate} className="bg-emerald-600 hover:bg-emerald-700 text-white">
           <Plus size={16} className="mr-2" />
-          Ajouter un client
+          {C.add}
         </Button>
       </div>
 
@@ -262,7 +265,7 @@ export default function ClientsPage() {
       <div className="relative max-w-md">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Rechercher par nom, téléphone ou email..."
+          placeholder={C.searchPlaceholder}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -282,11 +285,11 @@ export default function ClientsPage() {
             <div className="rounded-full bg-emerald-50 p-4 mb-4 dark:bg-emerald-950/30">
               <Users size={32} className="text-emerald-500" />
             </div>
-            <h3 className="font-semibold text-lg">Aucun client</h3>
+            <h3 className="font-semibold text-lg">{C.emptyTitle}</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
               {search
-                ? 'Aucun client ne correspond à votre recherche.'
-                : 'Vos clients apparaîtront ici dès la première réservation.'}
+                ? C.emptySearch
+                : C.emptyDesc}
             </p>
             {!search && (
               <Button
@@ -295,7 +298,7 @@ export default function ClientsPage() {
                 className="mt-4 border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
               >
                 <Plus size={16} className="mr-2" />
-                Ajouter un client
+                {C.add}
               </Button>
             )}
           </CardContent>
@@ -309,12 +312,12 @@ export default function ClientsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nom</TableHead>
-                      <TableHead>Téléphone</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>RDV</TableHead>
-                      <TableHead>Inscrit le</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>{C.tableName}</TableHead>
+                      <TableHead>{C.tablePhone}</TableHead>
+                      <TableHead>{C.tableEmail}</TableHead>
+                      <TableHead>{C.tableAppointments}</TableHead>
+                      <TableHead>{C.tableRegistered}</TableHead>
+                      <TableHead className="text-right">{C.tableActions}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -353,7 +356,7 @@ export default function ClientsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {formatDateFR(c.created_at)}
+                            {formatDateLocal(c.created_at, intl)}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -377,20 +380,20 @@ export default function ClientsPage() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Supprimer ce client ?</AlertDialogTitle>
+                                    <AlertDialogTitle>{C.deleteTitle}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Cette action est irréversible. Le client «&nbsp;{c.name}&nbsp;» et toutes ses données seront supprimés.
+                                      {C.deleteDesc.replace('Le client et', `Le client « ${c.name} » et`).replace('The client and', `The client "${c.name}" and`).replace('El cliente y', `El cliente « ${c.name} » y`)}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() => handleDelete(c.id)}
                                       disabled={deleting}
                                       className="bg-red-600 hover:bg-red-700 text-white"
                                     >
                                       {deleting && <Loader2 size={14} className="mr-2 animate-spin" />}
-                                      Supprimer
+                                      {t.common.delete}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -438,10 +441,10 @@ export default function ClientsPage() {
                           <div className="flex items-center gap-3 mt-2">
                             <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                               <CalendarDays size={12} className="mr-1" />
-                              {appointmentCounts[c.id] ?? 0} RDV
+                              {appointmentCounts[c.id] ?? 0} {C.tableAppointments}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
-                              Inscrit le {formatDateFR(c.created_at)}
+                              {C.registeredOn(formatDateLocal(c.created_at, intl))}
                             </span>
                           </div>
                         </div>
@@ -466,20 +469,20 @@ export default function ClientsPage() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Supprimer ce client ?</AlertDialogTitle>
+                                <AlertDialogTitle>{C.deleteTitle}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Cette action est irréversible. Le client «&nbsp;{c.name}&nbsp;» sera définitivement supprimé.
+                                  {C.deleteDesc.replace('et toutes ses données seront supprimés', 'sera définitivement supprimé').replace('and all their data will be deleted', 'will be permanently deleted').replace('y todos sus datos se eliminarán', 'se eliminará definitivamente').replace('Le client et', `Le client « ${c.name} » et`).replace('The client and', `The client "${c.name}" and`).replace('El cliente y', `El cliente « ${c.name} » y`)}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => handleDelete(c.id)}
                                   disabled={deleting}
                                   className="bg-red-600 hover:bg-red-700 text-white"
                                 >
                                   {deleting && <Loader2 size={14} className="mr-2 animate-spin" />}
-                                  Supprimer
+                                  {t.common.delete}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -500,43 +503,43 @@ export default function ClientsPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? 'Modifier le client' : 'Nouveau client'}
+              {editingId ? C.editTitle : C.createTitle}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="cl-name">Nom *</Label>
+              <Label htmlFor="cl-name">{C.nameLabel}</Label>
               <Input
                 id="cl-name"
-                placeholder="Nom complet"
+                placeholder={C.namePlaceholder}
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cl-phone">Téléphone *</Label>
+              <Label htmlFor="cl-phone">{C.phoneLabel}</Label>
               <Input
                 id="cl-phone"
-                placeholder="+237 6XX XXX XXX"
+                placeholder={C.phonePlaceholder}
                 value={form.phone}
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cl-email">Email</Label>
+              <Label htmlFor="cl-email">{C.emailLabel}</Label>
               <Input
                 id="cl-email"
                 type="email"
-                placeholder="email@exemple.com"
+                placeholder={C.emailPlaceholder}
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cl-notes">Notes</Label>
+              <Label htmlFor="cl-notes">{C.notesLabel}</Label>
               <Textarea
                 id="cl-notes"
-                placeholder="Informations supplémentaires..."
+                placeholder={C.notesPlaceholder}
                 rows={2}
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -549,7 +552,7 @@ export default function ClientsPage() {
               onClick={() => setDialogOpen(false)}
               disabled={submitting}
             >
-              Annuler
+              {t.common.cancel}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -557,7 +560,7 @@ export default function ClientsPage() {
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {submitting && <Loader2 size={14} className="mr-2 animate-spin" />}
-              {editingId ? 'Enregistrer' : 'Ajouter'}
+              {editingId ? C.save : C.addBtn}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -15,8 +15,11 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
+import { useI18n } from '@/i18n/provider';
+import { LanguageSwitcher } from '@/i18n/language-switcher';
 
 export default function VerifyEmailPage() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -37,14 +40,14 @@ export default function VerifyEmailPage() {
       }
 
       setSent(true);
-      toast.success('E-mail renvoyé !', {
+      toast.success(t.auth.verify.resendToast, {
         description: data.method === 'resend'
-          ? 'Vérifiez votre boîte de réception.'
-          : 'E-mail envoyé via le système par défaut.',
+          ? t.auth.verify.resendToastDescA
+          : t.auth.verify.resendToastDescB,
       });
     } catch (err) {
-      toast.error('Erreur', {
-        description: err instanceof Error ? err.message : 'Impossible de renvoyer l\'e-mail.',
+      toast.error(t.auth.verify.errorTitle, {
+        description: err instanceof Error ? err.message : t.auth.verify.errorDesc,
       });
     } finally {
       setLoading(false);
@@ -59,6 +62,8 @@ export default function VerifyEmailPage() {
   }, []);
 
   return (
+    <>
+    <div className="fixed right-4 top-4 z-50"><LanguageSwitcher compact /></div>
     <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-stone-50 via-white to-emerald-50/40">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -85,40 +90,39 @@ export default function VerifyEmailPage() {
             )}
           </motion.div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
-            Vérifiez votre e-mail
+            {t.auth.verify.title}
           </h1>
           <p className="text-sm text-muted-foreground mt-2 text-center max-w-sm">
-            Nous avons envoyé un lien de confirmation à votre adresse e-mail.
-            Cliquez dessus pour activer votre compte.
+            {t.auth.verify.subtitle}
           </p>
         </motion.div>
 
         <Card className="border-0 shadow-xl shadow-black/5">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-lg font-semibold text-center">
-              Une dernière étape !
+              {t.auth.verify.cardTitle}
             </CardTitle>
             <CardDescription className="text-center text-sm">
               {sent
-                ? "L'e-mail de confirmation a été renvoyé avec succès."
-                : "Vérifiez votre boîte de réception et vos spams."}
+                ? t.auth.verify.resentDesc
+                : t.auth.verify.checkDesc}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {!sent && email && (
               <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <p className="text-sm text-muted-foreground">Envoyé à</p>
+                <p className="text-sm text-muted-foreground">{t.auth.verify.sentTo}</p>
                 <p className="text-sm font-medium text-foreground mt-0.5">{email}</p>
               </div>
             )}
 
             {!email && (
               <div className="space-y-2">
-                <Label htmlFor="verify-email-input">Votre adresse e-mail</Label>
+                <Label htmlFor="verify-email-input">{t.auth.verify.emailLabel}</Label>
                 <Input
                   id="verify-email-input"
                   type="email"
-                  placeholder="vous@exemple.com"
+                  placeholder={t.auth.login.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-11"
@@ -137,18 +141,19 @@ export default function VerifyEmailPage() {
               ) : (
                 <RefreshCw className="h-4 w-4 mr-2" />
               )}
-              Renvoyer l'e-mail de confirmation
+              {t.auth.verify.resend}
             </Button>
 
             <Button asChild variant="ghost" className="w-full">
               <Link href="/login">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Retour à la connexion
+                {t.auth.verify.backToLogin}
               </Link>
             </Button>
           </CardContent>
         </Card>
       </motion.div>
     </main>
+      </>
   );
 }

@@ -77,12 +77,40 @@ export interface ChariowWebhookPayload {
 
 const CHARIOW_BASE_URL = 'https://api.chariow.com/v1';
 
-/** Chariow product ID mapping (configured via env vars) */
-const CHARIOW_PRODUCT_IDS: Record<PlanId, string> = {
+/** Chariow product ID mapping (configured via env vars).
+ *  Un produit par plan × période : les prix Chariow sont fixes par produit,
+ *  donc mensuel et annuel = 2 produits distincts (6 au total).
+ *  Variables : CHARIOW_PRODUCT_<PLAN> (mensuel) et
+ *              CHARIOW_PRODUCT_<PLAN>_YEARLY (annuel, optionnel :
+ *              si absent, l'annuel est désactivé pour ce plan). */
+export const CHARIOW_PRODUCT_IDS: Record<PlanId, string> = {
   starter: process.env.CHARIOW_PRODUCT_STARTER || 'starter_product_id',
   pro: process.env.CHARIOW_PRODUCT_PRO || 'pro_product_id',
   business: process.env.CHARIOW_PRODUCT_BUSINESS || 'business_product_id',
 };
+
+export const CHARIOW_PRODUCT_IDS_YEARLY: Record<PlanId, string> = {
+  starter: process.env.CHARIOW_PRODUCT_STARTER_YEARLY || '',
+  pro: process.env.CHARIOW_PRODUCT_PRO_YEARLY || '',
+  business: process.env.CHARIOW_PRODUCT_BUSINESS_YEARLY || '',
+};
+
+/** Placeholder prefixes used to detect unconfigured products. */
+const PLACEHOLDER_PREFIXES = ['starter_product_id', 'pro_product_id', 'business_product_id'];
+
+function isPlaceholder(id: string | undefined | null): boolean {
+  return !id || PLACEHOLDER_PREFIXES.some((p) => id.startsWith(p));
+}
+
+/** Resolve the Chariow product ID for a plan × billing period. */
+export function getChariowProductId(planId: PlanId, period: BillingPeriod): { productId: string | null } {
+  if (period === 'yearly') {
+    const yearlyId = CHARIOW_PRODUCT_IDS_YEARLY[planId];
+    return { productId: isPlaceholder(yearlyId) || yearlyId === '' ? null : yearlyId };
+  }
+  const monthlyId = CHARIOW_PRODUCT_IDS[planId];
+  return { productId: isPlaceholder(monthlyId) ? null : monthlyId };
+}
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -149,16 +177,13 @@ export const chariowProvider: PaymentProvider = {
     const apiKey = getApiKey();
     const { first_name, last_name } = parseName(params.fullName);
     const phoneParts = extractPhoneParts(params.phone);
-    const productId = CHARIOW_PRODUCT_IDS[params.planId];
+    const { productId } = getChariowProductId(params.planId, params.billingPeriod);
 
-    if (
-      !productId ||
-      productId.startsWith('starter_product_id') ||
-      productId.startsWith('pro_product_id') ||
-      productId.startsWith('business_product_id')
-    ) {
+    if (!productId) {
       throw new Error(
-        'Le produit Chariow pour ce plan n\'est pas encore configuré. Veuillez contacter le support.',
+        params.billingPeriod === 'yearly'
+          ? 'Le paiement annuel pour ce plan n\'est pas encore disponible. Choisissez l\'abonnement mensuel ou contactez le support.'
+          : 'Le produit Chariow pour ce plan n\'est pas encore configuré. Veuillez contacter le support.',
       );
     }
 
@@ -172,6 +197,7 @@ export const chariowProvider: PaymentProvider = {
       custom_metadata: {
         profile_id: params.profileId,
         plan_id: params.planId,
+        billing_period: params.billingPeriod,
         source: 'djola-tiktak',
       },
     };

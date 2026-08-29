@@ -17,6 +17,7 @@ export function PWAInstallPrompt() {
     // Check if already dismissed
     const wasDismissed = localStorage.getItem('pwa-install-dismissed');
     if (wasDismissed) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- lecture localStorage au montage
       setDismissed(true);
       return;
     }

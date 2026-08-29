@@ -2,6 +2,7 @@
 
 import { CheckCircle, Clock, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useI18n } from '@/i18n/provider';
 import { cn } from '@/lib/utils';
 
 interface SubscriptionBadgeProps {
@@ -16,10 +17,9 @@ export function SubscriptionBadge({
   daysRemaining,
   isTrial,
 }: SubscriptionBadgeProps) {
-  const daysText =
-    daysRemaining !== null
-      ? `${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`
-      : '';
+  const { t } = useI18n();
+  const BC = t.dashboard.billingCmp;
+  const daysText = daysRemaining !== null ? BC.daysLeft(daysRemaining) : '';
 
   if (isTrial && (status === 'trialing' || status === 'active')) {
     return (
@@ -30,7 +30,7 @@ export function SubscriptionBadge({
         )}
       >
         <Clock size={12} className="mr-1.5" />
-        Essai – {daysText}
+        {BC.trial} – {daysText}
       </Badge>
     );
   }
@@ -44,7 +44,7 @@ export function SubscriptionBadge({
         )}
       >
         <CheckCircle size={12} className="mr-1.5" />
-        Actif – {daysText}
+        {BC.active} – {daysText}
       </Badge>
     );
   }
@@ -58,7 +58,7 @@ export function SubscriptionBadge({
         )}
       >
         <XCircle size={12} className="mr-1.5" />
-        Annulé – expire bientôt
+        {BC.cancelled}
       </Badge>
     );
   }
@@ -72,7 +72,7 @@ export function SubscriptionBadge({
       )}
     >
       <XCircle size={12} className="mr-1.5" />
-      Expiré
+      {BC.expired}
     </Badge>
   );
 }

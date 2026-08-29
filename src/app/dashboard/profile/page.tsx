@@ -50,25 +50,26 @@ import { BUSINESS_TYPE_LIST } from '@/lib/business-types';
 import AppearanceCard from '@/components/dashboard/appearance-card';
 import PromoManager from '@/components/dashboard/promo-manager';
 import type { Profile } from '@/types/database';
+import { useI18n } from '@/i18n/provider';
 
 // ── Zod schema ─────────────────────────────────────────────
 const profileFormSchema = z.object({
-  business_name: z.string().min(1, 'Le nom est requis').max(100),
+  business_name: z.string().min(1, 'nameRequired').max(100),
   business_type: z.enum([
     'salon', 'restaurant', 'clinic', 'fitness', 'education',
     'auto', 'shop', 'saas', 'artisan', 'other',
   ]),
   slug: z
     .string()
-    .min(3, 'Le slug doit faire au moins 3 caractères')
+    .min(3, 'slugMin')
     .max(60)
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      'Format invalide. Utilisez des lettres minuscules et des tirets.'
+      'slugFormat'
     ),
   description: z.string().max(500),
   phone: z.string().max(20),
-  email: z.string().email('Email invalide').optional().or(z.literal('')),
+  email: z.string().email('emailInvalid').optional().or(z.literal('')),
   currency: z.string(),
   timezone: z.string(),
   // Social media
@@ -116,6 +117,8 @@ const itemVariants = {
 
 // ── Component ────────────────────────────────────────────────
 export default function ProfilePage() {
+  const { t } = useI18n();
+  const P = t.dashboard.profile;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -146,9 +149,9 @@ export default function ProfilePage() {
     try {
       const res = await fetch('/api/verify/resend-email', { method: 'POST' });
       if (!res.ok) throw new Error();
-      toast.success('E-mail de vérification envoyé !');
+      toast.success(P.resendSent);
     } catch {
-      toast.error('Erreur lors de l\'envoi');
+      toast.error(P.resendError);
     } finally {
       setResending(false);
     }
@@ -201,7 +204,7 @@ export default function ProfilePage() {
         setValue('google_maps_url', p.google_maps_url || '');
         setValue('youtube_url', p.youtube_url || '');
       } catch {
-        toast.error('Impossible de charger le profil');
+        toast.error(P.loadError);
       } finally {
         setLoading(false);
       }
@@ -237,9 +240,9 @@ export default function ProfilePage() {
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
-      toast.success('Lien copié !');
+      toast.success(P.copied);
       setTimeout(() => setCopied(false), 2000);
-    } catch { toast.error('Impossible de copier le lien'); }
+    } catch { toast.error(P.copyError); }
   };
 
   // ── Auto-generate slug ──────────────────────────────
@@ -257,9 +260,9 @@ export default function ProfilePage() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error('Image trop volumineuse (max 5 Mo)'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error(P.imageTooLarge); return; }
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      toast.error('Format non supporté (JPG, PNG, WebP)'); return;
+      toast.error(P.formatError); return;
     }
 
     setUploadingAvatar(true);
@@ -280,9 +283,9 @@ export default function ProfilePage() {
       if (!profileRes.ok) throw new Error('Erreur mise à jour');
 
       if (profile) setProfile({ ...profile, avatar_url: url });
-      toast.success('Photo de profil mise à jour');
+      toast.success(P.avatarSaved);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de l\'upload');
+      toast.error(err instanceof Error ? err.message : P.uploadError);
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -291,7 +294,7 @@ export default function ProfilePage() {
 
   // ── Submit ─────────────────────────────────────────────
   const onSubmit = async (data: ProfileFormValues) => {
-    if (slugAvailable === false) { toast.error('Ce slug est déjà utilisé'); return; }
+    if (slugAvailable === false) { toast.error(P.slugTakenToast); return; }
     setSaving(true);
     try {
       const res = await fetch('/api/profiles', {
@@ -300,9 +303,9 @@ export default function ProfilePage() {
         body: JSON.stringify(data),
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Erreur serveur'); }
-      toast.success('Profil mis à jour');
+      toast.success(P.saved);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
+      toast.error(err instanceof Error ? err.message : P.saveError);
     } finally { setSaving(false); }
   };
 
@@ -324,8 +327,8 @@ export default function ProfilePage() {
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
       {/* Header */}
       <motion.div variants={itemVariants}>
-        <h1 className="text-2xl font-bold tracking-tight">Mon profil</h1>
-        <p className="text-sm text-muted-foreground mt-1">Personnalisez la page publique de votre entreprise</p>
+        <h1 className="text-2xl font-bold tracking-tight">{P.title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{P.subtitle}</p>
       </motion.div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -353,14 +356,14 @@ export default function ProfilePage() {
                     {uploadingAvatar ? <Loader2 size={24} className="text-white animate-spin" /> : <Camera size={24} className="text-white" />}
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">Cliquez pour changer la photo</p>
+                <p className="text-sm text-muted-foreground">{P.changePhoto}</p>
               </CardContent>
             </Card>
 
             {/* Public link */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2"><Link2 size={14} className="text-emerald-600" />Lien public</CardTitle>
+                <CardTitle className="text-sm font-medium flex items-center gap-2"><Link2 size={14} className="text-emerald-600" />{P.publicLink}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
@@ -369,20 +372,20 @@ export default function ProfilePage() {
                     {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">Partagez ce lien avec vos clients.</p>
+                <p className="text-xs text-muted-foreground mt-2">{P.shareHint}</p>
               </CardContent>
             </Card>
 
             {/* Verification */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2"><ShieldCheck size={14} className="text-emerald-600" />Vérification</CardTitle>
+                <CardTitle className="text-sm font-medium flex items-center gap-2"><ShieldCheck size={14} className="text-emerald-600" />{P.verification}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 min-w-0"><Mail size={14} className="text-muted-foreground shrink-0" /><span className="text-sm truncate">E-mail</span></div>
+                  <div className="flex items-center gap-2 min-w-0"><Mail size={14} className="text-muted-foreground shrink-0" /><span className="text-sm truncate">{P.emailLabel}</span></div>
                   {emailVerified === true ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-full"><Check size={12} /> Vérifié</span>
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-full"><Check size={12} /> {P.verified}</span>
                   ) : emailVerified === false ? (
                     <Button variant="outline" size="sm" onClick={handleResendVerification} disabled={resending} className="h-7 text-xs gap-1 text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-800">
                       {resending ? <Loader2 size={12} className="animate-spin" /> : <AlertCircle size={12} />}Non vérifié
@@ -390,10 +393,10 @@ export default function ProfilePage() {
                   ) : <span className="text-xs text-muted-foreground">...</span>}
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 min-w-0"><Phone size={14} className="text-muted-foreground shrink-0" /><span className="text-sm truncate">Téléphone</span></div>
+                  <div className="flex items-center gap-2 min-w-0"><Phone size={14} className="text-muted-foreground shrink-0" /><span className="text-sm truncate">{P.phoneLabel}</span></div>
                   {profile?.phone ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-full"><Check size={12} /> Renseigné</span>
-                  ) : <span className="text-xs text-amber-600 font-medium">Non renseigné</span>}
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-full"><Check size={12} /> {P.filled}</span>
+                  ) : <span className="text-xs text-amber-600 font-medium">{P.notFilled}</span>}
                 </div>
               </CardContent>
             </Card>
@@ -404,12 +407,12 @@ export default function ProfilePage() {
             <Card>
               <CardContent className="p-6 space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="biz-name">Nom de l'entreprise *</Label>
-                  <Input id="biz-name" placeholder="Ex : Restaurant Le Baobab" {...register('business_name', { onBlur: (e) => handleNameBlur(e.target.value) })} />
-                  {errors.business_name && <p className="text-xs text-red-500">{errors.business_name.message}</p>}
+                  <Label htmlFor="biz-name">{P.businessName}</Label>
+                  <Input id="biz-name" placeholder={P.businessNamePlaceholder} {...register('business_name', { onBlur: (e) => handleNameBlur(e.target.value) })} />
+                  {errors.business_name && <p className="text-xs text-red-500">{P.nameRequired}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Type d'activité</Label>
+                  <Label>{P.businessType}</Label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                     {BUSINESS_TYPE_LIST.map((bt) => {
                       const Icon = bt.icon;
@@ -434,49 +437,49 @@ export default function ProfilePage() {
                     })}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Adapte les modèles de services, le catalogue et le libellé du bouton de réservation à votre métier.
+                    {P.businessTypeHint}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="slug" className="flex items-center gap-2">
-                    Slug
+                    {P.slug}
                     {slugChecking && <Loader2 size={12} className="animate-spin text-muted-foreground" />}
-                    {slugAvailable === true && <span className="text-xs text-emerald-600 font-normal">Disponible</span>}
-                    {slugAvailable === false && <span className="text-xs text-red-500 font-normal">Déjà utilisé</span>}
+                    {slugAvailable === true && <span className="text-xs text-emerald-600 font-normal">{P.slugAvailable}</span>}
+                    {slugAvailable === false && <span className="text-xs text-red-500 font-normal">{P.slugTaken}</span>}
                   </Label>
                   <div className="flex items-center">
                     <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">{window.location.origin}/</span>
-                    <Input id="slug" className="rounded-l-none" placeholder="mon-entreprise" {...register('slug')} />
+                    <Input id="slug" className="rounded-l-none" placeholder={P.slugPlaceholder} {...register('slug')} />
                   </div>
-                  {errors.slug && <p className="text-xs text-red-500">{errors.slug.message}</p>}
-                  <p className="text-xs text-muted-foreground">Lettres minuscules et tirets uniquement.</p>
+                  {errors.slug && <p className="text-xs text-red-500">{errors.slug.type === 'regex' ? P.slugFormat : P.slugMin}</p>}
+                  <p className="text-xs text-muted-foreground">{P.slugHint}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="desc">Description</Label>
-                  <Textarea id="desc" placeholder="Décrivez votre activité..." rows={3} {...register('description')} />
+                  <Label htmlFor="desc">{P.description}</Label>
+                  <Textarea id="desc" placeholder={P.descPlaceholder} rows={3} {...register('description')} />
                   <p className="text-xs text-muted-foreground text-right">{(watch('description') || '').length}/500</p>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Téléphone</Label>
+                    <Label htmlFor="phone">{P.phone}</Label>
                     <Input id="phone" placeholder="+237 6XX XXX XXX" {...register('phone')} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pemail">Email professionnel</Label>
+                    <Label htmlFor="pemail">{P.proEmail}</Label>
                     <Input id="pemail" type="email" placeholder="contact@exemple.com" {...register('email')} />
-                    {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+                    {errors.email && <p className="text-xs text-red-500">{P.emailInvalid}</p>}
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Devise</Label>
+                    <Label>{P.currency}</Label>
                     <Select value={watch('currency')} onValueChange={(v) => setValue('currency', v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent className="max-h-60">{CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Fuseau horaire</Label>
+                    <Label>{P.timezone}</Label>
                     <Select value={watch('timezone')} onValueChange={(v) => setValue('timezone', v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent className="max-h-60">{TIMEZONES.map((tz) => <SelectItem key={tz} value={tz}>{tz}</SelectItem>)}</SelectContent>
@@ -486,7 +489,7 @@ export default function ProfilePage() {
                 <div className="flex justify-end pt-2">
                   <Button type="submit" disabled={saving || slugAvailable === false} className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[120px]">
                     {saving ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Save size={16} className="mr-2" />}
-                    Enregistrer
+                    {P.save}
                   </Button>
                 </div>
               </CardContent>
@@ -495,8 +498,8 @@ export default function ProfilePage() {
             {/* Social Media Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2"><MessageCircle size={16} className="text-emerald-600" />Réseaux sociaux</CardTitle>
-                <CardDescription>Les liens apparaîtront sur votre page publique de réservation</CardDescription>
+                <CardTitle className="text-base flex items-center gap-2"><MessageCircle size={16} className="text-emerald-600" />{P.socialTitle}</CardTitle>
+                <CardDescription>{P.socialDesc}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">

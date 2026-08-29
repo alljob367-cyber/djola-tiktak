@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Loader2, Mail, Lock, CalendarCheck, Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/i18n/provider';
+import { LanguageSwitcher } from '@/i18n/language-switcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +22,7 @@ import {
 } from '@/components/ui/card';
 
 export default function LoginPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,20 +34,20 @@ export default function LoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('verified') === '1') {
-      toast.success('E-mail vérifié !', {
-        description: 'Votre compte est activé. Connectez-vous.',
+      toast.success(t.auth.login.verifiedToast, {
+        description: t.auth.login.verifiedToastDesc,
         duration: 6000,
       });
     }
     const errorParam = params.get('error');
     if (errorParam === 'token_expired') {
-      toast.error('Lien expire', {
-        description: 'Le lien de verification a expire. Renvoyez un nouvel e-mail.',
+      toast.error(t.auth.login.expiredLink, {
+        description: t.auth.login.expiredLinkDesc,
         duration: 6000,
       });
     } else if (errorParam === 'invalid_token') {
-      toast.error('Lien invalide', {
-        description: 'Le lien de verification est invalide.',
+      toast.error(t.auth.login.invalidLink, {
+        description: t.auth.login.invalidLinkDesc,
         duration: 6000,
       });
     }
@@ -53,12 +56,12 @@ export default function LoginPage() {
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
     if (!email.trim()) {
-      newErrors.email = "L'e-mail est requis";
+      newErrors.email = t.auth.login.emailRequired;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Format d'e-mail invalide";
+      newErrors.email = t.auth.login.emailInvalid;
     }
     if (!password) {
-      newErrors.password = 'Le mot de passe est requis';
+      newErrors.password = t.auth.login.passwordRequired;
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -79,19 +82,19 @@ export default function LoginPage() {
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          toast.error('Identifiants incorrects', {
-            description: "Vérifiez votre e-mail et votre mot de passe.",
+          toast.error(t.auth.login.badCredentials, {
+            description: t.auth.login.badCredentialsDesc,
           });
         } else {
-          toast.error('Erreur de connexion', {
+          toast.error(t.auth.common.connectionError, {
             description: error.message,
           });
         }
         return;
       }
 
-      toast.success('Connexion réussie !', {
-        description: 'Bienvenue sur votre espace.',
+      toast.success(t.auth.login.successToast, {
+        description: t.auth.login.successToastDesc,
       });
 
       router.push('/dashboard');
@@ -99,13 +102,13 @@ export default function LoginPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue';
       if (message.includes('n\'est pas configuré')) {
-        toast.error('Service non configuré', {
-          description: 'Supabase n\'est pas encore configuré. Suivez le guide DEPLOYMENT.md pour configurer votre projet.',
+        toast.error(t.auth.common.serviceNotConfigured, {
+          description: t.auth.common.serviceNotConfiguredDesc,
           duration: 8000,
         });
       } else {
-        toast.error('Erreur de connexion', {
-          description: 'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
+        toast.error(t.auth.common.connectionError, {
+          description: t.auth.common.connectionErrorDesc,
         });
       }
     } finally {
@@ -114,6 +117,8 @@ export default function LoginPage() {
   };
 
   return (
+    <>
+    <div className="fixed right-4 top-4 z-50"><LanguageSwitcher compact /></div>
     <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-stone-50 via-white to-emerald-50/40">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -135,17 +140,17 @@ export default function LoginPage() {
             Djola TikTak
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gérez vos réservations en toute simplicité
+            {t.auth.common.tagline}
           </p>
         </motion.div>
 
         <Card className="border-0 shadow-xl shadow-black/5">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-xl font-semibold text-center">
-              Connexion à votre compte
+              {t.auth.login.title}
             </CardTitle>
             <CardDescription className="text-center text-sm">
-              Entrez vos identifiants pour accéder à votre espace professionnel
+              {t.auth.login.subtitle}
             </CardDescription>
           </CardHeader>
 
@@ -154,14 +159,14 @@ export default function LoginPage() {
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">
-                  Adresse e-mail
+                  {t.auth.login.email}
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="vous@exemple.com"
+                    placeholder={t.auth.login.emailPlaceholder}
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
@@ -190,13 +195,13 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-sm font-medium">
-                    Mot de passe
+                    {t.auth.login.password}
                   </Label>
                   <Link
                     href="/forgot-password"
                     className="text-xs text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
                   >
-                    Mot de passe oublié ?
+                    {t.auth.login.forgot}
                   </Link>
                 </div>
                 <div className="relative">
@@ -218,7 +223,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    aria-label={showPassword ? t.auth.login.hidePassword : t.auth.login.showPassword}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -257,7 +262,7 @@ export default function LoginPage() {
                       className="flex items-center gap-2"
                     >
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Connexion en cours…
+                      {t.auth.login.submitting}
                     </motion.span>
                   ) : (
                     <motion.span
@@ -266,7 +271,7 @@ export default function LoginPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                     >
-                      Se connecter
+                      {t.auth.login.submit}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -281,12 +286,12 @@ export default function LoginPage() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-card px-2 text-muted-foreground">
-                  Pas encore de compte ?
+                  {t.auth.login.noAccount}
                 </span>
               </div>
             </div>
             <Button asChild variant="outline" className="w-full h-11 text-sm font-medium">
-              <Link href="/register">Créer un compte professionnel</Link>
+              <Link href="/register">{t.auth.login.createAccount}</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -298,17 +303,18 @@ export default function LoginPage() {
           transition={{ delay: 0.6 }}
           className="text-center text-xs text-muted-foreground mt-6"
         >
-          En continuant, vous acceptez nos{' '}
+          {' '}{t.auth.common.termsPre}{' '}
           <span className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors">
-            conditions d&rsquo;utilisation
+            {t.auth.common.terms}
           </span>{' '}
-          et notre{' '}
+          {t.auth.common.and}{' '}
           <span className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors">
-            politique de confidentialité
+            {t.auth.common.privacy}
           </span>
           .
         </motion.p>
       </motion.div>
     </main>
+      </>
   );
 }
