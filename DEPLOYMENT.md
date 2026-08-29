@@ -209,6 +209,28 @@ Priorité de détection automatique :
 Variable optionnelle : `DEFAULT_COUNTRY_CODE` (par défaut `237`, Cameroun)
 pour la normalisation des numéros locaux au format international.
 
+## Étape 7ter : Personnaliser les informations de la société (pages légales + footer)
+
+Les textes légaux (mentions légales, CGU, CGV, confidentialité, cookies) et le pied de page
+utilisent les valeurs de `src/lib/company.ts`. Deux façons de les personnaliser :
+
+**Option A (recommandée) — variables d'environnement Vercel** (Settings > Environment Variables) :
+
+| Variable | Rôle | Exemple |
+|---|---|---|
+| `NEXT_PUBLIC_COMPANY_NAME` | Nom commercial | `Djola TikTak` |
+| `NEXT_PUBLIC_COMPANY_LEGAL` | Dénomination + forme juridique | `Djola TikTak SARL, société immatriculée au RCCM de Douala` |
+| `NEXT_PUBLIC_COMPANY_ADDRESS` | Adresse du siège | `Rue X, Akwa, Douala, Cameroun` |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | Email de contact | `contact@djola-tiktak.com` |
+| `NEXT_PUBLIC_SUPPORT_PHONE` | Téléphone de contact | `+237 6 99 00 00 00` |
+
+Après ajout, **redéployer** (Deployments > ... > Redeploy) car ces valeurs sont intégrées au build.
+
+**Option B — éditer directement** les valeurs par défaut dans `src/lib/company.ts`.
+
+> ⚠️ Vérifier l'indicatif pays : +237 = Cameroun. Le numéro apparaît automatiquement
+> dans les 5 documents légaux et le footer.
+
 ## Étape 8 : Personnaliser le domaine (optionnel)
 
 1. Dans Vercel, aller dans **Settings > Domains**.
