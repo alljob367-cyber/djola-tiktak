@@ -232,6 +232,10 @@ ALTER TABLE public.blocked_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reminders ENABLE ROW LEVEL SECURITY;
 
 -- PROFILES
+-- Note : PAS de politique public_read — les pages publiques passent
+-- par le service role côté serveur avec sélection explicite des champs.
+-- Une politique USING (is_active = true) exposerait email, téléphone
+-- et infos d'abonnement via l'anon key (fuite PII).
 CREATE POLICY profiles_select ON public.profiles
   FOR SELECT USING (auth.uid() = id);
 
@@ -241,10 +245,8 @@ CREATE POLICY profiles_update ON public.profiles
 CREATE POLICY profiles_insert ON public.profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
-CREATE POLICY profiles_public_read ON public.profiles
-  FOR SELECT USING (is_active = true);
-
 -- SERVICES
+-- Note : PAS de politique public_read (même raison que profiles).
 CREATE POLICY services_select ON public.services
   FOR SELECT USING (auth.uid() = profile_id);
 
@@ -256,9 +258,6 @@ CREATE POLICY services_update ON public.services
 
 CREATE POLICY services_delete ON public.services
   FOR DELETE USING (auth.uid() = profile_id);
-
-CREATE POLICY services_public_read ON public.services
-  FOR SELECT USING (is_active = true);
 
 -- CLIENTS
 CREATE POLICY clients_select ON public.clients

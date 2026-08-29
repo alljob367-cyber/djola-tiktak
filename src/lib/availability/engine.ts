@@ -9,12 +9,82 @@
 //   4. Generate slots of `duration_minutes` length
 //   5. Only return slots that start in the future
 //
+// IMPORTANT — Timezone handling:
+//   All wall-clock times (availability rules "09:00", slot dates)
+//   are interpreted in the PROFESSIONAL's timezone, then converted
+//   to exact UTC instants. This is independent of the server's
+//   own timezone (Vercel runs in UTC).
+//
 
 import type { AvailableSlot } from '@/types/database';
 
 interface TimeRange {
   start: number; // minutes from midnight
   end: number;
+}
+
+/**
+ * Returns the offset (in ms) of `timeZone` at the given instant,
+ * such that: utcInstant = localWallClock - offset
+ */
+function getTimezoneOffsetMs(timeZone: string, at: Date): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+  const parts = dtf.formatToParts(at);
+  const get = (type: string): number =>
+    Number(parts.find((p) => p.type === type)?.value ?? '0');
+
+  const asUTC = Date.UTC(
+    get('year'),
+    get('month') - 1,
+    get('day'),
+    get('hour') % 24,
+    get('minute'),
+    get('second'),
+  );
+
+  return asUTC - at.getTime();
+}
+
+/**
+ * Converts a wall-clock time (dateStr "YYYY-MM-DD" + minutes from
+ * midnight) in `timeZone` to the exact UTC instant.
+ */
+export function zonedTimeToUtc(dateStr: string, minutes: number, timeZone: string): Date {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const naive = new Date(
+    `${dateStr}T${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00Z`
+  );
+
+  // Offset of the timezone at (approximately) that instant
+  let offset = getTimezoneOffsetMs(timeZone, naive);
+  // Refine once to handle DST boundaries precisely
+  offset = getTimezoneOffsetMs(timeZone, new Date(naive.getTime() - offset));
+
+  return new Date(naive.getTime() - offset);
+}
+
+/**
+ * Formats a Date as "YYYY-MM-DD" in the given timezone.
+ */
+export function formatDateISO(date: Date, timezone?: string): string {
+  if (timezone) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  }
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 export function generateAvailableSlots(params: {
@@ -38,8 +108,14 @@ export function generateAvailableSlots(params: {
 
   const slots: AvailableSlot[] = [];
 
-  // Get day of week (0=Sunday, 6=Saturday)
-  const jsDay = date.getDay();
+  // The calendar day being requested, as "YYYY-MM-DD" in the pro's timezone
+  const dateStr = formatDateISO(date, timezone);
+
+  // Day of week (0=Sunday, 6=Saturday) for that local calendar date.
+  // IMPORTANT : calculé depuis la date du calendrier elle-même (midi UTC),
+  // PAS depuis l'instant UTC de minuit local (qui peut tomber la veille
+  // en UTC pour les fuseaux positifs, ex: Africa/Malabo UTC+1).
+  const jsDay = new Date(`${dateStr}T12:00:00Z`).getUTCDay();
 
   // Filter availability for this day
   const dayAvailability = availability
@@ -52,10 +128,9 @@ export function generateAvailableSlots(params: {
 
   if (dayAvailability.length === 0) return [];
 
-  // Build date boundaries in the professional's timezone
-  const dateStr = formatDateISO(date, timezone);
-  const dayStart = new Date(`${dateStr}T00:00:00`);
-  const dayEnd = new Date(`${dateStr}T23:59:59`);
+  // Day boundaries in the professional's timezone, as UTC instants
+  const dayStart = zonedTimeToUtc(dateStr, 0, timezone);
+  const dayEnd = zonedTimeToUtc(dateStr, 24 * 60, timezone);
 
   // Now (don't show past slots)
   const now = new Date();
@@ -86,8 +161,8 @@ export function generateAvailableSlots(params: {
     const windowEnd = window.end;
 
     while (currentMinutes + durationMinutes <= windowEnd) {
-      const slotStart = minutesToDate(date, currentMinutes);
-      const slotEnd = minutesToDate(date, currentMinutes + durationMinutes);
+      const slotStart = zonedTimeToUtc(dateStr, currentMinutes, timezone);
+      const slotEnd = zonedTimeToUtc(dateStr, currentMinutes + durationMinutes, timezone);
 
       // Don't show past slots
       if (slotEnd <= now) {
@@ -119,33 +194,17 @@ function timeToMinutes(time: string): number {
   return hours * 60 + minutes;
 }
 
-function minutesToDate(date: Date, minutes: number): Date {
-  const result = new Date(date);
-  result.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
-  return result;
-}
-
-function formatDateISO(date: Date, timezone?: string): string {
-  if (timezone) {
-    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
-  }
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
 /** Get the next N days (starting from tomorrow) as Date objects */
 export function getNextDays(count: number, timezone: string = 'Africa/Malabo'): Date[] {
   const days: Date[] = [];
   const now = new Date();
-  // Get current date in target timezone approximation
-  const today = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
-  today.setHours(0, 0, 0, 0);
+  // Today's date (YYYY-MM-DD) in the target timezone
+  const todayStr = formatDateISO(now, timezone);
+  const today = zonedTimeToUtc(todayStr, 12 * 60, timezone); // noon to be safe
 
   for (let i = 1; i <= count; i++) {
     const day = new Date(today);
-    day.setDate(today.getDate() + i);
+    day.setUTCDate(day.getUTCDate() + i);
     days.push(day);
   }
   return days;

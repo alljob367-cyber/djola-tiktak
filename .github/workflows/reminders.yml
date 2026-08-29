@@ -19,7 +19,8 @@ jobs:
 
     steps:
       - name: Envoyer les rappels
-        env:\n          APP_URL: ${{ vars.VERCEL_APP_URL || 'https://djola-tiktak.vercel.app' }}
+        env:
+          APP_URL: ${{ vars.VERCEL_APP_URL || 'https://djola-tiktak-gamma.vercel.app' }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           echo "⏰ Rappels Djola TikTak — $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
@@ -32,7 +33,7 @@ jobs:
 
           STATUS=$(curl -s -o /tmp/response.json -w '%{http_code}' \
             -X POST "${APP_URL}/api/cron/reminders" \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "CRON_SECRET: ${CRON_SECRET}" \
             -H "Content-Type: application/json")
 
           echo "Status HTTP: $STATUS"
@@ -42,4 +43,5 @@ jobs:
             echo "✅ Rappels envoyés avec succès"
           else
             echo "⚠️ Réponse inattendue (status $STATUS)"
+            exit 1
           fi

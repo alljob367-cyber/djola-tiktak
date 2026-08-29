@@ -14,13 +14,37 @@ function safeCompare(a: string, b: string): boolean {
   return timingSafeEqual(aBuf, bBuf);
 }
 
+/**
+ * Vérifie le secret du cron depuis plusieurs sources :
+ * - Header `CRON_SECRET: <secret>` (GitHub Actions)
+ * - Header `Authorization: Bearer <secret>` (Vercel Cron natif)
+ */
+function verifyCronSecret(request: NextRequest): boolean {
+  const expected = process.env.CRON_SECRET;
+  if (!expected) return false;
+
+  const headerSecret = request.headers.get('CRON_SECRET');
+  if (headerSecret && safeCompare(headerSecret, expected)) {
+    return true;
+  }
+
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const bearer = authHeader.slice(7);
+    if (bearer && safeCompare(bearer, expected)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // POST — endpoint cron pour envoyer les rappels de rendez-vous
-// Vérifie le header CRON_SECRET pour l'authentification
+// Vérifie le secret via le header CRON_SECRET ou Authorization: Bearer
 export async function POST(request: NextRequest) {
   try {
     // Vérifier le secret du cron
-    const cronSecret = request.headers.get('CRON_SECRET');
-    if (!cronSecret || !process.env.CRON_SECRET || !safeCompare(cronSecret, process.env.CRON_SECRET)) {
+    if (!verifyCronSecret(request)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 

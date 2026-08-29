@@ -52,6 +52,7 @@ interface Profile {
   phone: string;
   avatar_url: string;
   currency: string;
+  timezone?: string;
   payment_methods_enabled?: boolean;
   orange_money_phone?: string;
   orange_money_name?: string;
@@ -187,6 +188,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           phone: data.phone,
           avatar_url: data.avatar_url,
           currency: data.currency,
+          timezone: data.timezone,
           payment_methods_enabled: data.payment_methods_enabled,
           orange_money_phone: data.orange_money_phone,
           orange_money_name: data.orange_money_name,
@@ -242,7 +244,12 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
       setSlots([]);
       setSelectedSlot(null);
       try {
-        const dateStr = date.toISOString().split('T')[0];
+        // Date locale du visiteur (YYYY-MM-DD) — pas toISOString()
+        // qui décale le jour pour les fuseaux positifs (UTC+1...)
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${d}`;
         const res = await fetch(
           `/api/bookings/availability?slug=${slug}&service_id=${selectedService.id}&date=${dateStr}`
         );
@@ -391,7 +398,17 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
 
   function formatTimeFR(iso: string): string {
     const d = new Date(iso);
-    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    // Affichage dans le fuseau du PROFESSIONNEL — le créneau est
+    // défini par son calendrier local, pas celui du visiteur.
+    try {
+      return d.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: profile?.timezone || 'Africa/Malabo',
+      });
+    } catch {
+      return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
   }
 
   // ---- Render helpers ----

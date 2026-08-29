@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { formatCurrency } from '@/lib/availability/engine';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,27 +12,76 @@ interface PageProps { params: Promise<{ slug: string }> }
 
 export const dynamic = 'force-dynamic';
 
+// Champs publics uniquement — ne JAMAIS sélectionner * (fuite PII :
+// email privé, statut d'abonnement, identifiant client Chariow...)
+const PUBLIC_FIELDS = [
+  'id', 'business_name', 'slug', 'description', 'avatar_url', 'phone',
+  'currency', 'timezone',
+  'whatsapp_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'website_url',
+  'payment_methods_enabled',
+  'orange_money_phone', 'orange_money_name',
+  'mtn_momo_phone', 'mtn_momo_name', 'payment_instructions',
+].join(', ');
+
+const PUBLIC_SERVICE_FIELDS = [
+  'id', 'name', 'description', 'price', 'duration_minutes', 'image_url',
+].join(', ');
+
+interface PublicProfileData {
+  id: string;
+  business_name: string;
+  slug: string;
+  description: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  currency: string;
+  timezone: string;
+  whatsapp_url: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  website_url: string | null;
+  payment_methods_enabled: boolean | null;
+  orange_money_phone: string | null;
+  orange_money_name: string | null;
+  mtn_momo_phone: string | null;
+  mtn_momo_name: string | null;
+  payment_instructions: string | null;
+}
+
+interface PublicServiceData {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  duration_minutes: number;
+  image_url: string | null;
+}
+
 export default async function PublicProfilePage({ params }: PageProps) {
   const { slug } = await params;
-  const supabase = await createClient();
+  // Service role : la page publique ne dépend plus des politiques RLS
+  // "public_read" qui exposent toute la table via l'anon key.
+  const supabase = await createServiceRoleClient();
 
-  const { data: profile, error } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PUBLIC_FIELDS)
     .eq('slug', slug)
     .eq('is_active', true)
     .single();
 
+  const profile = data as unknown as PublicProfileData | null;
   if (error || !profile) notFound();
 
   const { data: services } = await supabase
     .from('services')
-    .select('*')
+    .select(PUBLIC_SERVICE_FIELDS)
     .eq('profile_id', profile.id)
     .eq('is_active', true)
     .order('created_at', { ascending: true });
 
-  const activeServices = services || [];
+  const activeServices = (services as unknown as PublicServiceData[]) || [];
   const initials = profile.business_name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
   // Build social links array

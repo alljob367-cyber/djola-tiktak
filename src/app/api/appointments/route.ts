@@ -4,6 +4,7 @@ import { appointmentCreateSchema } from '@/lib/validation/schemas';
 import type { AppointmentStatus } from '@/types/database';
 import { requireSubscription, PlanGateError } from '@/lib/plan-gate';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { zonedTimeToUtc, formatDateISO } from '@/lib/availability/engine';
 
 // GET — lister les rendez-vous avec jointures service + client
 export async function GET(request: NextRequest) {
@@ -88,10 +89,11 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Vérification de la limite de rendez-vous par jour ──
-    // On compte les RDV du jour (non annulés)
-    const today = new Date();
-    const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-    const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
+    // On compte les RDV du jour (non annulés), dans le fuseau du pro
+    const profileTz = (profile.timezone as string) || 'Africa/Malabo';
+    const todayStr = formatDateISO(new Date(), profileTz);
+    const dayStart = zonedTimeToUtc(todayStr, 0, profileTz).toISOString();
+    const dayEnd = zonedTimeToUtc(todayStr, 24 * 60, profileTz).toISOString();
 
     const serviceRole = await createServiceRoleClient();
     const { count: todayCount } = await serviceRole

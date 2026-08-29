@@ -878,7 +878,7 @@ CREATE POLICY plan_limits_public_select ON public.plan_limits
   FOR SELECT USING (true);
 
 -- ---------------------------------------------------------------
--- 11c. Payments : CRUD proprietaire uniquement
+-- 11c. Payments : lecture proprietaire, ecritures via service role
 -- ---------------------------------------------------------------
 DROP POLICY IF EXISTS payments_select ON public.payments;
 DROP POLICY IF EXISTS payments_insert ON public.payments;
@@ -888,17 +888,21 @@ DROP POLICY IF EXISTS payments_delete ON public.payments;
 CREATE POLICY payments_select ON public.payments
   FOR SELECT USING (auth.uid() = profile_id);
 
-CREATE POLICY payments_insert ON public.payments
-  FOR INSERT WITH CHECK (auth.uid() = profile_id);
+-- Écritures interdites côté client : toutes les écritures légitimes
+-- passent par le service role (webhook Chariow, confirmation admin,
+-- paiements manuels). Un utilisateur authentifié ne doit PAS pouvoir
+-- insérer un faux paiement "completed".
+CREATE POLICY payments_no_insert ON public.payments
+  FOR INSERT WITH CHECK (false);
 
-CREATE POLICY payments_update ON public.payments
-  FOR UPDATE USING (auth.uid() = profile_id);
+CREATE POLICY payments_no_update ON public.payments
+  FOR UPDATE USING (false);
 
-CREATE POLICY payments_delete ON public.payments
-  FOR DELETE USING (auth.uid() = profile_id);
+CREATE POLICY payments_no_delete ON public.payments
+  FOR DELETE USING (false);
 
 -- ---------------------------------------------------------------
--- 11d. Subscriptions : SELECT/INSERT/UPDATE proprietaire, DELETE bloque
+-- 11d. Subscriptions : lecture proprietaire, ecritures via RPC
 -- ---------------------------------------------------------------
 DROP POLICY IF EXISTS subscriptions_select ON public.subscriptions;
 DROP POLICY IF EXISTS subscriptions_insert ON public.subscriptions;
@@ -908,11 +912,15 @@ DROP POLICY IF EXISTS subscriptions_delete ON public.subscriptions;
 CREATE POLICY subscriptions_select ON public.subscriptions
   FOR SELECT USING (auth.uid() = profile_id);
 
-CREATE POLICY subscriptions_insert ON public.subscriptions
-  FOR INSERT WITH CHECK (auth.uid() = profile_id);
+-- Écritures interdites côté client : un utilisateur authentifié ne doit
+-- PAS pouvoir s'auto-attribuer un plan supérieur ou une date de fin
+-- lointaine. Les transitions passent par les RPC SECURITY DEFINER
+-- (start_trial, activate_subscription, expire_subscriptions).
+CREATE POLICY subscriptions_no_insert ON public.subscriptions
+  FOR INSERT WITH CHECK (false);
 
-CREATE POLICY subscriptions_update ON public.subscriptions
-  FOR UPDATE USING (auth.uid() = profile_id);
+CREATE POLICY subscriptions_no_update ON public.subscriptions
+  FOR UPDATE USING (false);
 
 -- La suppression directe est bloquee (seules les fonctions RPC peuvent modifier le statut)
 CREATE POLICY subscriptions_no_delete ON public.subscriptions

@@ -13,18 +13,36 @@ function safeCompare(a: string, b: string): boolean {
   return timingSafeEqual(aBuf, bBuf);
 }
 
+/**
+ * Vérifie le secret du cron depuis plusieurs sources :
+ * - Header `CRON_SECRET: <secret>` (GitHub Actions)
+ * - Header `Authorization: Bearer <secret>` (Vercel Cron natif)
+ * Retourne true si l'une des méthodes correspond au secret configuré.
+ */
+function verifyCronSecret(request: NextRequest): boolean {
+  const expected = process.env.CRON_SECRET;
+  if (!expected) return false;
 
-// POST — endpoint cron pour expirer les abonnements échus
-// Déclenché par GitHub Actions (quotidiennement)
-// Vérifie le header CRON_SECRET pour l'authentification
-export async function POST(request: NextRequest) {
-  try {
-    // 1. Verify CRON_SECRET header
-    const cronSecret = request.headers.get('CRON_SECRET');
-    if (!cronSecret || !process.env.CRON_SECRET || !safeCompare(cronSecret, process.env.CRON_SECRET)) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  // Méthode 1 : header dédié CRON_SECRET (GitHub Actions)
+  const headerSecret = request.headers.get('CRON_SECRET');
+  if (headerSecret && safeCompare(headerSecret, expected)) {
+    return true;
+  }
+
+  // Méthode 2 : Authorization: Bearer (Vercel Cron)
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const bearer = authHeader.slice(7);
+    if (bearer && safeCompare(bearer, expected)) {
+      return true;
     }
+  }
 
+  return false;
+}
+
+async function handleExpire(): Promise<NextResponse> {
+  try {
     const supabase = await createServiceRoleClient();
 
     // 2. Call the expire_subscriptions() RPC
@@ -89,3 +107,20 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// ── GET : support natif de Vercel Cron (qui envoie des requêtes GET) ──
+export async function GET(request: NextRequest) {
+  if (!verifyCronSecret(request)) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+  return handleExpire();
+}
+
+// ── POST : support GitHub Actions / appels manuels ──
+export async function POST(request: NextRequest) {
+  if (!verifyCronSecret(request)) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+  return handleExpire();
+}
+

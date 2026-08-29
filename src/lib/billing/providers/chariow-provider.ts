@@ -99,8 +99,7 @@ function getApiKey(): string {
 function getRedirectUrl(): string {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    'https://djola-tiktak-alljob367-1277s-projects.vercel.app'
+    'https://djola-tiktak-gamma.vercel.app'
   ) + '/dashboard/subscription?payment=success';
 }
 

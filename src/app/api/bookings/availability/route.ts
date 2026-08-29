@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { generateAvailableSlots } from '@/lib/availability/engine';
+import { generateAvailableSlots, zonedTimeToUtc, formatDateISO } from '@/lib/availability/engine';
 
 // GET — endpoint public pour récupérer les créneaux disponibles
-// Paramètres de requête : slug, service_id, date
+// Paramètres de requête : slug, service_id, date (YYYY-MM-DD)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -14,6 +14,14 @@ export async function GET(request: NextRequest) {
     if (!slug || !service_id || !dateStr) {
       return NextResponse.json(
         { error: 'Les paramètres slug, service_id et date sont requis' },
+        { status: 400 }
+      );
+    }
+
+    // Valider le format YYYY-MM-DD
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return NextResponse.json(
+        { error: 'Date invalide — format attendu : YYYY-MM-DD' },
         { status: 400 }
       );
     }
@@ -45,11 +53,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Service non trouvé' }, { status: 404 });
     }
 
-    // Parser la date
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
-      return NextResponse.json({ error: 'Date invalide' }, { status: 400 });
-    }
+    const timezone = profile.timezone || 'Africa/Malabo';
 
     // Récupérer les disponibilités hebdomadaires
     const { data: availabilityRules, error: availError } = await supabase
@@ -63,11 +67,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la récupération des disponibilités' }, { status: 500 });
     }
 
-    // Calculer les bornes de la journée
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
+    // Calculer les bornes de la journée DANS LE FUSEAU DU PROFESSIONNEL
+    // (indépendant du fuseau du serveur)
+    const dayStart = zonedTimeToUtc(dateStr, 0, timezone);
+    const dayEnd = zonedTimeToUtc(dateStr, 24 * 60, timezone);
 
     // Récupérer les créneaux bloqués pour cette journée
     const { data: blockedSlots, error: blockedError } = await supabase
@@ -100,9 +103,9 @@ export async function GET(request: NextRequest) {
       availability: availabilityRules || [],
       blockedSlots: blockedSlots || [],
       appointments: appointments || [],
-      date,
+      date: dayStart,
       durationMinutes: service.duration_minutes,
-      timezone: profile.timezone || 'Africa/Malabo',
+      timezone,
     });
 
     return NextResponse.json({
@@ -116,3 +119,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Erreur serveur interne' }, { status: 500 });
   }
 }
+
