@@ -6,6 +6,11 @@
  *          insert inside a single transaction with SERIALIZABLE-level
  *          consistency.
  *
+ * v1.0.1 : cast explicite p_status::appointment_status dans l'INSERT.
+ *          Sans lui, la reservation publique echouait avec l'erreur
+ *          42804 "column status is of type appointment_status but
+ *          expression is of type text" au moment de confirmer le RDV.
+ *
  * Run:     node scripts/run-migration-atomic-booking.mjs
  *          (or paste into Supabase SQL Editor)
  */
@@ -46,8 +51,12 @@ BEGIN
   END IF;
 
   /* ── 2. Insert (still inside the same transaction) ── */
+  /* Cast explicite : p_status est text, la colonne status est un enum
+     appointment_status — Postgres ne fait PAS la conversion implicite
+     (erreur 42804 "column status is of type appointment_status but
+     expression is of type text" sinon). */
   INSERT INTO appointments (profile_id, service_id, client_id, starts_at, ends_at, status, notes)
-  VALUES (p_profile_id, p_service_id, p_client_id, p_starts_at, p_ends_at, p_status, p_notes)
+  VALUES (p_profile_id, p_service_id, p_client_id, p_starts_at, p_ends_at, p_status::appointment_status, p_notes)
   RETURNING id
     INTO v_new_id;
 
