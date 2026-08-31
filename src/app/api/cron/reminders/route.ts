@@ -96,12 +96,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: { processed: 0, message: 'Aucun rappel à envoyer' } });
     }
 
-    // Récupérer les rappels déjà envoyés pour ces rendez-vous
+    // Récupérer les rappels déjà envoyés avec succès pour ces rendez-vous.
+    // ⚠️ Filtre status='sent' : un rappel « failed » sera retenté au prochain
+    // passage du cron (2×/jour) au lieu d'être bloqué définitivement.
     const appointmentIds = appointments.map((a) => a.id);
     const { data: existingReminders, error: remindersError } = await supabase
       .from('reminders')
       .select('appointment_id, channel')
-      .in('appointment_id', appointmentIds);
+      .in('appointment_id', appointmentIds)
+      .eq('status', 'sent');
 
     if (remindersError) {
       console.error('Erreur récupération rappels existants:', remindersError);
