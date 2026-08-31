@@ -3,6 +3,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 const DASHBOARD_PATHS = ['/dashboard'];
 const ADMIN_PATHS = ['/admin'];
+// /admin/setup est la page de DÉMARRAGE (création des identifiants
+// admin) : elle doit rester accessible AVANT toute connexion.
+const ADMIN_PUBLIC_PATHS = ['/admin/setup'];
 const AUTH_PATHS = ['/login', '/register', '/forgot-password', '/verify-email'];
 
 export async function updateSession(request: NextRequest) {
@@ -21,7 +24,8 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isDashboard = DASHBOARD_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
-  const isAdmin = ADMIN_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
+  const isPublicAdmin = ADMIN_PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
+  const isAdmin = !isPublicAdmin && ADMIN_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
   const isAuth = AUTH_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
 
   // For non-protected routes, skip Supabase call entirely

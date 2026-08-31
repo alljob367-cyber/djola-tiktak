@@ -1151,6 +1151,7 @@ export const en: Dictionary = {
       bannerCancelled: 'Your subscription is cancelled. Choose a plan to continue.',
       bannerPastDue: 'Your subscription has a payment issue. Please update it.',
       bannerChoosePlan: 'Choose a plan',
+      adminDenied: 'The general control panel is reserved for Djola TikTak administrators. You are continuing here with your regular dashboard.',
       bannerWelcome: 'Welcome! Choose a plan to start using Djola TikTak.',
       bannerSeePlans: 'See plans',
     },

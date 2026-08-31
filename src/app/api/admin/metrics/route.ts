@@ -1,30 +1,12 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
-
-async function isAdmin(userEmail: string | undefined): Promise<boolean> {
-  if (!userEmail) return false;
-  if (ADMIN_EMAILS.length === 0) return false; // No admin list configured
-  return ADMIN_EMAILS.includes(userEmail.toLowerCase());
-}
+import { requireAdminApi } from '@/lib/admin-guard';
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
-
-    if (!(await isAdmin(user.email))) {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
-    }
+    // ── Garde central : session admin (rôle DB OU ADMIN_EMAILS) ──
+    const guard = await requireAdminApi();
+    if (guard.response) return guard.response;
 
     const db = await createServiceRoleClient();
 

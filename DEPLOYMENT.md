@@ -34,6 +34,10 @@
       format d'appel SaaS, service à domicile salon, couverts restaurant,
       niveau fitness… + réseaux sociaux supplémentaires LinkedIn / X /
       Telegram sur la page publique)
+   10. `supabase/admin-role-migration.sql` (**rôle administrateur en base** —
+       `profiles.role` : `user` ou `admin`. Active le panneau de contrôle
+       général réservé aux admins, la gestion des utilisateurs & plans et
+       la protection serveur de toutes les pages `/admin`)
 6. Vérifier que toutes les tables, triggers, RLS policies sont créés sans erreur.
 
 > ℹ️ **MIGRATION `service-forms` NON BLOQUANTE** : si vous ne l'exécutez pas
@@ -41,6 +45,54 @@
 > créés normalement, seuls les champs spécifiques au métier (et les nouveaux
 > réseaux LinkedIn/X/Telegram) sont ignorés jusqu'à l'exécution de la
 > migration. Exécutez-la dès que possible pour tout activer.
+
+> ℹ️ **MIGRATION `admin-role` NON BLOQUANTE** : sans la migration 10,
+> l'application fonctionne et le panneau `/admin` reste protégé — mais seul
+> le mécanisme historique `ADMIN_EMAILS` (variable d'environnement) permet
+> d'être administrateur, et la gestion des rôles depuis l'interface est
+> désactivée. Exécutez la migration pour activer les rôles en base.
+
+## Étape 2bis : Créer les identifiants administrateur
+
+**Qui est administrateur ?** (l'une OU l'autre)
+- le compte a `profiles.role = 'admin'` en base (migration 10) — recommandé ;
+- l'e-mail du compte figure dans la variable `ADMIN_EMAILS` (Vercel).
+
+Seul l'administrateur accède au **panneau de contrôle général** (`/admin` :
+métriques globales, paiements, utilisateurs & plans) et à **tous les plans**
+(aucune limite). Les autres utilisateurs ne voient que leur tableau de bord
+marchand et sont redirigés s'ils tentent d'accéder à `/admin`.
+
+**Créer le premier compte admin** (aucun admin existant) :
+1. Ouvrir `https://votre-app.vercel.app/admin/setup`
+2. Remplir : nom de l'entreprise, e-mail, mot de passe (8 caractères min.)
+3. Si `ADMIN_SECRET` est défini dans Vercel, saisir cette clé (recommandé :
+   elle verrouille la page de création)
+4. Cliquer « Créer le compte administrateur » puis se connecter normalement
+
+**Trois cas de figure selon votre configuration Vercel :**
+- `ADMIN_SECRET` défini → la clé est **exigée** (le premier compte peut être
+  créé avec n'importe quel e-mail) ;
+- `ADMIN_EMAILS` défini (sans `ADMIN_SECRET`) → il faut créer le compte avec
+  l'un des e-mails de la liste ;
+- ni l'un ni l'autre et aucun admin en base → **première revendication** :
+  le premier compte créé devient administrateur (fenêtre de démarrage type
+  WordPress — configurez ensuite `ADMIN_SECRET` pour la fermer).
+
+**Promouvoir un compte existant** (deux options) :
+- interface : `/admin` → onglet « Utilisateurs & Plans » → bouton
+  « Administrateur » sur la ligne du compte (confirmation demandée) ;
+- SQL (Supabase → SQL Editor) :
+  ```sql
+  UPDATE public.profiles SET role = 'admin'
+  WHERE id IN (SELECT id FROM auth.users WHERE lower(email) = 'email@exemple.com');
+  ```
+
+**Recommandations de sécurité** :
+- définir `ADMIN_SECRET` (chaîne aléatoire longue) pour verrouiller la
+  création d'admins ;
+- ne pas rétrograder le dernier administrateur (l'interface l'interdit) ;
+- mot de passe admin unique, 12 caractères ou plus.
 
 > ⚠️ **PRODUCTION EXISTANTE** : si votre base tourne déjà, exécutez
 > `supabase/security-hardening.sql` immédiatement. Sans cette migration,
@@ -302,4 +354,9 @@ Après le déploiement :
 - Utiliser un `CRON_SECRET` fort et unique.
 - Utiliser un `ADMIN_SECRET` fort et unique (différent du CRON_SECRET).
 - Exécuter `supabase/security-hardening.sql` (voir Étape 2).
+- **Panneau de contrôle général** : `/admin` et toutes ses sous-pages sont
+  protégées côté serveur (layout « guarded » + middleware) — seuls les
+  administrateurs (`profiles.role = 'admin'` ou `ADMIN_EMAILS`) y accèdent ;
+  les autres comptes sont redirigés vers leur tableau de bord. Les API
+  `/api/admin/*` appliquent le même contrôle.
 - Mettre à jour régulièrement les dépendances.

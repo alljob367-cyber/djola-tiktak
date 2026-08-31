@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getAdminStatus } from '@/lib/admin-guard';
 import { subscriptionService } from '@/lib/billing/subscription-service';
 
 export const dynamic = 'force-dynamic';
@@ -15,10 +15,7 @@ function safeCompare(a: string, b: string): boolean {
 }
 
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+
 
 // ── POST: Admin confirms or rejects a manual payment ─────────
 
@@ -27,14 +24,12 @@ export async function POST(request: NextRequest) {
     // 1. Verify admin access — ADMIN_SECRET only (not CRON_SECRET)
     const adminSecret = request.headers.get('X-Admin-Secret');
     if (!adminSecret || !process.env.ADMIN_SECRET || !safeCompare(adminSecret, process.env.ADMIN_SECRET)) {
-      // Fallback: authenticated admin user via session
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      const isAuthed = !!user;
-      if (!isAuthed) {
+      // Fallback: session admin (rôle DB OU ADMIN_EMAILS) via guard central
+      const status = await getAdminStatus();
+      if (!status.authenticated) {
         return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 });
       }
-      if (ADMIN_EMAILS.length === 0 || !ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '')) {
+      if (!status.isAdmin) {
         return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
       }
     }

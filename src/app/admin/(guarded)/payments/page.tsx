@@ -119,7 +119,8 @@ export default function AdminPaymentsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="min-h-[calc(100vh-2.5rem)] bg-background px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -186,6 +187,7 @@ export default function AdminPaymentsPage() {
           )}
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }

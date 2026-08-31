@@ -43,12 +43,26 @@ export function isAdmin(email: string | null | undefined): boolean {
 }
 
 /**
+ * SEUL L'ADMIN A DROIT À TOUS LES PLANS.
+ * Admin = e-mail dans ADMIN_EMAILS OU profiles.role = 'admin'
+ * (migration 10). Le rôle DB prime dès qu'il est présent.
+ */
+export function isAdminProfile(
+  profile: unknown,
+  email?: string | null | undefined,
+): boolean {
+  const p = (profile ?? {}) as { role?: string | null; email?: string | null };
+  if (p.role === 'admin') return true;
+  return isAdmin(email ?? p.email ?? null);
+}
+
+/**
  * Check if a profile has an active or trialing subscription.
  * Also verifies that subscription_end has not passed (real-time).
  * Returns true for admins regardless.
  */
 export function hasActiveSubscription(profile: Profile): boolean {
-  if (isAdmin(profile.email)) return true;
+  if (isAdminProfile(profile)) return true;
   const status = profile.subscription_status;
   if (status !== 'active' && status !== 'trialing') return false;
   // Real-time date check: if subscription_end is in the past, treat as expired
@@ -89,8 +103,8 @@ export async function checkPlanLimit(params: {
   const upgradeUrl = '/dashboard/billing';
   const plan = (profile.plan as PlanId) || 'starter';
 
-  // ── Admin bypass ──
-  if (isAdmin(userEmail)) {
+  // ── Admin bypass (tous les plans, aucune limite) ──
+  if (isAdminProfile(profile, userEmail)) {
     return {
       allowed: true,
       isAdmin: true,
@@ -229,7 +243,7 @@ export async function checkPlanLimit(params: {
  * Admins always pass.
  */
 export async function requireSubscription(profile: Profile, userEmail: string | null | undefined): Promise<void> {
-  if (isAdmin(userEmail)) return;
+  if (isAdminProfile(profile, userEmail)) return;
 
   const status = profile.subscription_status;
   const isDateExpired = profile.subscription_end

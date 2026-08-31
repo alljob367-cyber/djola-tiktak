@@ -1,26 +1,31 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+// ============================================================
+// /api/admin/check — Statut administrateur de la session
+// Utilisé par le tableau de bord pour afficher le menu
+// « Administration ». Admin = profiles.role = 'admin'
+// OU e-mail dans ADMIN_EMAILS (env).
+// ============================================================
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+import { NextResponse } from 'next/server';
+import { getAdminStatus } from '@/lib/admin-guard';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const status = await getAdminStatus();
 
-    if (!user) {
+    if (!status.authenticated) {
       return NextResponse.json({ isAdmin: false, reason: 'not_authenticated' });
     }
 
-    if (ADMIN_EMAILS.length === 0) {
-      return NextResponse.json({ isAdmin: false, reason: 'not_configured' });
-    }
-
-    const isAdmin = ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '');
-    return NextResponse.json({ isAdmin });
+    return NextResponse.json({
+      isAdmin: status.isAdmin,
+      role: status.role,
+      userId: status.userId,
+      email: status.email,
+      // Compatible avec l'ancien reason: 'not_configured'
+      ...(status.role === null && !status.isAdmin ? { reason: 'role_column_missing' } : {}),
+    });
   } catch {
     return NextResponse.json({ isAdmin: false, reason: 'error' });
   }

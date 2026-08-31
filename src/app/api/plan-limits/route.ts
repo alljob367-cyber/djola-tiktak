@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { isAdmin, DEFAULT_LIMITS } from '@/lib/plan-gate';
+import { isAdmin, isAdminProfile, DEFAULT_LIMITS } from '@/lib/plan-gate';
 import type { PlanId } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -34,7 +34,7 @@ export async function GET() {
     }
 
     const plan = (profile.plan as PlanId) || 'starter';
-    const isUserAdmin = isAdmin(user.email);
+    const isUserAdmin = isAdminProfile(profile, user.email);
 
     // Fetch plan limits from DB
     let limits: Record<string, number> = {};

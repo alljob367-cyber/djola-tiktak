@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getAdminStatus } from '@/lib/admin-guard';
 import { subscriptionService } from '@/lib/billing/subscription-service';
 import type { PlanId } from '@/types/database';
 
@@ -15,23 +16,11 @@ function safeCompare(a: string, b: string): boolean {
 }
 
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+
 
 // ── Auth helper: X-Admin-Secret header OR authenticated admin email ──
 
-async function isAdmin(request: NextRequest): Promise<boolean> {
-  const adminSecret = request.headers.get('X-Admin-Secret');
-  if (adminSecret && process.env.ADMIN_SECRET && safeCompare(adminSecret, process.env.ADMIN_SECRET)) {
-    return true;
-  }
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-  return ADMIN_EMAILS.length > 0 && ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '');
-}
+
 
 // ── GET: List payments (optionally filter by status) ─────────
 
@@ -40,14 +29,12 @@ export async function GET(request: NextRequest) {
     // Verify admin access — use ADMIN_SECRET only (not CRON_SECRET)
     const adminSecret = request.headers.get('X-Admin-Secret');
     if (!adminSecret || !process.env.ADMIN_SECRET || !safeCompare(adminSecret, process.env.ADMIN_SECRET)) {
-      // Fallback: authenticated admin user via session
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      const isAuthed = !!user;
-      if (!isAuthed) {
+      // Fallback: session admin (rôle DB OU ADMIN_EMAILS) via guard central
+      const status = await getAdminStatus();
+      if (!status.authenticated) {
         return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 });
       }
-      if (ADMIN_EMAILS.length === 0 || !ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '')) {
+      if (!status.isAdmin) {
         return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
       }
     }
@@ -104,8 +91,16 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    if (!(await isAdmin(request))) {
-      return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
+    // 1. Verify admin access — X-Admin-Secret OU session admin (guard central)
+    const adminSecret = request.headers.get('X-Admin-Secret');
+    if (!adminSecret || !process.env.ADMIN_SECRET || !safeCompare(adminSecret, process.env.ADMIN_SECRET)) {
+      const status = await getAdminStatus();
+      if (!status.authenticated) {
+        return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 });
+      }
+      if (!status.isAdmin) {
+        return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
+      }
     }
 
     const body = await request.json().catch(() => null) as {

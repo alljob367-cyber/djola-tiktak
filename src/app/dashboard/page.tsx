@@ -23,6 +23,7 @@ import {
   CalendarCheck,
   UserPlus,
   Sparkles,
+  ShieldAlert,
 } from 'lucide-react';
 import type { AppointmentWithDetails, AppointmentStatus } from '@/types/database';
 import type { Dictionary, Lang } from '@/i18n/index';
@@ -232,8 +233,14 @@ function NextAppointmentHighlight({ apt, t, intl, lang }: { apt: AppointmentWith
 
 // ── Page ───────────────────────────────────────────────────────
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ admin_access?: string }>;
+}) {
   const { t, lang, intl } = await getServerI18n();
+  const params = (await searchParams) ?? {};
+  const adminDenied = params.admin_access === 'denied';
   const O = t.dashboard.overview;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -333,6 +340,16 @@ export default async function DashboardPage() {
   // ── Render ─────────────────────────────────────────────────
   return (
     <div className="space-y-6">
+      {/* Accès admin refusé (redirigé depuis /admin) */}
+      {adminDenied && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-lg border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          <ShieldAlert size={18} className="mt-0.5 shrink-0" />
+          <p>{t.dashboard.shell.adminDenied}</p>
+        </div>
+      )}
       {/* Welcome */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground lg:text-3xl">

@@ -97,7 +97,13 @@ export default function LoginPage() {
         description: t.auth.login.successToastDesc,
       });
 
-      router.push('/dashboard');
+      // Redirection après connexion : vers /admin si demandé (et si le
+      // paramètre pointe bien vers une page interne de l'app), sinon /dashboard
+      const params = new URLSearchParams(window.location.search);
+      const target = params.get('redirect_to');
+      const safeTarget =
+        target && target.startsWith('/') && !target.startsWith('//') ? target : '/dashboard';
+      router.push(safeTarget);
       router.refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue';

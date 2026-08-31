@@ -1155,6 +1155,7 @@ export const fr = {
       bannerCancelled: 'Votre abonnement est annulé. Choisissez un plan pour continuer.',
       bannerPastDue: 'Votre abonnement a un problème de paiement. Mettez-le à jour.',
       bannerChoosePlan: 'Choisir un plan',
+      adminDenied: 'Le panneau de contrôle général est réservé aux administrateurs de Djola TikTak. Vous continuez ici avec votre tableau de bord habituel.',
       bannerWelcome: 'Bienvenue ! Choisissez un plan pour commencer à utiliser Djola TikTak.',
       bannerSeePlans: 'Voir les plans',
     },

@@ -50,6 +50,9 @@ export interface Profile {
   mtn_momo_phone?: string | null;
   mtn_momo_name?: string | null;
   payment_instructions?: string | null;
+  // Rôle d'accès (migration 10 : admin-role-migration.sql)
+  // 'user' = panneau de bord marchand — 'admin' = panneau de contrôle général
+  role?: 'user' | 'admin' | null;
 }
 
 export interface Service {

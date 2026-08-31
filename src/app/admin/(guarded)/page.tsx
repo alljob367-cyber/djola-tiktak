@@ -167,7 +167,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       {/* ── Header ──────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-gray-800/80 bg-gray-950/80 backdrop-blur-xl">
+      <header className="sticky top-10 z-50 border-b border-gray-800/80 bg-gray-950/80 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
