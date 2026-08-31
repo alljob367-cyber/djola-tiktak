@@ -23,7 +23,8 @@ import {
   Megaphone, Gift, Copy, Check, Share2, BadgeCheck, Home, LayoutGrid, Tag, Info,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/availability/engine';
-import { getBusinessType } from '@/lib/business-types';
+import { getBusinessType, serviceMetadataChips } from '@/lib/business-types';
+import { VisualCarousel } from './visual-carousel';
 import { getPublicTheme, heroGradient, themeCssVars, type PublicTheme } from '@/lib/themes';
 import { useI18n } from '@/i18n/provider';
 import { LanguageSwitcher } from '@/i18n/language-switcher';
@@ -48,6 +49,9 @@ export interface PublicProfileData {
   website_url: string | null;
   google_maps_url?: string | null;
   youtube_url?: string | null;
+  linkedin_url?: string | null;
+  twitter_url?: string | null;
+  telegram_url?: string | null;
   payment_methods_enabled: boolean | null;
   orange_money_phone: string | null;
   orange_money_name: string | null;
@@ -65,6 +69,8 @@ export interface PublicServiceData {
   price: number;
   duration_minutes: number;
   image_url: string | null;
+  /** Paramètres spécifiques au métier (affichés en pastilles) */
+  metadata?: Record<string, string | number | boolean> | null;
 }
 
 export interface PublicPromoData {
@@ -116,13 +122,36 @@ const YouTubeIcon = () => (
   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.121 2.136c1.871.505 9.377.505 9.377.505s7.505 0 9.376-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
 );
 
+const LinkedInIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z"/></svg>
+);
+const XIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+);
+const TelegramIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.692-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.26-1.91.178-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.113.025-1.899 1.208-5.356 3.553-.507.35-.966.52-1.38.509-.454-.01-1.327-.256-1.977-.467-.797-.259-1.43-.397-1.3-.838.065-.227.4-.459 1.005-.698 3.918-1.706 6.53-2.831 7.836-3.376 3.724-1.55 4.495-1.819 4.999-1.828z"/></svg>
+);
+
+/**
+ * Normalise une URL saisie sans protocole (« facebook.com/xyz »)
+ * en lien absolu cliquable — sinon le lien resterait relatif au site
+ * et casserait la navigation du visiteur.
+ */
+const withProtocol = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+};
+
 // ============================================================
 // Composants
 // ============================================================
 
 /** Carte de service — ALIGNEMENT HORIZONTAL (photo à gauche, contenu à droite) */
 function ServiceCard({
-  service, currency, slug, index, bookingLabel, theme, t,
+  service, currency, slug, index, bookingLabel, theme, t, businessType,
 }: {
   service: PublicServiceData;
   currency: string;
@@ -131,8 +160,10 @@ function ServiceCard({
   bookingLabel: string;
   theme: PublicTheme;
   t: ReturnType<typeof useI18n>['t'];
+  businessType: string | null | undefined;
 }) {
   const P = t.public;
+  const chips = serviceMetadataChips(businessType, service.metadata).slice(0, 3);
   return (
     <motion.article
       custom={index}
@@ -179,6 +210,20 @@ function ServiceCard({
           <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
             {service.description}
           </p>
+        )}
+        {/* Pastilles des paramètres métier (Visio, À domicile…) */}
+        {chips.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {chips.map((chip) => (
+              <span
+                key={chip.label}
+                className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                style={{ backgroundColor: `${theme.primary}1A`, color: theme.primaryDark }}
+              >
+                {chip.value ? `${chip.label} : ${chip.value}` : chip.label}
+              </span>
+            ))}
+          </div>
         )}
         {/* Bas : prix + bouton pleine largeur (aucune coupure) */}
         <div className="mt-auto flex flex-col gap-1.5 pt-1.5">
@@ -317,7 +362,25 @@ export default function PublicProfileView({ profile, services, promos, initials 
 
   const bookingHref = `/${profile.slug}/booking`;
   const whatsappLink = profile.whatsapp_url || (profile.phone ? `https://wa.me/${profile.phone.replace(/\D/g, '')}` : null);
+
+  // Tous les réseaux sociaux configurés, URLs normalisées
+  const socialLinks = [
+    { key: 'whatsapp', url: withProtocol(profile.whatsapp_url), label: 'WhatsApp', icon: <MessageCircle className="size-4" />, classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' },
+    { key: 'facebook', url: withProtocol(profile.facebook_url), label: 'Facebook', icon: <FacebookIcon />, classes: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400' },
+    { key: 'instagram', url: withProtocol(profile.instagram_url), label: 'Instagram', icon: <InstagramIcon />, classes: 'bg-pink-100 text-pink-700 dark:bg-pink-950/40 dark:text-pink-400' },
+    { key: 'tiktok', url: withProtocol(profile.tiktok_url), label: 'TikTok', icon: <TikTokIcon />, classes: 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' },
+    { key: 'youtube', url: withProtocol(profile.youtube_url), label: 'YouTube', icon: <YouTubeIcon />, classes: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400' },
+    { key: 'linkedin', url: withProtocol(profile.linkedin_url), label: 'LinkedIn', icon: <LinkedInIcon />, classes: 'bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-400' },
+    { key: 'twitter', url: withProtocol(profile.twitter_url), label: 'X (Twitter)', icon: <XIcon />, classes: 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' },
+    { key: 'telegram', url: withProtocol(profile.telegram_url), label: 'Telegram', icon: <TelegramIcon />, classes: 'bg-sky-100 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400' },
+  ].flatMap((n) => (n.url ? [{ ...n, url: n.url }] : []));
   const hasPaymentMethods = profile.payment_methods_enabled && (profile.orange_money_phone || profile.mtn_momo_phone);
+
+  // Services avec photo pour le carrousel de visuels (max 12)
+  const visualServices = useMemo(
+    () => services.filter((s) => Boolean(s.image_url)).slice(0, 12),
+    [services],
+  );
 
   // Regroupement par catégorie (catalogue organisé)
   const groupedServices = useMemo(() => {
@@ -582,36 +645,26 @@ export default function PublicProfileView({ profile, services, promos, initials 
                   )}
                 </ul>
 
-                {/* Réseaux sociaux */}
-                {(profile.whatsapp_url || profile.facebook_url || profile.instagram_url || profile.tiktok_url || profile.youtube_url) && (
+                {/* Réseaux sociaux — tous les réseaux configurés s'affichent,
+                    URLs normalisées (protocole ajouté si manquant) */}
+                {socialLinks.length > 0 && (
                   <>
                     <div className="my-3 h-px bg-border" />
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{P.socialTitle}</p>
                     <div className="flex flex-wrap gap-2">
-                      {profile.whatsapp_url && (
-                        <a href={profile.whatsapp_url} target="_blank" rel="noopener noreferrer" title="WhatsApp" className="inline-flex size-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 transition-transform hover:scale-105 dark:bg-emerald-950/40 dark:text-emerald-400">
-                          <MessageCircle className="size-4" />
+                      {socialLinks.map((network) => (
+                        <a
+                          key={network.key}
+                          href={network.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${network.label} — ${profile.business_name}`}
+                          title={network.label}
+                          className={`inline-flex size-10 items-center justify-center rounded-full transition-all hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${network.classes}`}
+                        >
+                          {network.icon}
                         </a>
-                      )}
-                      {profile.facebook_url && (
-                        <a href={profile.facebook_url} target="_blank" rel="noopener noreferrer" title="Facebook" className="inline-flex size-9 items-center justify-center rounded-full bg-blue-100 text-blue-700 transition-transform hover:scale-105 dark:bg-blue-950/40 dark:text-blue-400">
-                          <FacebookIcon />
-                        </a>
-                      )}
-                      {profile.instagram_url && (
-                        <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" title="Instagram" className="inline-flex size-9 items-center justify-center rounded-full bg-pink-100 text-pink-700 transition-transform hover:scale-105 dark:bg-pink-950/40 dark:text-pink-400">
-                          <InstagramIcon />
-                        </a>
-                      )}
-                      {profile.tiktok_url && (
-                        <a href={profile.tiktok_url} target="_blank" rel="noopener noreferrer" title="TikTok" className="inline-flex size-9 items-center justify-center rounded-full bg-gray-100 text-gray-900 transition-transform hover:scale-105 dark:bg-gray-800 dark:text-gray-100">
-                          <TikTokIcon />
-                        </a>
-                      )}
-                      {profile.youtube_url && (
-                        <a href={profile.youtube_url} target="_blank" rel="noopener noreferrer" title="YouTube" className="inline-flex size-9 items-center justify-center rounded-full bg-red-100 text-red-700 transition-transform hover:scale-105 dark:bg-red-950/40 dark:text-red-400">
-                          <YouTubeIcon />
-                        </a>
-                      )}
+                      ))}
                     </div>
                   </>
                 )}
@@ -650,6 +703,22 @@ export default function PublicProfileView({ profile, services, promos, initials 
 
             {/* ==== Colonne droite : fil de contenu ==== */}
             <main className="min-w-0 space-y-5">
+              {/* Carrousel des visuels (services avec photo) */}
+              {activeTab === 'home' && visualServices.length > 1 && (
+                <VisualCarousel
+                  slides={visualServices}
+                  slug={profile.slug}
+                  currency={profile.currency}
+                  bookingLabel={businessConfig.bookingLabel}
+                  theme={theme}
+                  labels={{
+                    title: P.galleryTitle,
+                    book: P.book,
+                    minutes: P.minutes,
+                    badge: P.galleryBadge,
+                  }}
+                />
+              )}
               {(activeTab === 'home' || activeTab === 'offers') && profile.announcement?.enabled && profile.announcement.text?.trim() && (
                 <motion.article variants={fadeUp} initial="hidden" animate="show" className="rounded-xl border border-border/70 bg-card p-4 shadow-sm">
                   <header className="mb-3 flex items-center gap-3">
@@ -727,6 +796,7 @@ export default function PublicProfileView({ profile, services, promos, initials 
                               bookingLabel={businessConfig.bookingLabel}
                               theme={theme}
                               t={t}
+                              businessType={profile.business_type}
                             />
                           ))}
                         </div>

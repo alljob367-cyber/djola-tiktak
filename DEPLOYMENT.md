@@ -27,7 +27,20 @@
       client des tables payments/subscriptions)
    7. `supabase/business-types-migration.sql` (types de business + catégories
       de services + capacité par créneau — resto, salon, santé, SaaS...)
+   8. `supabase/marketing-theme-migration.sql` (bannière, thèmes, annonce,
+      YouTube, codes promo)
+   9. `supabase/service-forms-migration.sql` (**nouveaux formulaires par
+      métier** — paramètres spécifiques des services `services.metadata` :
+      format d'appel SaaS, service à domicile salon, couverts restaurant,
+      niveau fitness… + réseaux sociaux supplémentaires LinkedIn / X /
+      Telegram sur la page publique)
 6. Vérifier que toutes les tables, triggers, RLS policies sont créés sans erreur.
+
+> ℹ️ **MIGRATION `service-forms` NON BLOQUANTE** : si vous ne l'exécutez pas
+> tout de suite, l'application reste 100 % fonctionnelle — les services sont
+> créés normalement, seuls les champs spécifiques au métier (et les nouveaux
+> réseaux LinkedIn/X/Telegram) sont ignorés jusqu'à l'exécution de la
+> migration. Exécutez-la dès que possible pour tout activer.
 
 > ⚠️ **PRODUCTION EXISTANTE** : si votre base tourne déjà, exécutez
 > `supabase/security-hardening.sql` immédiatement. Sans cette migration,

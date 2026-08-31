@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { profileSchema, businessTypeSchema, themeSchema, announcementSchema } from '@/lib/validation/schemas';
+import { stripMissingColumns, trackMissingColumn } from '@/lib/supabase/columns';
 
 // GET — récupérer son propre profil
 export async function GET(_request: NextRequest) {
@@ -64,6 +65,9 @@ export async function PUT(request: NextRequest) {
           facebook_url: z.string().max(300).optional().or(z.literal('')).optional(),
           instagram_url: z.string().max(300).optional().or(z.literal('')).optional(),
           tiktok_url: z.string().max(300).optional().or(z.literal('')).optional(),
+          linkedin_url: z.string().max(300).optional().or(z.literal('')).optional(),
+          twitter_url: z.string().max(300).optional().or(z.literal('')).optional(),
+          telegram_url: z.string().max(300).optional().or(z.literal('')).optional(),
           website_url: z.string().max(300).optional().or(z.literal('')).optional(),
           payment_methods_enabled: z.boolean().optional(),
           orange_money_phone: z.string().max(30).optional().or(z.literal('')).optional(),
@@ -99,15 +103,33 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const { data, error } = await supabase
+    // Mise à jour — tolérante aux colonnes réseaux récentes (linkedin,
+    // twitter, telegram) si la migration service-forms n'est pas encore
+    // appliquée : on retente sans les colonnes manquantes.
+    const fullPayload = {
+      ...parsed.data,
+      updated_at: new Date().toISOString(),
+    };
+    let { data, error } = await supabase
       .from('profiles')
-      .update({
-        ...parsed.data,
-        updated_at: new Date().toISOString(),
-      })
+      .update(stripMissingColumns('profiles', fullPayload))
       .eq('id', user.id)
       .select()
       .single();
+
+    if (error && trackMissingColumn('profiles', error)) {
+      const retry = await supabase
+        .from('profiles')
+        .update(stripMissingColumns('profiles', fullPayload))
+        .eq('id', user.id)
+        .select()
+        .single();
+      if (retry.error) {
+        console.error('Erreur profiles PUT (retry):', retry.error);
+        return NextResponse.json({ error: 'Erreur lors de la mise à jour du profil' }, { status: 500 });
+      }
+      return NextResponse.json({ data: retry.data });
+    }
 
     if (error) {
       console.error('Erreur profiles PUT:', error);

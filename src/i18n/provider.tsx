@@ -31,11 +31,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = readStoredLang();
     const detected = stored ?? detectLang();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronisation initiale voulue
     setLangState(detected);
     try {
       document.cookie = `djt-lang=${detected}; path=/; max-age=31536000; samesite=lax`;
     } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const setLang = useCallback((next: Lang) => {

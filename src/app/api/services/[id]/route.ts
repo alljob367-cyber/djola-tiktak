@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { serviceSchema } from '@/lib/validation/schemas';
+import { stripMissingColumns, trackMissingColumn } from '@/lib/supabase/columns';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -65,13 +66,31 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    // Mise à jour — tolérante à l'absence de la colonne metadata
+    // (paramètres spécifiques au métier) si la migration n'est pas passée.
+    const fullPayload = { ...parsed.data };
+    let { data, error } = await supabase
       .from('services')
-      .update(parsed.data)
+      .update(stripMissingColumns('services', fullPayload))
       .eq('id', id)
       .eq('profile_id', user.id)
       .select()
       .single();
+
+    if (error && trackMissingColumn('services', error)) {
+      const retry = await supabase
+        .from('services')
+        .update(stripMissingColumns('services', fullPayload))
+        .eq('id', id)
+        .eq('profile_id', user.id)
+        .select()
+        .single();
+      if (retry.error) {
+        console.error('Erreur service PUT (retry):', retry.error);
+        return NextResponse.json({ error: 'Erreur lors de la mise à jour du service' }, { status: 500 });
+      }
+      return NextResponse.json({ data: retry.data, metadata_skipped: Boolean(parsed.data.metadata) });
+    }
 
     if (error) {
       console.error('Erreur service PUT:', error);

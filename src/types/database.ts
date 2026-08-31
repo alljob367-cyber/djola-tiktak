@@ -40,6 +40,9 @@ export interface Profile {
   website_url?: string | null;
   google_maps_url?: string | null;
   youtube_url?: string | null;
+  linkedin_url?: string | null;
+  twitter_url?: string | null;
+  telegram_url?: string | null;
   // Local payment methods for client advance payment
   payment_methods_enabled?: boolean | null;
   orange_money_phone?: string | null;
@@ -60,6 +63,8 @@ export interface Service {
   duration_minutes: number;
   is_active: boolean;
   image_url: string | null;
+  /** Paramètres spécifiques au métier (migration service-forms v1.3.0) */
+  metadata?: Record<string, string | number | boolean> | null;
   created_at: string;
   updated_at: string;
 }

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { selectFieldsFor, trackMissingColumn } from '@/lib/supabase/columns';
 import PublicProfileView, {
   type PublicProfileData,
   type PublicServiceData,
@@ -18,14 +19,44 @@ const PUBLIC_FIELDS = [
   'banner_url', 'theme', 'announcement',
   'whatsapp_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'website_url',
   'google_maps_url', 'youtube_url',
+  'linkedin_url', 'twitter_url', 'telegram_url',
   'payment_methods_enabled',
   'orange_money_phone', 'orange_money_name',
   'mtn_momo_phone', 'mtn_momo_name', 'payment_instructions',
-].join(', ');
+];
 
 const PUBLIC_SERVICE_FIELDS = [
   'id', 'name', 'description', 'category', 'capacity', 'price', 'duration_minutes', 'image_url',
-].join(', ');
+  'metadata',
+];
+
+/**
+ * Sélection tolérante : si une colonne récente (ex : linkedin_url,
+ * services.metadata) est absente de la base — migration non encore
+ * appliquée — la requête est rejouée sans les colonnes manquantes.
+ * La page d'atterrissage ne casse JAMAIS, réseaux sociaux compris.
+ */
+type QueryRunner = (
+  supabase: Awaited<ReturnType<typeof createServiceRoleClient>>,
+  fields: string,
+) => PromiseLike<{ data: unknown; error: unknown }>;
+
+async function tolerantSelect<T>(
+  table: 'profiles' | 'services',
+  fields: string[],
+  run: QueryRunner,
+): Promise<{ data: T | null; error: unknown }> {
+  const supabase = await createServiceRoleClient();
+  // Jusqu'à 4 essais : chaque erreur « colonne absente » retire UNE
+  // colonne du select, on retente alors avec les colonnes restantes.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data, error } = await run(supabase, selectFieldsFor(table, fields));
+    if (!error || !trackMissingColumn(table, error)) {
+      return { data: (data ?? null) as T | null, error };
+    }
+  }
+  return { data: null, error: null };
+}
 
 // Métadonnées dynamiques pour le partage (Open Graph)
 export async function generateMetadata({ params }: PageProps) {
@@ -59,23 +90,22 @@ export default async function PublicProfilePage({ params }: PageProps) {
   // "public_read" qui exposeraient toute la table via l'anon key.
   const supabase = await createServiceRoleClient();
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select(PUBLIC_FIELDS)
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single();
+  const { data: profileRow, error } = await tolerantSelect<PublicProfileData>(
+    'profiles',
+    PUBLIC_FIELDS,
+    (sb, fields) => sb.from('profiles').select(fields).eq('slug', slug).eq('is_active', true).single(),
+  );
 
-  const profile = data as unknown as PublicProfileData | null;
+  const profile = profileRow as unknown as PublicProfileData | null;
   if (error || !profile) notFound();
 
-  const { data: services } = await supabase
-    .from('services')
-    .select(PUBLIC_SERVICE_FIELDS)
-    .eq('profile_id', profile.id)
-    .eq('is_active', true)
-    .order('category', { ascending: true })
-    .order('created_at', { ascending: true });
+  const { data: services } = await tolerantSelect<PublicServiceData[]>(
+    'services',
+    PUBLIC_SERVICE_FIELDS,
+    (sb, fields) => sb.from('services').select(fields).eq('profile_id', profile.id).eq('is_active', true)
+      .order('category', { ascending: true })
+      .order('created_at', { ascending: true }),
+  );
 
   const activeServices = (services as unknown as PublicServiceData[]) || [];
 

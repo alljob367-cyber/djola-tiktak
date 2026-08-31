@@ -20,7 +20,7 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { PlanLimitWarning, usePlanLimits } from '@/components/plan-gate/plan-limit-warning';
-import { getBusinessType } from '@/lib/business-types';
+import { getBusinessType, serviceMetadataChips, type BusinessTypeConfig } from '@/lib/business-types';
 import {
   Card,
   CardContent,
@@ -73,17 +73,25 @@ interface ServiceFormData {
   duration_minutes: string;
   is_active: boolean;
   image_url: string;
+  /** Paramètres spécifiques au métier (format d'appel, à domicile…) */
+  metadata: Record<string, string | boolean>;
 }
 
-const emptyForm: ServiceFormData = {
-  name: '',
-  description: '',
-  category: '',
-  capacity: '1',
-  price: '',
-  duration_minutes: '30',
-  is_active: true,
-  image_url: '',
+/** Formulaire vide initialisé selon la config du métier */
+const makeEmptyForm = (config: BusinessTypeConfig): ServiceFormData => {
+  const presets = config.serviceForm.durationPresets ?? [];
+  const defaultDuration = presets.includes(30) ? 30 : (presets[Math.floor(presets.length / 2)] ?? 30);
+  return {
+    name: '',
+    description: '',
+    category: '',
+    capacity: String(config.serviceForm.capacity?.default ?? 1),
+    price: '',
+    duration_minutes: String(defaultDuration),
+    is_active: true,
+    image_url: '',
+    metadata: {},
+  };
 };
 
 // ── Animation variants ─────────────────────────────────────────
@@ -105,7 +113,7 @@ export default function ServicesPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<ServiceFormData>(emptyForm);
+  const [form, setForm] = useState<ServiceFormData>(() => makeEmptyForm(getBusinessType('other')));
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -163,7 +171,7 @@ export default function ServicesPage() {
   // ── Open dialog helpers ─────────────────────────────────
   const openCreate = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    setForm(makeEmptyForm(businessConfig));
     setDialogOpen(true);
   };
 
@@ -178,6 +186,7 @@ export default function ServicesPage() {
       duration_minutes: String(s.duration_minutes),
       is_active: s.is_active,
       image_url: s.image_url || '',
+      metadata: (s.metadata ?? {}) as Record<string, string | boolean>,
     });
     setDialogOpen(true);
   };
@@ -247,19 +256,25 @@ export default function ServicesPage() {
   };
 
   // ── Submit (create / update) ────────────────────────────
+  // Bornes du formulaire selon le métier (ex : appel SaaS 10-180 min)
+  const durationMin = businessConfig.serviceForm.durationMin ?? 5;
+  const durationMax = businessConfig.serviceForm.durationMax ?? 480;
+  const extraDefs = businessConfig.serviceForm.extraFields ?? [];
+
   const handleSubmit = async () => {
     if (!form.name.trim()) {
       toast.error(S.nameRequired);
       return;
     }
-    const price = Number(form.price);
+    const priceOptional = businessConfig.serviceForm.priceOptional ?? false;
+    const price = form.price.trim() === '' && priceOptional ? 0 : Number(form.price);
     if (isNaN(price) || price < 0) {
       toast.error(S.priceInvalid);
       return;
     }
     const duration = Number(form.duration_minutes);
-    if (isNaN(duration) || duration < 5) {
-      toast.error(S.durationMin);
+    if (isNaN(duration) || duration < durationMin) {
+      toast.error(S.durationMin.replace('5', String(durationMin)));
       return;
     }
 
@@ -274,6 +289,19 @@ export default function ServicesPage() {
         duration_minutes: duration,
         is_active: form.is_active,
         image_url: form.image_url || null,
+        // Paramètres spécifiques au métier → metadata JSONB
+        metadata: (() => {
+          const meta: Record<string, string | boolean> = {};
+          for (const def of extraDefs) {
+            const val = form.metadata[def.key];
+            if (def.type === 'boolean') {
+              if (val === true) meta[def.key] = true;
+            } else if (typeof val === 'string' && val.trim() !== '') {
+              meta[def.key] = val.trim();
+            }
+          }
+          return Object.keys(meta).length > 0 ? meta : null;
+        })(),
       };
 
       const url = editingId ? `/api/services/${editingId}` : '/api/services';
@@ -295,7 +323,13 @@ export default function ServicesPage() {
         throw new Error(err.error || 'Erreur serveur');
       }
 
+      const json = await res.json();
       toast.success(editingId ? S.updated : S.created);
+      if (json.metadata_skipped) {
+        // Colonne services.metadata absente (migration SQL en attente) :
+        // le service est enregistré, les champs spécifiques sont ignorés.
+        toast.warning(S.metadataSkipped, { description: S.metadataSkippedDesc, duration: 8000 });
+      }
       setDialogOpen(false);
       fetchServices();
     } catch (err: unknown) {
@@ -493,6 +527,11 @@ export default function ServicesPage() {
                                       {s.capacity}
                                     </span>
                                   )}
+                                  {serviceMetadataChips(businessTypeKey, s.metadata).slice(0, 3).map((chip) => (
+                                    <span key={chip.label} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                      {chip.value ? `${chip.label} : ${chip.value}` : chip.label}
+                                    </span>
+                                  ))}
                                 </div>
                                 {s.description && (
                                   <p className="text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
@@ -612,6 +651,15 @@ export default function ServicesPage() {
                                 {s.is_active ? S.active : S.inactive}
                               </Badge>
                             </div>
+                            {serviceMetadataChips(businessTypeKey, s.metadata).slice(0, 3).length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {serviceMetadataChips(businessTypeKey, s.metadata).slice(0, 3).map((chip) => (
+                                  <span key={chip.label} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                    {chip.value ? `${chip.label} : ${chip.value}` : chip.label}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             {s.description && (
                               <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                                 {s.description}
@@ -688,7 +736,7 @@ export default function ServicesPage() {
 
       {/* ── Service Dialog ────────────────────────────────── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editingId ? S.editTitle : S.createTitle}
@@ -724,21 +772,23 @@ export default function ServicesPage() {
                 </datalist>
                 <p className="text-[11px] text-muted-foreground">{S.categoryHint}</p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="svc-capacity">
-                  {S.capacityLabel}
-                  <span className="ml-1 text-muted-foreground font-normal">({S.capacityHint})</span>
-                </Label>
-                <Input
-                  id="svc-capacity"
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={form.capacity}
-                  onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
-                />
-                <p className="text-[11px] text-muted-foreground">{S.capacityHint2}</p>
-              </div>
+              {(businessConfig.serviceForm.capacity?.show !== false) && (
+                <div className="space-y-2">
+                  <Label htmlFor="svc-capacity">
+                    {businessConfig.serviceForm.capacity?.label ?? S.capacityLabel}
+                    <span className="ml-1 text-muted-foreground font-normal">({businessConfig.serviceForm.capacity?.hint ?? S.capacityHint})</span>
+                  </Label>
+                  <Input
+                    id="svc-capacity"
+                    type="number"
+                    min={businessConfig.serviceForm.capacity?.min ?? 1}
+                    max={businessConfig.serviceForm.capacity?.max ?? 100}
+                    value={form.capacity}
+                    onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
+                  />
+                  <p className="text-[11px] text-muted-foreground">{businessConfig.serviceForm.capacity?.hint ?? S.capacityHint2}</p>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>{S.imageLabel}</Label>
@@ -768,9 +818,72 @@ export default function ServicesPage() {
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               />
             </div>
+
+            {/* Paramètres spécifiques au métier (metadata) */}
+            {extraDefs.length > 0 && (
+              <div className="space-y-3 rounded-lg border border-emerald-200/70 bg-emerald-50/40 p-3 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{S.specificParams} · {businessConfig.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{S.specificParamsHint}</p>
+                </div>
+                {extraDefs.map((def) => {
+                  if (def.type === 'boolean') {
+                    return (
+                      <div key={def.key} className="flex items-center justify-between gap-3">
+                        <Label htmlFor={`svc-extra-${def.key}`} className="text-sm font-normal leading-snug">
+                          {def.label}
+                        </Label>
+                        <Switch
+                          id={`svc-extra-${def.key}`}
+                          checked={form.metadata[def.key] === true}
+                          onCheckedChange={(v) =>
+                            setForm((f) => ({ ...f, metadata: { ...f.metadata, [def.key]: v } }))
+                          }
+                        />
+                      </div>
+                    );
+                  }
+                  if (def.type === 'select') {
+                    const current = typeof form.metadata[def.key] === 'string' ? (form.metadata[def.key] as string) : '';
+                    return (
+                      <div key={def.key} className="space-y-1.5">
+                        <Label htmlFor={`svc-extra-${def.key}`}>{def.label}</Label>
+                        <select
+                          id={`svc-extra-${def.key}`}
+                          value={current}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, metadata: { ...f.metadata, [def.key]: e.target.value } }))
+                          }
+                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">—</option>
+                          {(def.options ?? []).map((o) => (
+                            <option key={o} value={o}>{o}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  }
+                  const textVal = typeof form.metadata[def.key] === 'string' ? (form.metadata[def.key] as string) : '';
+                  return (
+                    <div key={def.key} className="space-y-1.5">
+                      <Label htmlFor={`svc-extra-${def.key}`}>{def.label}</Label>
+                      <Input
+                        id={`svc-extra-${def.key}`}
+                        placeholder={def.placeholder}
+                        value={textVal}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, metadata: { ...f.metadata, [def.key]: e.target.value } }))
+                        }
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="svc-price">{S.priceLabel}</Label>
+                <Label htmlFor="svc-price">{businessConfig.serviceForm.priceLabel ?? S.priceLabel}</Label>
                 <Input
                   id="svc-price"
                   type="number"
@@ -779,20 +892,45 @@ export default function ServicesPage() {
                   value={form.price}
                   onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  {businessConfig.serviceForm.priceHint ?? (businessConfig.serviceForm.priceOptional ? S.priceFreeHint : undefined)}
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="svc-dur">{S.durationLabel}</Label>
+                <Label htmlFor="svc-dur">{businessConfig.serviceForm.durationLabel ?? S.durationLabel}</Label>
                 <Input
                   id="svc-dur"
                   type="number"
-                  min="5"
-                  max="480"
+                  min={durationMin}
+                  max={durationMax}
+                  step={businessConfig.serviceForm.durationStep ?? 5}
                   placeholder="30"
                   value={form.duration_minutes}
                   onChange={(e) => setForm((f) => ({ ...f, duration_minutes: e.target.value }))}
                 />
               </div>
             </div>
+
+            {/* Durées fréquentes du métier — sélection en 1 clic */}
+            {(businessConfig.serviceForm.durationPresets?.length ?? 0) > 0 && (
+              <div className="-mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">{S.durationPresetsLabel}</span>
+                {businessConfig.serviceForm.durationPresets!.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, duration_minutes: String(p) }))}
+                    className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                      form.duration_minutes === String(p)
+                        ? 'border-emerald-500 bg-emerald-500 text-white'
+                        : 'border-border bg-background text-muted-foreground hover:border-emerald-300'
+                    }`}
+                  >
+                    {p} min
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
                 <p className="text-sm font-medium">{S.activeLabel}</p>

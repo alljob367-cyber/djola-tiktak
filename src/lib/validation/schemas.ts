@@ -56,6 +56,9 @@ export const profileSchema = z.object({
   facebook_url: z.string().max(300).optional().or(z.literal('')),  
   instagram_url: z.string().max(300).optional().or(z.literal('')),  
   tiktok_url: z.string().max(300).optional().or(z.literal('')),  
+  linkedin_url: z.string().max(300).optional().or(z.literal('')),  
+  twitter_url: z.string().max(300).optional().or(z.literal('')),  
+  telegram_url: z.string().max(300).optional().or(z.literal('')),  
   website_url: z.string().max(300).optional().or(z.literal('')),  
   // Local payment methods
   payment_methods_enabled: z.boolean().optional().default(false),
@@ -75,6 +78,25 @@ export const serviceSchema = z.object({
   duration_minutes: z.coerce.number().int().min(5, 'La durée minimale est de 5 minutes').max(480, 'La durée maximale est de 8 heures'),
   is_active: z.boolean().default(true),
   image_url: z.string().max(500).nullable().optional(),
+  // Paramètres spécifiques au métier (format d'appel SaaS, service à
+  // domicile salon, couverts restaurant…) — stockés en JSONB.
+  // Ignorés silencieusement si la colonne n'existe pas encore en base.
+  metadata: z
+    .record(
+      z.string().max(40),
+      z.union([z.string().max(300), z.boolean(), z.number()]),
+    )
+    .nullish()
+    .transform((v) => {
+      if (!v || typeof v !== 'object') return null;
+      const entries = Object.entries(v).filter(([, val]) => {
+        if (val === undefined || val === null) return false;
+        if (typeof val === 'string' && val.trim() === '') return false;
+        if (typeof val === 'boolean') return val;
+        return true;
+      });
+      return entries.length > 0 ? (Object.fromEntries(entries) as Record<string, string | number | boolean>) : null;
+    }),
 });
 
 export const clientSchema = z.object({

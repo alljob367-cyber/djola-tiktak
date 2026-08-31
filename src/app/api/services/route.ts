@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { serviceSchema } from '@/lib/validation/schemas';
 import { checkPlanLimit, requireSubscription, PlanGateError } from '@/lib/plan-gate';
+import { stripMissingColumns, trackMissingColumn } from '@/lib/supabase/columns';
 
 // GET — lister les services de l'utilisateur authentifié
 export async function GET(request: NextRequest) {
@@ -92,11 +93,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    // Insertion — si la colonne metadata (paramètres spécifiques au métier)
+    // n'existe pas encore en base, on retente sans elle : le service est
+    // créé quand même, le front signale que les champs spécifiques sont
+    // ignorés jusqu'à l'exécution de la migration SQL.
+    const fullPayload = { ...parsed.data, profile_id: user.id };
+    const insertPayload = stripMissingColumns('services', fullPayload);
+    let { data, error } = await supabase
       .from('services')
-      .insert({ ...parsed.data, profile_id: user.id })
+      .insert(insertPayload)
       .select()
       .single();
+
+    if (error && trackMissingColumn('services', error)) {
+      const retryPayload = stripMissingColumns('services', fullPayload);
+      const retry = await supabase
+        .from('services')
+        .insert(retryPayload)
+        .select()
+        .single();
+      if (retry.error) {
+        console.error('Erreur services POST (retry):', retry.error);
+        return NextResponse.json({ error: 'Erreur lors de la création du service' }, { status: 500 });
+      }
+      return NextResponse.json({
+        data: retry.data,
+        // champ présent = les paramètres spécifiques n'ont pas été enregistrés
+        metadata_skipped: Boolean(parsed.data.metadata),
+      }, { status: 201 });
+    }
 
     if (error) {
       console.error('Erreur services POST:', error);

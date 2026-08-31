@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { selectFieldsFor, trackMissingColumn } from '@/lib/supabase/columns';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -7,9 +8,10 @@ interface RouteParams {
 
 // Fields safe to expose in the public profile API
 const PUBLIC_PROFILE_FIELDS = [
-  'id', 'business_name', 'slug', 'description', 'avatar_url',
+  'id', 'business_name', 'business_type', 'slug', 'description', 'avatar_url',
   'phone', 'email', 'currency', 'timezone',
   'whatsapp_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'website_url',
+  'linkedin_url', 'twitter_url', 'telegram_url',
   'payment_methods_enabled', 'payment_instructions',
   'orange_money_phone', 'orange_money_name',
   'mtn_momo_phone', 'mtn_momo_name',
@@ -22,20 +24,29 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
     const supabase = await createServiceRoleClient();
 
-    // Récupérer le profil par slug — only public fields
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select(PUBLIC_PROFILE_FIELDS.join(', '))
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
+    // Récupérer le profil par slug — only public fields.
+    // Tolérant aux colonnes réseaux récentes absentes (migration non passée).
+    let profile: Record<string, unknown> | null = null;
+    let profileError: unknown = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(selectFieldsFor('profiles', PUBLIC_PROFILE_FIELDS))
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single();
+      profile = (data as unknown as Record<string, unknown> | null) ?? null;
+      profileError = error ?? null;
+      if (!error || !trackMissingColumn('profiles', error)) break;
+    }
 
     if (profileError || !profile) {
       return NextResponse.json({ error: 'Profil non trouvé' }, { status: 404 });
     }
 
-    // Récupérer les services actifs
-    const profileId = (profile as unknown as Record<string, unknown>).id as string;
+    // Récupérer les services actifs — select * est sûr ici (aucun champ
+    // sensible dans services), metadata incluse si la colonne existe.
+    const profileId = profile.id as string;
     const { data: services, error: servicesError } = await supabase
       .from('services')
       .select('*')
@@ -49,7 +60,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     }
 
     const result = {
-      ...(profile as unknown as Record<string, unknown>),
+      ...profile,
       services: services || [],
     };
 
