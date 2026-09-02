@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import {
   Mail,
@@ -55,6 +55,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/i18n/provider';
 import { LanguageSwitcher } from '@/i18n/language-switcher';
 import { WhatsAppRemindersCard } from '@/components/dashboard/whatsapp-reminders-card';
+import { GoogleCalendarCard } from '@/components/dashboard/google-calendar-card';
 
 // ── Animation ────────────────────────────────────────────────
 const containerVariants = {
@@ -292,6 +293,13 @@ export default function SettingsPage() {
       {/* ── WhatsApp Reminders Section ─────────────────────────── */}
       <motion.div variants={itemVariants}>
         <WhatsAppRemindersCard />
+      </motion.div>
+
+      {/* ── Google Calendar Section ─────────────────────────── */}
+      <motion.div variants={itemVariants}>
+        <Suspense fallback={null}>
+          <GoogleCalendarCard />
+        </Suspense>
       </motion.div>
 
       {/* ── Payment Methods Section ──────────────────────────── */}

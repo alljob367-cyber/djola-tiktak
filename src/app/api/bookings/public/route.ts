@@ -7,6 +7,7 @@ import { checkRateLimit, hashIdentifier, getClientIp } from '@/lib/rate-limit';
 import { computeDepositAmount } from '@/lib/booking/deposit';
 import { bookAtomic } from '@/lib/booking/atomic';
 import { stripMissingColumns, trackMissingColumn } from '@/lib/supabase/columns';
+import { fireAndForget, pushAppointmentToGoogle } from '@/lib/google/sync';
 
 // Rate limiting persistant (Supabase) : max 5 réservations par IP par heure.
 // L'ancien limiter en mémoire était inefficace sur Vercel (multi-instances
@@ -320,6 +321,10 @@ export async function POST(request: NextRequest) {
       if (!booked.v2 && rpcAppointment?.id) {
         await patchExtras(rpcAppointment.id);
       }
+      // Sync Google Calendar (fire-and-forget — jamais bloquant)
+      if (rpcAppointment?.id) {
+        fireAndForget(pushAppointmentToGoogle(rpcAppointment.id));
+      }
       return NextResponse.json({ data: booked.appointment }, { status: 201 });
     }
 
@@ -373,6 +378,9 @@ export async function POST(request: NextRequest) {
         `)
         .single();
       if (!retryError) {
+        if (retried?.id) {
+          fireAndForget(pushAppointmentToGoogle(retried.id));
+        }
         return NextResponse.json({ data: retried }, { status: 201 });
       }
     }
@@ -384,6 +392,11 @@ export async function POST(request: NextRequest) {
 
     if (appointment && validPromo) {
       await applyPromoToAppointment(appointment.id);
+    }
+
+    // Sync Google Calendar (fire-and-forget — jamais bloquant)
+    if (appointment?.id) {
+      fireAndForget(pushAppointmentToGoogle(appointment.id));
     }
 
     return NextResponse.json({ data: appointment }, { status: 201 });

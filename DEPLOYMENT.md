@@ -438,3 +438,52 @@ numéroté (limite Twilio) — Meta est donc recommandé pour le bot.
   aucun risque de double réservation.
 - Fallback automatique en texte numéroté si les messages interactifs
   (listes/boutons) sont refusés par le client WhatsApp.
+
+## Étape 7quinquies : Sync Google Agenda (optionnel, différenciant)
+
+Chaque professionnel peut connecter **son** agenda Google depuis
+Paramètres → Google Agenda. Deux effets (activables/désactivables
+indépendamment) :
+
+1. **Ajouter mes RDV à Google Agenda** — chaque réservation (web,
+   bot WhatsApp, saisie manuelle) crée automatiquement un événement
+   dans l'agenda du pro ; l'annulation le supprime.
+2. **Bloquer les créneaux occupés** — les événements déjà présents
+   dans l'agenda Google (rendez-vous perso, autre activité…) rendent
+   les créneaux correspondants indisponibles à la réservation.
+
+### Configuration Google Cloud (une seule fois, par le propriétaire)
+1. https://console.cloud.google.com → créer (ou choisir) un projet.
+2. **APIs & Services → Library** → rechercher « Google Calendar API »
+   → **Enable**.
+3. **APIs & Services → OAuth consent screen** → User type *External* →
+   renseigner nom de l'app + e-mail → ajouter votre adresse Gmail
+   dans **Test users** (suffisant tant que l'app reste en test —
+   jusqu'à 100 utilisateurs).
+4. **APIs & Services → Credentials → Create credentials →
+   OAuth client ID** → type *Web application* :
+   - **Authorized redirect URI** :
+     `https://VOTRE-DOMAINE/api/integrations/google/callback`
+     (en local : `http://localhost:3000/api/integrations/google/callback`)
+5. Copier le **Client ID** et le **Client Secret** dans Vercel →
+   Environment Variables :
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - `GOOGLE_REDIRECT_URI` (optionnel — déduit de `NEXT_PUBLIC_APP_URL`)
+
+### Migration SQL requise (SQL Editor Supabase)
+- `supabase/google-calendar-migration.sql` — table
+  `google_calendar_integrations` (RLS propriétaire, tokens chiffrés
+  AES-256-GCM) + colonne `appointments.google_event_id`.
+
+### Garanties de sécurité
+- Les tokens OAuth sont **chiffrés AES-256-GCM** avant stockage
+  (clé dérivée de `SUPABASE_SERVICE_ROLE_KEY` — jamais en clair).
+- État OAuth **signé HMAC + expiration 10 min** (anti-CSRF) ; le
+  callback exige la même session que celle qui a initié la connexion.
+- RLS : chaque pro ne voit/modifie que sa propre intégration.
+- Aucune synchronisation ne peut faire échouer une réservation :
+  tout Google est *fire-and-forget* côté réservation, *fail-open*
+  côté disponibilités (cache 60 s pour limiter les appels freeBusy).
+- Token révoqué (déconnexion côté Google) → l'intégration est
+  nettoyée automatiquement, le pro reconnecte son agenda en 1 clic.

@@ -5,6 +5,7 @@ import type { AppointmentStatus } from '@/types/database';
 import { requireSubscription, PlanGateError } from '@/lib/plan-gate';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { zonedTimeToUtc, formatDateISO } from '@/lib/availability/engine';
+import { fireAndForget, pushAppointmentToGoogle } from '@/lib/google/sync';
 
 // GET — lister les rendez-vous avec jointures service + client
 export async function GET(request: NextRequest) {
@@ -317,6 +318,11 @@ export async function POST(request: NextRequest) {
     if (aptError) {
       console.error('Erreur création rendez-vous:', aptError);
       return NextResponse.json({ error: 'Erreur lors de la création du rendez-vous' }, { status: 500 });
+    }
+
+    // Sync Google Calendar (fire-and-forget — jamais bloquant)
+    if (appointment?.id) {
+      fireAndForget(pushAppointmentToGoogle(appointment.id));
     }
 
     return NextResponse.json({ data: appointment }, { status: 201 });

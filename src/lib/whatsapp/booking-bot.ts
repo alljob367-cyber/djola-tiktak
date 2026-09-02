@@ -24,6 +24,7 @@ import { sendWhatsAppText, sendWhatsAppList, sendWhatsAppButtons } from './send'
 import { checkRateLimit } from '@/lib/rate-limit';
 import { computeDepositAmount } from '@/lib/booking/deposit';
 import { bookAtomic } from '@/lib/booking/atomic';
+import { fireAndForget, pushAppointmentToGoogle } from '@/lib/google/sync';
 
 // ── Constantes ───────────────────────────────────────────────
 
@@ -429,6 +430,12 @@ async function confirmBooking(
 
   const dateISO = formatDateISO(start, profile.timezone);
   const appUrl = ctx.app_url || '';
+
+  // Sync Google Calendar du pro (fire-and-forget — jamais bloquant)
+  const botAppointmentId = (appointment as { id?: string } | null)?.id;
+  if (botAppointmentId) {
+    fireAndForget(pushAppointmentToGoogle(botAppointmentId));
+  }
 
   // Employé assigné (retourné par le RPC v2)
   const assignedEmployee = (appointment as { employee?: { name?: string } | null } | null)?.employee;

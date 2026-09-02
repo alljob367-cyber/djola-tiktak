@@ -2,10 +2,41 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { generateAvailableSlots, zonedTimeToUtc, formatDateISO } from '@/lib/availability/engine';
 import { checkRateLimit, hashIdentifier, getClientIp } from '@/lib/rate-limit';
+import { getIntegration, fetchBusyIntervals, type BusyInterval } from '@/lib/google/calendar';
 
 // Anti-scraping : max 120 consultations de créneaux par IP par heure
 const AVAIL_RATE_LIMIT = 120;
 const AVAIL_RATE_WINDOW_MS = 60 * 60 * 1000;
+
+// ── Cache mémoire freeBusy Google (par instance serverless) ──
+// Réduit la latence quand un client explore plusieurs dates.
+// TTL 60 s — suffisant car les agendas externes changent rarement
+// à la seconde près, et le RPC atomique reste la vérité finale
+// anti-double-réservation. Fail-open : aucune erreur ne bloque
+// jamais l'affichage des créneaux.
+const GOOGLE_BUSY_CACHE = new Map<string, { intervals: BusyInterval[] | null; expires: number }>();
+const GOOGLE_BUSY_CACHE_TTL_MS = 60 * 1000;
+
+async function getGoogleBusyCached(
+  profileId: string,
+  timeMin: string,
+  timeMax: string,
+): Promise<BusyInterval[] | null> {
+  const cacheKey = `${profileId}:${timeMin}`;
+  const cached = GOOGLE_BUSY_CACHE.get(cacheKey);
+  if (cached && cached.expires > Date.now()) {
+    return cached.intervals;
+  }
+  // Intégration absente → évite un appel freeBusy inutile
+  const integration = await getIntegration(profileId);
+  if (!integration || !integration.block_busy) {
+    GOOGLE_BUSY_CACHE.set(cacheKey, { intervals: null, expires: Date.now() + GOOGLE_BUSY_CACHE_TTL_MS });
+    return null;
+  }
+  const intervals = await fetchBusyIntervals(profileId, timeMin, timeMax, integration);
+  GOOGLE_BUSY_CACHE.set(cacheKey, { intervals, expires: Date.now() + GOOGLE_BUSY_CACHE_TTL_MS });
+  return intervals;
+}
 
 // GET — endpoint public pour récupérer les créneaux disponibles
 // Paramètres de requête : slug, service_id, date (YYYY-MM-DD)
@@ -120,10 +151,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la récupération des rendez-vous' }, { status: 500 });
     }
 
+    // ── Créneaux occupés dans l'agenda Google du pro (sync bidirectionnelle) ──
+    // Les événements externes (perso, autre activité…) bloquent des créneaux.
+    // fire-and-forget logique : échec → null → aucun blocage (fail-open).
+    let googleBusy: BusyInterval[] = [];
+    try {
+      const intervals = await getGoogleBusyCached(
+        profile.id,
+        dayStart.toISOString(),
+        dayEnd.toISOString(),
+      );
+      googleBusy = intervals ?? [];
+    } catch (err) {
+      console.warn('[bookings/availability] busy Google (fail-open):', err);
+    }
+
     // Générer les créneaux disponibles
     const slots = generateAvailableSlots({
       availability: availabilityRules || [],
-      blockedSlots: blockedSlots || [],
+      blockedSlots: [
+        ...(blockedSlots || []),
+        ...googleBusy.map((b) => ({ starts_at: b.starts_at, ends_at: b.ends_at })),
+      ],
       appointments: appointments || [],
       date: dayStart,
       durationMinutes: service.duration_minutes,
