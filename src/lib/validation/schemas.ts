@@ -78,6 +78,11 @@ export const serviceSchema = z.object({
   duration_minutes: z.coerce.number().int().min(5, 'La durée minimale est de 5 minutes').max(480, 'La durée maximale est de 8 heures'),
   is_active: z.boolean().default(true),
   image_url: z.string().max(500).nullable().optional(),
+  // Acompte requis à la réservation (anti no-show) — migration deposit v2.0.0
+  // Ignorés silencieusement si les colonnes n'existent pas encore en base.
+  deposit_enabled: z.boolean().default(false),
+  deposit_type: z.enum(['percent', 'fixed']).default('percent'),
+  deposit_value: z.coerce.number().int().min(0, 'La valeur ne peut pas être négative').max(100000000).default(0),
   // Paramètres spécifiques au métier (format d'appel SaaS, service à
   // domicile salon, couverts restaurant…) — stockés en JSONB.
   // Ignorés silencieusement si la colonne n'existe pas encore en base.
@@ -130,6 +135,28 @@ export const appointmentUpdateStatusSchema = z.object({
   status: appointmentStatusSchema,
 });
 
+// Mise à jour du paiement d'acompte (dashboard → « Acompte reçu »)
+export const appointmentPrepaymentSchema = z.object({
+  prepayment_status: z.enum(['pending', 'paid', 'exempt', 'none']),
+  amount_paid: z.coerce.number().int().min(0).max(100000000).optional(),
+});
+
+// ── Employés (gestion d'équipe — migration employees v2.0.0) ─
+export const employeeSchema = z.object({
+  name: z.string().min(1, 'Le nom est requis').max(80),
+  position: z.string().max(60).default(''),
+  phone: z.string().max(20).default(''),
+  email: z.string().email('Email invalide').optional().or(z.literal('')).default(''),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Couleur hexadécimale requise (ex : #6366f1)')
+    .default('#6366f1'),
+  is_active: z.boolean().default(true),
+  display_order: z.coerce.number().int().min(0).max(999).default(0),
+});
+
+export const employeeUpdateSchema = employeeSchema.partial();
+
 export const availabilitySchema = z.object({
   day_of_week: z.coerce.number().int().min(0).max(6),
   start_time: timeString,
@@ -161,6 +188,8 @@ export const publicBookingSchema = z.object({
   prepayment: z.enum(['pending', 'none', 'paid']).optional().default('none'),
   promo_code: z.string().max(40).optional().or(z.literal('')),
   notes: z.string().max(300).optional().default(''),
+  // Employé souhaité ('' ou absent = peu importe → auto-assign serveur)
+  employee_id: z.string().uuid('Employé invalide').optional().or(z.literal('')).default(''),
 });
 
 // ── Codes promo (marketing) ──────────────────────────────────
@@ -189,6 +218,9 @@ export type ProfileInput = z.infer<typeof profileSchema>;
 export type ServiceInput = z.infer<typeof serviceSchema>;
 export type ClientInput = z.infer<typeof clientSchema>;
 export type AppointmentCreateInput = z.infer<typeof appointmentCreateSchema>;
+export type AppointmentPrepaymentInput = z.infer<typeof appointmentPrepaymentSchema>;
+export type EmployeeInput = z.infer<typeof employeeSchema>;
+export type EmployeeUpdateInput = z.infer<typeof employeeUpdateSchema>;
 export type AvailabilityInput = z.infer<typeof availabilitySchema>;
 export type BlockedSlotInput = z.infer<typeof blockedSlotSchema>;
 export type PublicBookingInput = z.infer<typeof publicBookingSchema>;

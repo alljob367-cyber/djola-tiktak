@@ -33,6 +33,7 @@ import { formatCurrency } from '@/lib/availability/engine';
 import { useI18n } from '@/i18n/provider';
 import { localizedDayNames, localizedMonthNames } from '@/i18n/index';
 import { computeDiscount } from '@/lib/promo';
+import { computeDepositAmount } from '@/lib/booking/deposit';
 
 // ------------------------------------------------------------------
 // Types
@@ -44,6 +45,16 @@ interface Service {
   description: string;
   price: number;
   duration_minutes: number;
+  deposit_enabled?: boolean;
+  deposit_type?: 'percent' | 'fixed';
+  deposit_value?: number;
+}
+
+interface StaffMember {
+  id: string;
+  name: string;
+  position?: string;
+  color?: string;
 }
 
 interface Profile {
@@ -135,6 +146,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   // ---- data state ----
   const [profile, setProfile] = useState<Profile | null>(null);
   const [services, setServices] = useState<Service[]>([]);
+  const [employees, setEmployees] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ---- step state ----
@@ -145,6 +157,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [clientInfo, setClientInfo] = useState<ClientInfo>({
     client_name: '',
     client_phone: '',
@@ -181,6 +194,17 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
     [appliedPromo, selectedService],
   );
   const finalPrice = selectedService ? Math.max(0, selectedService.price - discountAmount) : 0;
+
+  // ---- Acompte requis (calculé comme le serveur, pour l'affichage) ----
+  const requiredDeposit = useMemo(
+    () => (selectedService ? computeDepositAmount(selectedService, discountAmount) : 0),
+    [selectedService, discountAmount],
+  );
+
+  // Acompte obligatoire → paiement anticipé forcé (toggle verrouillé)
+  useEffect(() => {
+    if (requiredDeposit > 0) setWantsAdvancePayment(true);
+  }, [requiredDeposit]);
 
   const applyPromo = useCallback(
     async (code: string) => {
@@ -255,9 +279,23 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             description: (s.description as string) || '',
             price: s.price as number,
             duration_minutes: s.duration_minutes as number,
+            deposit_enabled: Boolean(s.deposit_enabled),
+            deposit_type: (s.deposit_type as 'percent' | 'fixed') || 'percent',
+            deposit_value: Number(s.deposit_value ?? 0),
           })
         );
         setServices(svc);
+
+        // Employés actifs (liste vide tant que la migration n'est pas passée)
+        const staff: StaffMember[] = (data.employees || []).map(
+          (e: Record<string, unknown>) => ({
+            id: e.id as string,
+            name: e.name as string,
+            position: (e.position as string) || '',
+            color: (e.color as string) || '#6366f1',
+          })
+        );
+        setEmployees(staff);
 
         // Pre-select service if in URL
         if (sp.service) {
@@ -400,6 +438,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           starts_at: selectedSlot.starts_at,
           prepayment: wantsAdvancePayment ? 'pending' : 'none',
           promo_code: appliedPromo?.code || '',
+          employee_id: selectedEmployeeId || '',
         }),
       });
 
@@ -514,7 +553,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
     );
   };
 
-  // ---- Step 1: Select Service ----
+  // ---- Step 1: Select Service (+ préférence d'employé) ----
   const renderServiceStep = () => (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold text-foreground">
@@ -522,6 +561,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
       </h2>
       {services.map((svc) => {
         const isSelected = selectedService?.id === svc.id;
+        const svcDeposit = computeDepositAmount(svc, 0);
         return (
           <button
             key={svc.id}
@@ -543,7 +583,7 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
                     {svc.description}
                   </p>
                 )}
-                <div className="mt-1.5 flex items-center gap-3 text-sm">
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
                   <span className="inline-flex items-center gap-1 text-muted-foreground">
                     <Clock className="size-3.5" />
                     {svc.duration_minutes} min
@@ -551,6 +591,12 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
                   <span className="font-bold text-emerald-700">
                     {formatCurrency(svc.price, profile?.currency)}
                   </span>
+                  {svcDeposit > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-950/40 dark:text-violet-400">
+                      <Wallet className="size-3" />
+                      {BK.depositBadge(formatCurrency(svcDeposit, profile?.currency))}
+                    </span>
+                  )}
                 </div>
               </div>
               <div
@@ -566,6 +612,55 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           </button>
         );
       })}
+
+      {/* Préférence de professionnel (si l'équipe est configurée) */}
+      {employees.length > 0 && (
+        <div className="space-y-2 pt-2">
+          <h3 className="text-sm font-semibold text-foreground">
+            {BK.chooseStaff}
+            <span className="ml-1 text-xs font-normal text-muted-foreground">({BK.optional})</span>
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedEmployeeId('')}
+              className={`min-h-[40px] rounded-xl border-2 px-3 py-2 text-sm font-medium transition-all ${
+                selectedEmployeeId === ''
+                  ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                  : 'border-border bg-card text-muted-foreground hover:border-emerald-300'
+              }`}
+            >
+              {BK.anyStaff}
+            </button>
+            {employees.map((emp) => {
+              const isSelected = selectedEmployeeId === emp.id;
+              return (
+                <button
+                  key={emp.id}
+                  type="button"
+                  onClick={() => setSelectedEmployeeId(emp.id)}
+                  className={`flex min-h-[40px] items-center gap-2 rounded-xl border-2 px-3 py-2 text-sm font-medium transition-all ${
+                    isSelected
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                      : 'border-border bg-card text-foreground hover:border-emerald-300'
+                  }`}
+                >
+                  <span
+                    className="flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                    style={{ backgroundColor: emp.color || '#6366f1' }}
+                  >
+                    {emp.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="max-w-[120px] truncate">{emp.name}</span>
+                </button>
+              );
+            })}
+          </div>
+          {selectedEmployeeId === '' && employees.length > 1 && (
+            <p className="text-xs text-muted-foreground">{BK.anyStaffHint}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -843,14 +938,20 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
           </div>
         </div>
 
-        {/* Toggle */}
+        {/* Toggle — verrouillé si acompte obligatoire */}
         <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-3">
             <Wallet className="size-5 text-emerald-600" />
             <div>
-              <p className="text-sm font-medium">{BK.payAdvance}</p>
+              <p className="text-sm font-medium">
+                {requiredDeposit > 0 ? BK.depositRequiredTitle : BK.payAdvance}
+              </p>
               <p className="text-xs text-muted-foreground">
-                {discountAmount > 0 ? (
+                {requiredDeposit > 0 ? (
+                  <span className="font-semibold text-violet-700 dark:text-violet-400">
+                    {BK.depositRequiredAmount(formatCurrency(requiredDeposit, profile.currency))}
+                  </span>
+                ) : discountAmount > 0 ? (
                   <>
                     <span className="mr-1 line-through opacity-60">
                       {formatCurrency(selectedService.price, profile.currency)}
@@ -865,19 +966,25 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setWantsAdvancePayment(!wantsAdvancePayment)}
-            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
-              wantsAdvancePayment ? 'bg-emerald-600' : 'bg-muted'
-            }`}
-          >
-            <span
-              className={`inline-block size-5 transform rounded-full bg-white shadow-sm transition-transform ${
-                wantsAdvancePayment ? 'translate-x-6' : 'translate-x-1'
+          {requiredDeposit > 0 ? (
+            <span className="shrink-0 rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-violet-700 dark:bg-violet-950/40 dark:text-violet-400">
+              {BK.depositMandatory}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setWantsAdvancePayment(!wantsAdvancePayment)}
+              className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
+                wantsAdvancePayment ? 'bg-emerald-600' : 'bg-muted'
               }`}
-            />
-          </button>
+            >
+              <span
+                className={`inline-block size-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                  wantsAdvancePayment ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          )}
         </div>
 
         {/* Payment details when enabled */}
@@ -889,8 +996,18 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
             className="space-y-3 overflow-hidden"
           >
             <p className="text-sm font-medium text-foreground">
-              {BK.sendTo(formatCurrency(finalPrice, profile.currency))}
+              {BK.sendTo(
+                formatCurrency(
+                  requiredDeposit > 0 ? requiredDeposit : finalPrice,
+                  profile.currency,
+                ),
+              )}
             </p>
+            {requiredDeposit > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {BK.depositBalanceNote(formatCurrency(finalPrice - requiredDeposit, profile.currency))}
+              </p>
+            )}
 
             {profile.orange_money_phone && (
               <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-900/40 dark:bg-orange-950/20">
@@ -1037,7 +1154,36 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
               <p className="text-sm text-muted-foreground">{clientInfo.client_phone}</p>
             </div>
           </div>
-          {wantsAdvancePayment && (
+          {/* Employé souhaité */}
+          {employees.length > 0 && (
+            <div className="flex items-start gap-3">
+              <User className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">{BK.summaryStaff}</p>
+                <p className="font-semibold text-foreground">
+                  {selectedEmployeeId
+                    ? (employees.find((e) => e.id === selectedEmployeeId)?.name ?? BK.anyStaff)
+                    : BK.anyStaff}
+                </p>
+              </div>
+            </div>
+          )}
+          {/* Acompte requis */}
+          {requiredDeposit > 0 && (
+            <div className="flex items-start gap-3">
+              <Wallet className="mt-0.5 size-4 shrink-0 text-violet-600" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">{BK.summaryDeposit}</p>
+                <p className="font-semibold text-violet-700 dark:text-violet-400">
+                  {formatCurrency(requiredDeposit, profile?.currency)}
+                </p>
+                <p className="text-xs text-violet-600 dark:text-violet-500">
+                  {BK.depositBalanceNote(formatCurrency(finalPrice - requiredDeposit, profile?.currency))}
+                </p>
+              </div>
+            </div>
+          )}
+          {wantsAdvancePayment && requiredDeposit === 0 && (
             <div className="flex items-start gap-3">
               <Star className="mt-0.5 size-4 shrink-0 text-amber-500" />
               <div className="min-w-0">
@@ -1111,7 +1257,21 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
         <p className="text-sm text-muted-foreground">
           {BK.successDesc}
         </p>
-        {wantsAdvancePayment && (
+        {wantsAdvancePayment && requiredDeposit > 0 && (
+          <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-left dark:border-violet-900/40 dark:bg-violet-950/20">
+            <div className="flex items-center gap-2">
+              <Wallet className="size-4 shrink-0 text-violet-600 dark:text-violet-400" />
+              <p className="text-sm font-semibold text-violet-800 dark:text-violet-300">
+                {BK.depositRequiredAmount(formatCurrency(requiredDeposit, profile?.currency))}
+              </p>
+            </div>
+            <p className="mt-1 text-xs text-violet-700 dark:text-violet-400">
+              {BK.depositVia(`${profile?.orange_money_phone ? 'Orange Money' : ''}${profile?.orange_money_phone && profile?.mtn_momo_phone ? ` ${BK.or} ` : ''}${profile?.mtn_momo_phone ? 'MTN MoMo' : ''}`)}
+            </p>
+          </div>
+        )}
+
+        {wantsAdvancePayment && requiredDeposit === 0 && (
           <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
             <Star className="size-3" />
             {BK.successPriority}
@@ -1198,6 +1358,11 @@ export default function BookingPage({ params, searchParams }: BookingPageProps) 
                 </>
               ) : (
                 formatCurrency(selectedService.price, profile?.currency)
+              )}
+              {requiredDeposit > 0 && (
+                <span className="ml-1 font-semibold text-violet-700 dark:text-violet-400">
+                  · {BK.depositBadge(formatCurrency(requiredDeposit, profile?.currency))}
+                </span>
               )}
             </p>
           </div>

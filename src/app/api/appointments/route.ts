@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         service:services(*),
-        client:clients(*)
+        client:clients(*),
+        employee:employees(id, name, position, color)
       `)
       .eq('profile_id', user.id)
       .order('starts_at', { ascending: true });
@@ -46,6 +47,25 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
+      // Relation appointments↔employees absente (migration employees
+      // en attente) → retomber sur un select sans employé.
+      const msg = `${error.message ?? ''} ${error.details ?? ''}`.toLowerCase();
+      if (error.code === 'PGRST200' || msg.includes('employees')) {
+        const { data: retryData, error: retryError } = await supabase
+          .from('appointments')
+          .select(`
+            *,
+            service:services(*),
+            client:clients(*)
+          `)
+          .eq('profile_id', user.id)
+          .order('starts_at', { ascending: true });
+        if (retryError) {
+          console.error('Erreur appointments GET (retry):', retryError);
+          return NextResponse.json({ error: 'Erreur lors de la récupération des rendez-vous' }, { status: 500 });
+        }
+        return NextResponse.json({ data: retryData });
+      }
       console.error('Erreur appointments GET:', error);
       return NextResponse.json({ error: 'Erreur lors de la récupération des rendez-vous' }, { status: 500 });
     }

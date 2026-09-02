@@ -73,6 +73,10 @@ interface ServiceFormData {
   duration_minutes: string;
   is_active: boolean;
   image_url: string;
+  /** Acompte requis à la réservation (anti no-show) */
+  deposit_enabled: boolean;
+  deposit_type: 'percent' | 'fixed';
+  deposit_value: string;
   /** Paramètres spécifiques au métier (format d'appel, à domicile…) */
   metadata: Record<string, string | boolean>;
 }
@@ -90,6 +94,9 @@ const makeEmptyForm = (config: BusinessTypeConfig): ServiceFormData => {
     duration_minutes: String(defaultDuration),
     is_active: true,
     image_url: '',
+    deposit_enabled: false,
+    deposit_type: 'percent' as const,
+    deposit_value: '',
     metadata: {},
   };
 };
@@ -104,6 +111,14 @@ const cardVariants = {
   }),
   exit: { opacity: 0, y: -8, transition: { duration: 0.2 } },
 };
+
+/** Libellé court de la règle d'acompte d'un service (badge cartes/tableau). */
+function depositBadgeLabel(s: Service): string | null {
+  if (!s.deposit_enabled) return null;
+  const v = Number(s.deposit_value ?? 0);
+  if (v <= 0) return null;
+  return s.deposit_type === 'fixed' ? formatCurrency(v) : `${v} %`;
+}
 
 // ── Component ──────────────────────────────────────────────────
 export default function ServicesPage() {
@@ -186,6 +201,9 @@ export default function ServicesPage() {
       duration_minutes: String(s.duration_minutes),
       is_active: s.is_active,
       image_url: s.image_url || '',
+      deposit_enabled: s.deposit_enabled ?? false,
+      deposit_type: s.deposit_type === 'fixed' ? 'fixed' : 'percent',
+      deposit_value: s.deposit_value ? String(s.deposit_value) : '',
       metadata: (s.metadata ?? {}) as Record<string, string | boolean>,
     });
     setDialogOpen(true);
@@ -289,6 +307,10 @@ export default function ServicesPage() {
         duration_minutes: duration,
         is_active: form.is_active,
         image_url: form.image_url || null,
+        // Acompte (anti no-show) — ignoré par l'API si migration en attente
+        deposit_enabled: form.deposit_enabled,
+        deposit_type: form.deposit_type,
+        deposit_value: form.deposit_enabled ? Math.max(0, Number(form.deposit_value) || 0) : 0,
         // Paramètres spécifiques au métier → metadata JSONB
         metadata: (() => {
           const meta: Record<string, string | boolean> = {};
@@ -527,6 +549,11 @@ export default function ServicesPage() {
                                       {s.capacity}
                                     </span>
                                   )}
+                                  {depositBadgeLabel(s) && (
+                                    <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950/40 dark:text-violet-400">
+                                      {S.depositChip} {depositBadgeLabel(s)}
+                                    </span>
+                                  )}
                                   {serviceMetadataChips(businessTypeKey, s.metadata).slice(0, 3).map((chip) => (
                                     <span key={chip.label} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                                       {chip.value ? `${chip.label} : ${chip.value}` : chip.label}
@@ -677,6 +704,11 @@ export default function ServicesPage() {
                                 <span className="flex items-center gap-1 text-muted-foreground">
                                   <Users size={13} />
                                   {s.capacity}
+                                </span>
+                              )}
+                              {depositBadgeLabel(s) && (
+                                <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950/40 dark:text-violet-400">
+                                  {S.depositChip} {depositBadgeLabel(s)}
                                 </span>
                               )}
                             </div>
@@ -931,6 +963,67 @@ export default function ServicesPage() {
                 ))}
               </div>
             )}
+            {/* Acompte requis (anti no-show) — migration deposit v2.0.0 */}
+            <div className="space-y-3 rounded-lg border border-amber-200/70 bg-amber-50/40 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{S.depositLabel}</p>
+                  <p className="text-[11px] text-muted-foreground">{S.depositHint}</p>
+                </div>
+                <Switch
+                  checked={form.deposit_enabled}
+                  onCheckedChange={(v) => setForm((f) => ({ ...f, deposit_enabled: v }))}
+                />
+              </div>
+              {form.deposit_enabled && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="svc-deposit-type">{S.depositTypeLabel}</Label>
+                      <select
+                        id="svc-deposit-type"
+                        value={form.deposit_type}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, deposit_type: e.target.value as 'percent' | 'fixed' }))
+                        }
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        <option value="percent">{S.depositTypePercent}</option>
+                        <option value="fixed">{S.depositTypeFixed}</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="svc-deposit-value">
+                        {form.deposit_type === 'percent' ? S.depositPercentLabel : S.depositFixedLabel}
+                      </Label>
+                      <Input
+                        id="svc-deposit-value"
+                        type="number"
+                        min={form.deposit_type === 'percent' ? 1 : 0}
+                        max={form.deposit_type === 'percent' ? 100 : undefined}
+                        placeholder={form.deposit_type === 'percent' ? '20' : '2000'}
+                        value={form.deposit_value}
+                        onChange={(e) => setForm((f) => ({ ...f, deposit_value: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  {(() => {
+                    const priceNum = Number(form.price);
+                    const valNum = Number(form.deposit_value);
+                    if (!isFinite(priceNum) || priceNum <= 0 || !isFinite(valNum) || valNum <= 0) return null;
+                    const amount = form.deposit_type === 'percent'
+                      ? Math.ceil((Math.max(0, priceNum) * Math.min(100, valNum)) / 100)
+                      : Math.min(valNum, Math.max(0, priceNum));
+                    if (amount <= 0) return null;
+                    return (
+                      <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                        {S.depositPreview(formatCurrency(amount))}
+                      </p>
+                    );
+                  })()}
+                </>
+              )}
+            </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
                 <p className="text-sm font-medium">{S.activeLabel}</p>

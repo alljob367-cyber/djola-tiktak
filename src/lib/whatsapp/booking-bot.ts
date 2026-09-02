@@ -22,6 +22,8 @@ import {
 } from '@/lib/availability/engine';
 import { sendWhatsAppText, sendWhatsAppList, sendWhatsAppButtons } from './send';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { computeDepositAmount } from '@/lib/booking/deposit';
+import { bookAtomic } from '@/lib/booking/atomic';
 
 // ── Constantes ───────────────────────────────────────────────
 
@@ -313,10 +315,10 @@ async function confirmBooking(
   const startsAt = ctx.starts_at!;
   const clientName = ctx.client_name || 'Client WhatsApp';
 
-  // Service (durée) + profil (devise, fuseau)
+  // Service (durée, acompte) + profil (devise, fuseau, paiements)
   const [{ data: service }, { data: profile }] = await Promise.all([
-    supabase.from('services').select('id, name, duration_minutes, is_active').eq('id', serviceId).single(),
-    supabase.from('profiles').select('id, business_name, timezone, currency, is_active').eq('id', profileId).single(),
+    supabase.from('services').select('id, name, duration_minutes, price, is_active, deposit_enabled, deposit_type, deposit_value').eq('id', serviceId).single(),
+    supabase.from('profiles').select('id, business_name, timezone, currency, is_active, payment_methods_enabled, orange_money_phone, mtn_momo_phone, payment_instructions').eq('id', profileId).single(),
   ]);
 
   if (!service || !profile || !profile.is_active || !service.is_active) {
@@ -365,23 +367,60 @@ async function confirmBooking(
   }
 
   // Réservation atomique (même RPC que le web — pas de double réservation)
-  const { data: rpc, error } = await supabase.rpc('book_appointment_atomic', {
-    p_profile_id: profileId,
-    p_service_id: serviceId,
-    p_client_id: clientId,
-    p_starts_at: start.toISOString(),
-    p_ends_at: end.toISOString(),
-    p_status: 'pending',
-    p_notes: 'Réservé via WhatsApp 📱',
-  });
+  // + auto-assign employé : on essaie chaque employé actif dans l'ordre
+  // d'affichage jusqu'au premier créneau libre (comme le web).
+  const depositAmount = computeDepositAmount(
+    service as unknown as Parameters<typeof computeDepositAmount>[0],
+    0,
+  );
+  const prepaymentStatus = depositAmount > 0 ? 'pending' : 'none';
+
+  const { data: activeEmployees } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('profile_id', profileId)
+    .eq('is_active', true)
+    .order('display_order', { ascending: true });
+
+  const tryBook = (empId: string | null) =>
+    bookAtomic(supabase, {
+      p_profile_id: profileId,
+      p_service_id: serviceId,
+      p_client_id: clientId,
+      p_starts_at: start.toISOString(),
+      p_ends_at: end.toISOString(),
+      p_status: 'pending',
+      p_notes: 'Réservé via WhatsApp 📱',
+      p_employee_id: empId,
+      p_deposit_amount: depositAmount,
+      p_prepayment_status: prepaymentStatus,
+    });
+
+  let rpc: Awaited<ReturnType<typeof tryBook>> | null = null;
+  const candidates = (activeEmployees ?? []).map((e: { id: string }) => e.id);
+  for (const empId of candidates) {
+    const res = await tryBook(empId);
+    if (!res.conflict) {
+      rpc = res;
+      break;
+    }
+    if (res.error && !res.error.includes('déjà pris')) {
+      rpc = null;
+      break;
+    }
+  }
+  if (!rpc) {
+    rpc = await tryBook(null);
+  }
+  const { conflict, error, appointment } = rpc;
 
   if (error) {
-    console.error('[wa-bot] erreur RPC book_appointment_atomic:', error.message);
+    console.error('[wa-bot] erreur RPC book_appointment_atomic:', error);
     await sendWhatsAppText(phone, '😔 Une erreur est survenue. Réessayez dans quelques instants.');
     return;
   }
 
-  if (rpc?.conflict) {
+  if (conflict) {
     // Créneau pris entre-temps → reproposer des créneaux
     await sendWhatsAppText(phone, '⏰ Oups, ce créneau vient d\'être pris ! Choisissez-en un autre :');
     await sendSlotList(supabase, phone, session, service, { id: profileId, timezone: profile.timezone });
@@ -390,9 +429,24 @@ async function confirmBooking(
 
   const dateISO = formatDateISO(start, profile.timezone);
   const appUrl = ctx.app_url || '';
+
+  // Employé assigné (retourné par le RPC v2)
+  const assignedEmployee = (appointment as { employee?: { name?: string } | null } | null)?.employee;
+  const employeeLine = assignedEmployee?.name ? `👩\u200d⚕️ Avec : ${assignedEmployee.name}\n` : '';
+
+  // Ligne acompte : montant + méthode de paiement du commerce
+  let depositLine = '';
+  if (depositAmount > 0) {
+    const momo = [
+      profile.payment_methods_enabled && profile.orange_money_phone ? 'Orange Money' : '',
+      profile.payment_methods_enabled && profile.mtn_momo_phone ? 'MTN MoMo' : '',
+    ].filter(Boolean).join(' ou ');
+    depositLine = `\n💰 *Acompte à verser : ${formatCurrency(depositAmount, profile.currency)}*${momo ? ` via ${momo}` : ''}\nLe rendez-vous sera confirmé après réception de l'acompte.`;
+  }
+
   await sendWhatsAppText(
     phone,
-    `🎉 *Rendez-vous confirmé !*\n\n🏪 ${profile.business_name}\n💅 ${service.name}\n📅 ${labelDate(dateISO)}\n🕐 ${labelTime(start, profile.timezone)}\n\n⏳ En attente de validation du commerce. Vous recevrez un rappel avant le rendez-vous.\n${appUrl ? `\n🔗 Gérer mon RDV : ${appUrl}` : ''}`,
+    `🎉 *Rendez-vous confirmé !*\n\n🏪 ${profile.business_name}\n💅 ${service.name}${employeeLine}\n📅 ${labelDate(dateISO)}\n🕐 ${labelTime(start, profile.timezone)}\n${depositLine}\n\n⏳ En attente de validation du commerce. Vous recevrez un rappel avant le rendez-vous.\n${appUrl ? `\n🔗 Gérer mon RDV : ${appUrl}` : ''}`,
   );
   await resetSession(supabase, phone);
 }

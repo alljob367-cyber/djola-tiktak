@@ -74,9 +74,34 @@ export interface Service {
   image_url: string | null;
   /** Paramètres spécifiques au métier (migration service-forms v1.3.0) */
   metadata?: Record<string, string | number | boolean> | null;
+  /** Acompte requis à la réservation (migration deposit v2.0.0) */
+  deposit_enabled?: boolean;
+  deposit_type?: 'percent' | 'fixed';
+  deposit_value?: number;
   created_at: string;
   updated_at: string;
 }
+
+// Employés — gestion d'équipe (migration employees v2.0.0)
+export interface Employee {
+  id: string;
+  profile_id: string;
+  name: string;
+  position: string;
+  phone: string;
+  email: string;
+  color: string;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Champs employé sûrs à exposer publiquement (page de réservation). */
+export type PublicEmployee = Pick<
+  Employee,
+  'id' | 'name' | 'position' | 'color' | 'display_order'
+>;
 
 export interface Client {
   id: string;
@@ -100,6 +125,12 @@ export interface Appointment {
   notes: string;
   promo_code?: string | null;
   discount_amount?: number | null;
+  /** Employé assigné (migration employees v2.0.0) */
+  employee_id?: string | null;
+  /** Acompte (migration deposit v2.0.0) */
+  prepayment_status?: 'none' | 'pending' | 'paid' | 'exempt';
+  deposit_amount?: number;
+  amount_paid?: number;
   created_at: string;
   updated_at: string;
 }
@@ -157,6 +188,7 @@ export interface Reminder {
 export interface AppointmentWithDetails extends Appointment {
   service: Service;
   client: Client;
+  employee?: Employee | null;
 }
 
 export interface ProfileWithServices extends Profile {
@@ -177,6 +209,8 @@ export interface BookingInput {
   client_phone: string;
   client_email?: string;
   notes?: string;
+  /** Employé souhaité ('' = peu importe → auto-assign) */
+  employee_id?: string;
 }
 
 // ============================================================
@@ -209,6 +243,12 @@ export type PaymentStatus =
   | 'completed'
   | 'failed'
   | 'refunded';
+
+/** Statut du paiement anticipé/acompte d'un rendez-vous. */
+export type PrepaymentStatus = 'none' | 'pending' | 'paid' | 'exempt';
+
+/** Type d'acompte configuré sur un service. */
+export type DepositType = 'percent' | 'fixed';
 
 export type UsageRecordStatus =
   | 'reserved'

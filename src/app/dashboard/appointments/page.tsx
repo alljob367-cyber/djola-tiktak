@@ -11,6 +11,8 @@ import {
   UserX,
   CircleDot,
   Trash2,
+  Wallet,
+  Banknote,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -33,6 +35,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import type { AppointmentWithDetails, AppointmentStatus } from '@/types/database';
+import { formatCurrency } from '@/lib/availability/engine';
 import { useI18n } from '@/i18n/provider';
 
 // ── Status config ─────────────────────────────────────────────
@@ -180,6 +183,28 @@ export default function AppointmentsPage() {
     }
   };
 
+  // ── Acompte reçu (prepayment_status → paid) ─────────────
+  const markDepositPaid = async (id: string) => {
+    setUpdatingId(id);
+    try {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prepayment_status: 'paid' }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erreur serveur');
+      }
+      toast.success(A.depositReceived);
+      fetchAppointments();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : A.updateError);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   // ── Filtered list ───────────────────────────────────────
   const filtered =
     activeTab === 'all'
@@ -259,10 +284,49 @@ export default function AppointmentsPage() {
                   <Badge variant="secondary" className={cfg.color}>
                     {cfg.label}
                   </Badge>
+                  {/* Employé assigné (gestion d'équipe) */}
+                  {apt.employee?.name && (
+                    <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      <span
+                        className="inline-block h-2 w-2 rounded-full"
+                        style={{ backgroundColor: apt.employee.color || '#6366f1' }}
+                      />
+                      {apt.employee.name}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground mt-0.5">
                   {apt.service?.name ?? A.unknownService}
                 </p>
+                {/* Acompte (anti no-show) */}
+                {apt.prepayment_status === 'pending' && (apt.deposit_amount ?? 0) > 0 && (
+                  <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+                      <Wallet size={10} />
+                      {A.depositDue(formatCurrency(apt.deposit_amount ?? 0))}
+                    </span>
+                    {canAct && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => markDepositPaid(apt.id)}
+                        disabled={isUpdating}
+                        className="h-6 rounded-full border-violet-200 px-2 text-[10px] text-violet-700 hover:bg-violet-50 dark:border-violet-800 dark:text-violet-400 dark:hover:bg-violet-950/40"
+                      >
+                        <Banknote size={11} className="mr-1" />
+                        {A.markDepositPaid}
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {apt.prepayment_status === 'paid' && (apt.amount_paid ?? 0) > 0 && (
+                  <div className="mt-1.5">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                      <CheckCircle2 size={10} />
+                      {A.depositPaid(formatCurrency(apt.amount_paid ?? 0))}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}

@@ -64,7 +64,30 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       services: services || [],
     };
 
-    return NextResponse.json({ data: result });
+    // Employés actifs (gestion d'équipe) — champs publics uniquement.
+    // En cas de table absente (migration en attente) → liste vide silencieuse.
+    let employees: Array<Record<string, unknown>> = [];
+    try {
+      const { data: staff, error: employeesError } = await supabase
+        .from('employees')
+        .select('id, name, position, color, display_order')
+        .eq('profile_id', profileId)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (employeesError) {
+        // 42P01 = table inexistante — toléré tant que la migration n'est pas passée
+        if (employeesError.code !== '42P01') {
+          console.warn('Erreur employees profil public (non bloquante):', employeesError.message);
+        }
+      } else {
+        employees = staff ?? [];
+      }
+    } catch {
+      // Non bloquant : la réservation fonctionne sans employés
+    }
+
+    return NextResponse.json({ data: { ...result, employees } });
   } catch (err) {
     console.error('Erreur inattendue profil public GET:', err);
     return NextResponse.json({ error: 'Erreur serveur interne' }, { status: 500 });
