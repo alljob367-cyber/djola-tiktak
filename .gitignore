@@ -60,3 +60,9 @@ VARIABLES-VERCEL.md
 *.env.secrets
 
 db/custom.db
+
+# Artefacts de développement (purge 2026-09 : -55 MB du dépôt)
+/download/
+/mini-services/
+/examples/
+chariow-*.json

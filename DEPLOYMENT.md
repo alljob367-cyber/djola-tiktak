@@ -360,3 +360,44 @@ Après le déploiement :
   les autres comptes sont redirigés vers leur tableau de bord. Les API
   `/api/admin/*` appliquent le même contrôle.
 - Mettre à jour régulièrement les dépendances.
+
+## Étape 7quater : Bot de réservation WhatsApp (optionnel, recommandé)
+
+Permet aux clients de réserver **en conversation WhatsApp**, sans ouvrir
+le site : le client envoie « RDV \<code-du-commerce\> » (ou clique le
+bouton flottant « Réserver via WhatsApp » de la page publique), choisit
+son service puis son créneau dans des listes interactives, confirme —
+le rendez-vous apparaît dans le tableau de bord du professionnel.
+
+### Prérequis
+- Un numéro WhatsApp Business dédié à la plateforme (hors WhatsApp
+  personnel), enregistré dans Meta Business.
+- Les variables `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID`
+  (voir Étape 7bis, section Meta Cloud API).
+
+### Configuration
+1. Créez un jeton de vérification (valeur libre) :
+   `openssl rand -hex 16`
+2. Dans Vercel, ajoutez :
+   - `WHATSAPP_VERIFY_TOKEN` = le jeton ci-dessus
+   - `NEXT_PUBLIC_WHATSAPP_BOOKING_NUMBER` = numéro WhatsApp de la
+     plateforme, format international sans « + » (ex : `2376XXXXXXXX`)
+3. Redéployez, puis dans **Meta App Dashboard → WhatsApp → Configuration** :
+   - Callback URL : `https://votre-domaine/api/whatsapp/webhook`
+   - Verify token : la valeur de `WHATSAPP_VERIFY_TOKEN`
+   - Cliquez « Vérifier et enregistrer », puis abonnez-vous au champ
+     **messages**.
+
+### Migrations SQL à exécuter (SQL Editor Supabase)
+- `supabase/rate-limit-migration.sql` — anti-spam persistant
+  (remplace le limiter en mémoire, inefficace sur Vercel).
+- `supabase/whatsapp-booking-sessions-migration.sql` — sessions du bot.
+
+### Garde-fous intégrés
+- Sessions expirées après 30 min d'inactivité.
+- Anti-spam : 20 messages / 5 min par numéro, 3 réservations / 24 h
+  par numéro.
+- Réservation atomique (même RPC `book_appointment_atomic` que le web) :
+  aucun risque de double réservation.
+- Fallback automatique en texte numéroté si les messages interactifs
+  (listes/boutons) sont refusés par le client WhatsApp.

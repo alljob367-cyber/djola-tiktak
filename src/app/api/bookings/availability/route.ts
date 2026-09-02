@@ -1,11 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { generateAvailableSlots, zonedTimeToUtc, formatDateISO } from '@/lib/availability/engine';
+import { checkRateLimit, hashIdentifier, getClientIp } from '@/lib/rate-limit';
+
+// Anti-scraping : max 120 consultations de créneaux par IP par heure
+const AVAIL_RATE_LIMIT = 120;
+const AVAIL_RATE_WINDOW_MS = 60 * 60 * 1000;
 
 // GET — endpoint public pour récupérer les créneaux disponibles
 // Paramètres de requête : slug, service_id, date (YYYY-MM-DD)
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting léger (fail-open) pour empêcher le scraping massif
+    // de créneaux tout en laissant les pages publiques respirer
+    const ip = getClientIp(request);
+    const supabaseRate = await createServiceRoleClient();
+    const rl = await checkRateLimit(
+      supabaseRate,
+      `av:${hashIdentifier(ip)}`,
+      AVAIL_RATE_LIMIT,
+      AVAIL_RATE_WINDOW_MS,
+    );
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Réessayez plus tard.' },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get('slug');
     const service_id = searchParams.get('service_id');

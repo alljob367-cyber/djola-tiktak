@@ -3,42 +3,32 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { publicBookingSchema } from '@/lib/validation/schemas';
 import { zonedTimeToUtc, formatDateISO } from '@/lib/availability/engine';
 import { findValidPromo, computeDiscount, type PromoCodeRecord } from '@/lib/promo';
+import { checkRateLimit, hashIdentifier, getClientIp } from '@/lib/rate-limit';
 
-// Rate limiting: max 5 bookings per IP per hour
+// Rate limiting persistant (Supabase) : max 5 réservations par IP par heure.
+// L'ancien limiter en mémoire était inefficace sur Vercel (multi-instances
+// serverless) — voir src/lib/rate-limit.ts et supabase/rate-limit-migration.sql
 const BOOKING_RATE_LIMIT = 5;
-const BOOKING_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const ipBookingCache = new Map<string, { count: number; windowStart: number }>();
-
-// Simple in-memory rate limiter (resets on deploy, acceptable for single-instance)
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = ipBookingCache.get(ip);
-
-  if (!entry || now - entry.windowStart > BOOKING_RATE_WINDOW_MS) {
-    ipBookingCache.set(ip, { count: 1, windowStart: now });
-    return false;
-  }
-
-  if (entry.count >= BOOKING_RATE_LIMIT) {
-    return true;
-  }
-
-  entry.count++;
-  return false;
-}
+const BOOKING_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 heure
 
 // POST — réservation publique (sans authentification)
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting par IP
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
-      || request.headers.get('x-real-ip') 
-      || 'unknown';
-    
-    if (isRateLimited(ip)) {
+    // Rate limiting persistant par IP (fenêtre glissante en base,
+    // IP hachée — jamais stockée en clair)
+    const ip = getClientIp(request);
+    const supabaseRate = await createServiceRoleClient();
+    const rl = await checkRateLimit(
+      supabaseRate,
+      `bk:${hashIdentifier(ip)}`,
+      BOOKING_RATE_LIMIT,
+      BOOKING_RATE_WINDOW_MS,
+    );
+
+    if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Trop de réservations en peu de temps. Veuillez réessayer dans une heure.' },
-        { status: 429 },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
       );
     }
 

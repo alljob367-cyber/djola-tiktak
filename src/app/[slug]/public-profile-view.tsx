@@ -33,6 +33,7 @@ import {
 import { getPublicTheme, heroGradient, themeCssVars, type PublicTheme } from '@/lib/themes';
 import { useI18n } from '@/i18n/provider';
 import { LanguageSwitcher } from '@/i18n/language-switcher';
+import { WhatsAppBookingButton } from '@/components/whatsapp-booking-button';
 
 export interface PublicProfileData {
   id: string;
@@ -838,6 +839,9 @@ export default function PublicProfileView({ profile, services, promos, initials 
           </div>
         </div>
       </div>
+
+      {/* ── Bouton flottant : réserver via le bot WhatsApp ── */}
+      <WhatsAppBookingButton slug={profile.slug} />
     </div>
   );
 }
