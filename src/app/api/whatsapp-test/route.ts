@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     if (!result?.success) {
       return NextResponse.json(
         {
-          error: `Échec de l'envoi : ${result.error ?? 'erreur inconnue'}. Vérifiez la configuration WhatsApp (WHATSAPP_TOKEN / WHATSAPP_PHONE_NUMBER_ID).`,
+          error: `Échec de l'envoi : ${result.error ?? 'erreur inconnue'}. Vérifiez la configuration WhatsApp (WHATSAPP_* pour Meta ou TWILIO_* pour Twilio).`,
         },
         { status: 502 }
       );
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       message:
         result.messageId?.startsWith('wa-placeholder')
-          ? `${message}\n\nℹ️ Mode développement : aucun envoi réel (configurez WHATSAPP_TOKEN et WHATSAPP_PHONE_NUMBER_ID pour activer l'envoi réel).`
+          ? `${message}\n\nℹ️ Mode développement : aucun envoi réel (configurez WHATSAPP_* pour Meta ou TWILIO_* pour Twilio pour activer l'envoi réel).`
           : message,
       messageId: result.messageId,
     });

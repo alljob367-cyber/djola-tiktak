@@ -1,13 +1,11 @@
 // ============================================================
-// SMS Reminder Provider — Africa's Talking (exclusif)
+// SMS Reminder Provider — Africa's Talking OU Twilio
 // Détection automatique selon les variables d'environnement.
 // Aucune dépendance npm : appels REST via fetch.
 //
-// Twilio a été retiré du projet (décision produit) : pour les SMS,
-// Africa's Talking est l'agrégateur africain (tarifs locaux, très
-// inférieurs aux tarifs Twilio ~0,32 $/SMS au Cameroun).
-// Si aucune variable n'est configurée → mode placeholder (succès
-// factice), même comportement que le provider email non configuré.
+// Priorité : Africa's Talking (moins cher en Afrique) > Twilio
+// Si aucun n'est configuré → mode placeholder (succès factice),
+// même comportement que le provider email non configuré.
 // ============================================================
 
 import type { NotificationProvider, ReminderPayload, ReminderResult } from './types';
@@ -70,16 +68,61 @@ async function sendViaAfricasTalking(to: string, message: string): Promise<Remin
   };
 }
 
+// ------------------------------------------------------------
+// Twilio — https://www.twilio.com
+// Env : TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
+// ------------------------------------------------------------
+async function sendViaTwilio(to: string, message: string): Promise<ReminderResult> {
+  const sid = process.env.TWILIO_ACCOUNT_SID!;
+  const token = process.env.TWILIO_AUTH_TOKEN!;
+  const from = process.env.TWILIO_PHONE_NUMBER!;
+
+  const body = new URLSearchParams({ To: to, From: from, Body: message });
+
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: body.toString(),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    return {
+      success: false,
+      channel: 'sms',
+      error: `Twilio: ${data?.message || `HTTP ${res.status}`}`,
+    };
+  }
+
+  return { success: true, channel: 'sms', messageId: data?.sid || `tw-${Date.now()}` };
+}
+
 export class SMSProvider implements NotificationProvider {
   readonly channel = 'sms';
 
-  private isConfigured(): boolean {
-    return Boolean(process.env.AFRICASTALKING_API_KEY && process.env.AFRICASTALKING_USERNAME);
+  private detectBackend(): 'africastalking' | 'twilio' | null {
+    if (process.env.AFRICASTALKING_API_KEY && process.env.AFRICASTALKING_USERNAME) {
+      return 'africastalking';
+    }
+    if (
+      process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN &&
+      process.env.TWILIO_PHONE_NUMBER
+    ) {
+      return 'twilio';
+    }
+    return null;
   }
 
   async send(payload: ReminderPayload): Promise<ReminderResult> {
     try {
-      if (!this.isConfigured()) {
+      const backend = this.detectBackend();
+
+      if (!backend) {
         // Aucun fournisseur configuré — placeholder (développement)
         console.log(`[SMS/placeholder] Rappel pour ${payload.clientPhone} : ${buildSmsMessage(payload)}`);
         return { success: true, channel: this.channel, messageId: `sms-placeholder-${Date.now()}` };
@@ -92,7 +135,9 @@ export class SMSProvider implements NotificationProvider {
 
       const message = buildSmsMessage(payload);
 
-      return sendViaAfricasTalking(to, message);
+      return backend === 'africastalking'
+        ? sendViaAfricasTalking(to, message)
+        : sendViaTwilio(to, message);
     } catch (error) {
       return {
         success: false,

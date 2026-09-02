@@ -219,19 +219,20 @@ Vérifier manuellement : onglet **Actions → Rappels RDV → Run workflow**.
 2. Obtenir une clé API dans les paramètres.
 3. Ajouter `ELEVENLABS_API_KEY` dans les variables Vercel.
 
-## Étape 7bis : Configurer les rappels WhatsApp (Meta Cloud API)
+## Étape 7bis : Configurer les rappels WhatsApp (Meta OU Twilio)
 
-> ℹ️ **Twilio a été retiré du projet** : WhatsApp passe exclusivement par
-> la Meta Cloud API — **gratuite jusqu'à 1 000 conversations de service
-> par mois**, ce qui couvre largement les rappels d'une petite activité.
-> Pas de sandbox, pas de code "join", pas de frais par message.
+> ℹ️ **Double fournisseur avec détection automatique** :
+> - **Meta Cloud API** prioritaire — gratuite jusqu'à 1 000 conversations
+>   de service/mois, listes/boutons interactifs du bot de réservation.
+> - **Twilio WhatsApp** en fallback — sandbox facile pour tester.
+> - Les deux configurés → **Meta gagne**.
 
 Les rappels WhatsApp s'activent **automatiquement** dès qu'un client
-a renseigné son téléphone — à condition d'avoir configuré Meta ci-dessous.
-Sans configuration, les canaux passent en mode "placeholder" (aucun envoi
-réel, aucune erreur).
+a renseigné son téléphone — à condition d'avoir configuré un fournisseur
+ci-dessous. Sans configuration, les canaux passent en mode "placeholder"
+(aucun envoi réel, aucune erreur).
 
-### Configuration Meta (rappels + bot de réservation)
+### Option A (recommandée) — Meta Cloud API
 
 1. Créer un compte Meta Business : [https://business.facebook.com](https://business.facebook.com).
 2. Dans Meta for Developers → créer une app → ajouter le produit **WhatsApp**.
@@ -253,25 +254,62 @@ réel, aucune erreur).
    WHATSAPP_TEMPLATE_NAME=appointment_reminder
    WHATSAPP_TEMPLATE_LANG=fr
    ```
-8. Tester en local avant de déployer :
-   ```
-   cp .env.example .env.local   # puis remplir WHATSAPP_TOKEN et WHATSAPP_PHONE_NUMBER_ID
-   node scripts/test-whatsapp.js 2376XXXXXXXX
-   ```
-   💡 En test, si l'erreur `131047` apparaît (fenêtre 24 h fermée) : le
-   destinataire envoie "Salut" au numéro Business, puis relance le test
-   dans les 24 h — ou utilise le template approuvé.
 
-> 💡 **Erreurs fréquentes** : `131047` = fenêtre 24 h fermée (message libre
-> refusé → envoyer un template approuvé) ; `131030` = numéro destinataire non
-> autorisé (mode développement : l'ajouter dans WhatsApp → Destinataires) ;
-> code `190` = jeton invalide/expiré (utiliser un jeton permanent).
+> 💡 **Erreurs Meta fréquentes** : `131047` = fenêtre 24 h fermée (message
+> libre refusé → envoyer un template approuvé) ; `131030` = numéro
+> destinataire non autorisé (mode développement : l'ajouter dans
+> WhatsApp → Destinataires) ; code `190` = jeton invalide/expiré
+> (utiliser un jeton permanent).
 
-### SMS économiques (optionnel — Africa's Talking)
+### Option B (fallback) — Twilio WhatsApp (sandbox gratuit)
+
+> ⚠️ **IMPORTANT** : ne définis que les 3 variables ci-dessous.
+> **N'AJOUTE PAS** `TWILIO_PHONE_NUMBER` — sinon les rappels SMS seraient
+> aussi envoyés (~0,32 $/SMS au Cameroun). Sans cette variable, le canal
+> SMS reste en mode "placeholder" : seul WhatsApp est réellement envoyé.
+
+1. Créer un compte gratuit sur https://www.twilio.com (pas de carte bancaire
+   requise, ~15 $ de crédit d'essai offert).
+2. Récupérer les identifiants dans la console → **Dashboard** :
+   - **Account SID** (commence par `AC…`)
+   - **Auth Token** (cliquer sur l'œil pour l'afficher)
+3. Activer le sandbox WhatsApp (test 100 % gratuit) :
+   - Console Twilio → **Messaging** → **Try it out** → **Send a WhatsApp message**
+   - Noter le numéro sandbox : **+1 415 523 8886**
+   - Noter le code de connexion (ex : `join brown-cat`)
+4. Depuis son propre WhatsApp, chaque destinataire (et toi pour tester) doit
+   envoyer le code `join xxx-xxx` au **+1 415 523 8886** — cette étape est
+   **obligatoire** pour recevoir les messages en mode sandbox.
+5. Ajouter dans Vercel (Settings → Environment Variables) :
+   ```
+   TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   TWILIO_AUTH_TOKEN=votre-token-auth
+   TWILIO_WHATSAPP_FROM=+14155238886
+   ```
+   puis **Redeploy** pour que les variables soient prises en compte.
+
+> 💡 **Sandbox → Production** : le sandbox suffit pour tester, mais chaque
+> destinataire doit rejoindre le sandbox (et le rejoindre à nouveau après
+> 72 h d'inactivité). Pour envoyer librement à tous les clients, demander un
+> émetteur WhatsApp approuvé dans la console Twilio (Messaging → Senders →
+> WhatsApp senders) — ou basculer sur l'option A (Meta, gratuite).
+>
+> 💡 **Erreurs Twilio fréquentes** : code `63016` = le destinataire n'a pas
+> rejoint le sandbox ; `20003` = SID/Token incorrect ; `21211` = numéro
+> destinataire mal formaté (utiliser +2376XXXXXXXX).
+
+### Test en local (détecte automatiquement Meta ou Twilio)
+
+```
+cp .env.example .env.local   # puis remplir les valeurs du fournisseur choisi
+node scripts/test-whatsapp.js +2376XXXXXXXX
+```
+
+### SMS (optionnel — Africa's Talking OU Twilio)
 
 Les SMS sont **optionnels** : WhatsApp + e-mail couvrent déjà les rappels.
-Si tu veux vraiment des SMS, Africa's Talking est l'agrégateur africain
-(tarifs locaux bien inférieurs aux tarifs Twilio ~0,32 $/SMS) :
+
+**Africa's Talking** (tarifs locaux africains, recommandé) :
 
 1. Créer un compte sur [https://africastalking.com](https://africastalking.com).
 2. Créer un Sender ID (ou utiliser le nom d'utilisateur `sandbox` pour tester).
@@ -282,8 +320,13 @@ Si tu veux vraiment des SMS, Africa's Talking est l'agrégateur africain
    AFRICASTALKING_SENDER_ID=votre-sender-id
    ```
 
-Canal WhatsApp : **Meta Cloud API uniquement**.
-Canal SMS : **Africa's Talking uniquement** (désactivé si non configuré).
+**Twilio SMS** (fallback) : réutilise les `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`
+déjà définis pour WhatsApp + ajoute `TWILIO_PHONE_NUMBER` (numéro SMS Twilio).
+⚠️ Facturé ~0,32 $/SMS au Cameroun.
+
+Priorité de détection automatique :
+- **WhatsApp** : Meta Cloud API > Twilio
+- **SMS** : Africa's Talking > Twilio
 
 Variable optionnelle : `DEFAULT_COUNTRY_CODE` (par défaut `237`, Cameroun)
 pour la normalisation des numéros locaux au format international.
@@ -358,7 +401,16 @@ le rendez-vous apparaît dans le tableau de bord du professionnel.
 - Un numéro WhatsApp Business dédié à la plateforme (hors WhatsApp
   personnel), enregistré dans Meta Business.
 - Les variables `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID`
-  (voir Étape 7bis, section Meta Cloud API).
+  (voir Étape 7bis, Option A).
+
+### Variante Twilio pour le bot
+Le webhook accepte AUSSI les messages entrants Twilio (signature
+X-Twilio-Signature vérifiée automatiquement) : dans la console Twilio →
+Messaging → Try it out → WhatsApp settings → « When a message comes in » →
+renseignez `https://votre-domaine/api/whatsapp/webhook`. Le bot répond via
+le même fournisseur que le message entrant (détecté automatiquement).
+⚠️ Sur Twilio, les listes/boutons interactifs sont remplacés par du texte
+numéroté (limite Twilio) — Meta est donc recommandé pour le bot.
 
 ### Configuration
 1. Créez un jeton de vérification (valeur libre) :
