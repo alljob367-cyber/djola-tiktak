@@ -1,11 +1,14 @@
 // ============================================================
-// WhatsApp Reminder Provider — Meta Cloud API OU Twilio
-// Détection automatique selon les variables d'environnement.
+// WhatsApp Reminder Provider — Meta Cloud API (exclusif)
+// ============================================================
+// Twilio a été retiré du projet (décision produit) : Meta
+// WhatsApp Cloud API est la seule voie WhatsApp. Elle est
+// GRATUITE jusqu'à 1 000 conversations de service / mois, ce
+// qui couvre largement les rappels d'une petite activité.
 // Aucune dépendance npm : appels REST via fetch.
 //
-// Priorité : Meta WhatsApp Cloud API (1 000 conversations/mois
-// gratuites) > Twilio WhatsApp (payant mais sandbox de test).
-// Si aucun n'est configuré → mode placeholder (succès factice).
+// Si WHATSAPP_TOKEN / WHATSAPP_PHONE_NUMBER_ID ne sont pas
+// définis → mode placeholder (succès factice, logs locaux).
 //
 // ⚠️ Meta Cloud API n'accepte que des "templates" approuvés
 // pour les messages initiés hors fenêtre de 24h. Un rappel à
@@ -94,68 +97,17 @@ async function sendViaMeta(payload: ReminderPayload, to: string): Promise<Remind
   };
 }
 
-// ------------------------------------------------------------
-// Twilio WhatsApp
-// Env : TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
-//       TWILIO_WHATSAPP_FROM (ex : +14155238886 en sandbox,
-//       ou le numéro émetteur approuvé en production)
-// ------------------------------------------------------------
-async function sendViaTwilioWhatsApp(payload: ReminderPayload, to: string): Promise<ReminderResult> {
-  const sid = process.env.TWILIO_ACCOUNT_SID!;
-  const token = process.env.TWILIO_AUTH_TOKEN!;
-  const from = process.env.TWILIO_WHATSAPP_FROM!;
-
-  const body = new URLSearchParams({
-    To: `whatsapp:${to}`,
-    From: `whatsapp:${from}`,
-    Body: payload.customMessage ?? buildWhatsAppMessage(payload),
-  });
-
-  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: body.toString(),
-  });
-
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    return {
-      success: false,
-      channel: 'whatsapp',
-      error: `Twilio WhatsApp: ${data?.message || `HTTP ${res.status}`}`,
-    };
-  }
-
-  return { success: true, channel: 'whatsapp', messageId: data?.sid || `wa-tw-${Date.now()}` };
-}
-
 export class WhatsAppProvider implements NotificationProvider {
   readonly channel = 'whatsapp';
 
-  private detectBackend(): 'meta' | 'twilio' | null {
-    if (process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
-      return 'meta';
-    }
-    if (
-      process.env.TWILIO_ACCOUNT_SID &&
-      process.env.TWILIO_AUTH_TOKEN &&
-      process.env.TWILIO_WHATSAPP_FROM
-    ) {
-      return 'twilio';
-    }
-    return null;
+  private isConfigured(): boolean {
+    return Boolean(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
   }
 
   async send(payload: ReminderPayload): Promise<ReminderResult> {
     try {
-      const backend = this.detectBackend();
-
-      if (!backend) {
-        // Aucun fournisseur configuré — placeholder (développement)
+      if (!this.isConfigured()) {
+        // Meta Cloud API non configurée — placeholder (développement)
         console.log(`[WhatsApp/placeholder] Rappel pour ${payload.clientPhone} : ${payload.customMessage ?? buildWhatsAppMessage(payload)}`);
         return { success: true, channel: this.channel, messageId: `wa-placeholder-${Date.now()}` };
       }
@@ -165,7 +117,7 @@ export class WhatsAppProvider implements NotificationProvider {
         return { success: false, channel: this.channel, error: 'Numéro de téléphone manquant' };
       }
 
-      return backend === 'meta' ? sendViaMeta(payload, to) : sendViaTwilioWhatsApp(payload, to);
+      return sendViaMeta(payload, to);
     } catch (error) {
       return {
         success: false,

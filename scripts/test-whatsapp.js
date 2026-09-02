@@ -3,8 +3,8 @@
 // ============================================================
 // TEST RAPPEL WHATSAPP — DJOLA TIKTAK
 // ------------------------------------------------------------
-// Vérifie ta configuration Twilio WhatsApp AVANT de la mettre
-// en production sur Vercel.
+// Vérifie ta configuration Meta WhatsApp Cloud API AVANT de la
+// mettre en production sur Vercel (rappels + bot de réservation).
 //
 // UTILISATION (depuis la racine du repo) :
 //   node scripts/test-whatsapp.js
@@ -12,10 +12,14 @@
 // Les identifiants sont lus depuis le fichier .env.local
 // (copie .env.example → .env.local et remplis les valeurs).
 //
-// ⚠️ RAPPEL SANDBOX : le numéro destinataire doit d'abord
-// envoyer "join <code>" au +1 415 523 8886 (code visible dans
-// la console Twilio → Messaging → Try it out → Send a WhatsApp
-// message) — sinon Twilio répond l'erreur 63016.
+// ⚠️ FENÊTRE 24H : en mode TEST, ton numéro n'a jamais écrit au
+// numéro Meta → le message libre est refusé (erreur 131047).
+// Deux solutions :
+//   1. Envoie d'abord "Salut" au numéro WhatsApp Business depuis
+//      le téléphone du destinataire (ouvre la fenêtre 24h), puis
+//      relance ce test dans les 24h.
+//   2. Configure WHATSAPP_TEMPLATE_NAME avec un template approuvé
+//      de catégorie UTILITY (voir DEPLOYMENT.md Étape 7bis).
 // ============================================================
 
 const fs = require('fs');
@@ -32,35 +36,35 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const SID = process.env.TWILIO_ACCOUNT_SID;
-const TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const FROM = process.env.TWILIO_WHATSAPP_FROM || '+14155238886';
+const WA_TOKEN = process.env.WHATSAPP_TOKEN;
+const WA_PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+const WA_VERSION = process.env.WHATSAPP_API_VERSION || 'v21.0';
 
 // Numéro destinataire : 1er argument CLI, sinon .env.local, sinon DEMANDE
-const TO = process.argv[2] || process.env.TEST_WHATSAPP_TO;
+const TO = (process.argv[2] || process.env.TEST_WHATSAPP_TO || '').replace(/\D/g, '');
 
 console.log('════════════════════════════════════════════════');
-console.log('  TEST RAPPEL WHATSAPP — DJOLA TIKTAK');
+console.log('  TEST RAPPEL WHATSAPP (Meta Cloud API) — DJOLA TIKTAK');
 console.log('════════════════════════════════════════════════\n');
 
 // ---------- Vérification de la configuration ----------
 let ok = true;
-if (!SID) { console.log('❌ TWILIO_ACCOUNT_SID manquant (Account SID Twilio)'); ok = false; }
-else console.log(`✅ Account SID : ${SID.slice(0, 6)}${'•'.repeat(26)}${SID.slice(-4)}`);
-if (!TOKEN) { console.log('❌ TWILIO_AUTH_TOKEN manquant (Auth Token Twilio)'); ok = false; }
-else console.log(`✅ Auth Token : ${'•'.repeat(28)}${TOKEN.slice(-4)}`);
-if (!FROM) { console.log('❌ TWILIO_WHATSAPP_FROM manquant (ex : +14155238886)'); ok = false; }
-else console.log(`✅ Émetteur   : whatsapp:${FROM}`);
+if (!WA_TOKEN) { console.log('❌ WHATSAPP_TOKEN manquant (jeton permanent Meta)'); ok = false; }
+else console.log(`✅ Token      : ${WA_TOKEN.slice(0, 6)}${'•'.repeat(20)}${WA_TOKEN.slice(-4)}`);
+if (!WA_PHONE_ID) { console.log('❌ WHATSAPP_PHONE_NUMBER_ID manquant'); ok = false; }
+else console.log(`✅ Phone ID   : ${WA_PHONE_ID}`);
+console.log(`✅ API version: ${WA_VERSION}`);
+
 if (!TO) {
   console.log('\n❌ Numéro destinataire manquant.');
-  console.log('   → Relance avec : node scripts/test-whatsapp.js +2376XXXXXXXX');
-  console.log('   (ou ajoute TEST_WHATSAPP_TO=+2376XXXXXXXX dans .env.local)');
+  console.log('   → Relance avec : node scripts/test-whatsapp.js 2376XXXXXXXX');
+  console.log('   (ou ajoute TEST_WHATSAPP_TO=2376XXXXXXXX dans .env.local)');
   process.exit(1);
 } else {
-  console.log(`✅ Destinataire : whatsapp:${TO}`);
+  console.log(`✅ Destinataire : ${TO}`);
 }
 if (!ok) {
-  console.log('\n👉 Remplis les 3 variables TWILIO_* dans .env.local');
+  console.log('\n👉 Remplis WHATSAPP_TOKEN et WHATSAPP_PHONE_NUMBER_ID dans .env.local');
   console.log('   (voir .env.example pour la documentation complète)');
   process.exit(1);
 }
@@ -81,50 +85,61 @@ const message = [
   '_Message envoyé via Djola TikTak_',
 ].join('\n');
 
-// ---------- Appel API Twilio (même code que le provider) ----------
+// ---------- Appel API Meta (même code que le provider) ----------
 (async () => {
   console.log('\n⏳ Envoi en cours…\n');
   try {
-    const body = new URLSearchParams({
-      To: `whatsapp:${TO}`,
-      From: `whatsapp:${FROM}`,
-      Body: message,
-    });
-
-    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${SID}/Messages.json`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${SID}:${TOKEN}`).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+    const res = await fetch(
+      `https://graph.facebook.com/${WA_VERSION}/${WA_PHONE_ID}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${WA_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: TO,
+          type: 'text',
+          text: { preview_url: false, body: message },
+        }),
       },
-      body: body.toString(),
-    });
+    );
 
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      console.log('❌ ÉCHEC — Twilio a répondu une erreur :\n');
-      console.log(`   Code ${data?.code || res.status} : ${data?.message || 'Erreur inconnue'}\n`);
-      if (data?.code === 63016) {
-        console.log('💡 CAUSE PROBABLE (sandbox) : le destinataire n\'a pas rejoint le sandbox.');
-        console.log('   → Ouvre WhatsApp, envoie "join <ton-code>" au +1 415 523 8886');
-        console.log('     (code visible dans la console Twilio → Messaging → Try it out)');
-        console.log('   → Puis relance ce test.');
-      } else if (data?.code === 20003) {
-        console.log('💡 CAUSE PROBABLE : Account SID ou Auth Token incorrect.');
-        console.log('   → Vérifie dans console.twilio.com → Dashboard.');
-      } else if (data?.code === 21211) {
-        console.log('💡 CAUSE PROBABLE : numéro destinataire invalide.');
-        console.log('   → Utilise le format international : +2376XXXXXXXX');
+      console.log('❌ ÉCHEC — Meta a répondu une erreur :\n');
+      console.log(`   Code ${data?.error?.code || res.status} : ${data?.error?.message || 'Erreur inconnue'}\n`);
+
+      const errCode = data?.error?.code;
+      const errSubcode = data?.error?.error_data?.details || '';
+
+      if (res.status === 401 || errCode === 190) {
+        console.log('💡 CAUSE PROBABLE : jeton invalide ou expiré.');
+        console.log('   → Business Settings → System Users → génère un jeton PERMANENT');
+        console.log('     avec les permissions whatsapp_business_messaging.');
+      } else if (errCode === 131047 || /re-exchange|24h|fenêtre/i.test(errSubcode)) {
+        console.log('💡 CAUSE PROBABLE : fenêtre de 24h fermée (message libre refusé).');
+        console.log('   → Le destinataire envoie "Salut" au numéro WhatsApp Business,');
+        console.log('     puis relance ce test dans les 24h.');
+        console.log('   → OU configure un template approuvé (WHATSAPP_TEMPLATE_NAME).');
+      } else if (errCode === 131030) {
+        console.log('💡 CAUSE PROBABLE : le destinataire n\'est pas dans la liste autorisée.');
+        console.log('   → En mode développement, ajoute son numéro dans');
+        console.log('     Meta App Dashboard → WhatsApp → Destinataires du message.');
+      } else if (errCode === 100 || /phone.number.id/i.test(errSubcode)) {
+        console.log('💡 CAUSE PROBABLE : WHATSAPP_PHONE_NUMBER_ID incorrect.');
+        console.log('   → Meta App Dashboard → WhatsApp → API Setup → copie le');
+        console.log('     "Phone number ID" (ce n\'est PAS le numéro de téléphone).');
       }
       process.exit(1);
     }
 
     console.log('✅ SUCCÈS ! Message WhatsApp envoyé.');
-    console.log(`   Message SID : ${data.sid}`);
-    console.log(`   Statut Twilio : ${data.status} (queued → sent)`);
+    console.log(`   Message ID : ${data?.messages?.[0]?.id}`);
     console.log('\n👉 Vérifie WhatsApp sur le téléphone du destinataire.');
-    console.log('   (Si rien n\'arrive : le numéro a-t-il bien rejoint le sandbox ?)');
   } catch (err) {
     console.log(`❌ Erreur réseau : ${err.message}`);
     process.exit(1);
