@@ -38,5 +38,9 @@ export default async function DashboardLayout({
     redirect('/dashboard/profile');
   }
 
-  return <DashboardShell profile={profile}>{children}</DashboardShell>;
+  return (
+    <div className="dark">
+      <DashboardShell profile={profile}>{children}</DashboardShell>
+    </div>
+  );
 }

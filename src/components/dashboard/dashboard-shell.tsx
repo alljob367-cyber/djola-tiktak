@@ -113,7 +113,7 @@ function SidebarLink({
       className={cn(
         'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
         active
-          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+          ? 'bg-emerald-50 text-emerald-700 dark:bg-[#c8ff00]/10 dark:text-[#c8ff00]'
           : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
       )}
     >
@@ -121,7 +121,7 @@ function SidebarLink({
       {active && (
         <motion.div
           layoutId="sidebar-active"
-          className="absolute inset-y-0 left-0 w-1 rounded-r-full bg-emerald-500 dark:bg-emerald-400"
+          className="absolute inset-y-0 left-0 w-1 rounded-r-full bg-emerald-500 dark:bg-[#c8ff00]"
           transition={{ type: 'spring', stiffness: 350, damping: 30 }}
         />
       )}
@@ -129,7 +129,7 @@ function SidebarLink({
         className={cn(
           'shrink-0 transition-colors',
           active
-            ? 'text-emerald-600 dark:text-emerald-400'
+            ? 'text-emerald-600 dark:text-[#c8ff00]'
             : 'text-muted-foreground group-hover:text-foreground'
         )}
         size={20}
@@ -175,7 +175,7 @@ function MobileNavLink({ item, label, pathname }: { item: { href: string; icon: 
       className={cn(
         'flex flex-col items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-medium transition-colors min-w-0 flex-1',
         active
-          ? 'text-emerald-600 dark:text-emerald-400'
+          ? 'text-emerald-600 dark:text-[#c8ff00]'
           : 'text-muted-foreground hover:text-foreground'
       )}
     >
@@ -184,7 +184,7 @@ function MobileNavLink({ item, label, pathname }: { item: { href: string; icon: 
         {active && (
           <motion.div
             layoutId="mobile-nav-active"
-            className="absolute -bottom-1 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full bg-emerald-500 dark:bg-emerald-400"
+            className="absolute -bottom-1 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full bg-emerald-500 dark:bg-[#c8ff00]"
             transition={{ type: 'spring', stiffness: 350, damping: 30 }}
           />
         )}
@@ -303,7 +303,7 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
             <LanguageSwitcher compact />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
+                <button className="flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c8ff00]/50">
                   <Avatar className="h-8 w-8">
                     {profile.avatar_url ? (
                       <AvatarImage
@@ -311,7 +311,7 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                         alt={profile.business_name}
                       />
                     ) : null}
-                    <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-semibold dark:bg-emerald-900/40 dark:text-emerald-300">
+                    <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-semibold dark:bg-[#c8ff00]/15 dark:text-[#c8ff00]">
                       {getInitials(profile.business_name)}
                     </AvatarFallback>
                   </Avatar>

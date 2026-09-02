@@ -12,10 +12,9 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AnimatedStats } from '@/components/dashboard/animated-stats';
 import {
-  Users,
   CalendarDays,
-  TrendingUp,
   Clock,
   ArrowRight,
   Plus,
@@ -101,12 +100,12 @@ function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-8 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/40 mb-4">
-        <Icon className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 dark:bg-[#c8ff00]/10 mb-4">
+        <Icon className="h-6 w-6 text-emerald-600 dark:text-[#c8ff00]" />
       </div>
       <h3 className="text-sm font-semibold text-foreground mb-1">{title}</h3>
       <p className="text-sm text-muted-foreground mb-4 max-w-xs">{description}</p>
-      <Button asChild size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700">
+      <Button asChild size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-[#c8ff00] dark:text-[#0a0f0d] dark:hover:bg-[#dcff66]">
         <Link href={actionHref}>
           <Plus size={16} />
           {actionLabel}
@@ -116,55 +115,16 @@ function EmptyState({
   );
 }
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  iconBg,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  sub?: string;
-  iconBg: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-4 lg:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {label}
-            </p>
-            <p className="text-2xl font-bold tracking-tight text-foreground">
-              {value}
-            </p>
-            {sub && (
-              <p className="text-xs text-muted-foreground">{sub}</p>
-            )}
-          </div>
-          <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconBg}`}
-          >
-            <Icon className="h-5 w-5 text-white" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function AppointmentRow({ apt, t, intl }: { apt: AppointmentWithDetails; t: Dictionary; intl: string }) {
   const status = statusConfig(apt.status, t.dashboard.status as unknown as Record<AppointmentStatus, string>);
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/50">
       {/* Time block */}
       <div className="flex h-12 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/40">
-        <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
+        <span className="text-sm font-bold text-emerald-700 dark:text-[#c8ff00] leading-tight">
           {formatTime(apt.starts_at, intl)}
         </span>
-        <span className="text-[10px] text-emerald-600/70 dark:text-emerald-500/70 leading-tight">
+        <span className="text-[10px] text-emerald-600/70 dark:text-[#c8ff00]/70 leading-tight">
           {formatTime(apt.ends_at, intl)}
         </span>
       </div>
@@ -190,22 +150,22 @@ function AppointmentRow({ apt, t, intl }: { apt: AppointmentWithDetails; t: Dict
 function NextAppointmentHighlight({ apt, t, intl, lang }: { apt: AppointmentWithDetails; t: Dictionary; intl: string; lang: Lang }) {
   const status = statusConfig(apt.status, t.dashboard.status as unknown as Record<AppointmentStatus, string>);
   return (
-    <Card className="border-emerald-200 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50/50 to-card dark:from-emerald-950/20 dark:to-card">
+    <Card className="border-emerald-200 dark:border-[#c8ff00]/25 bg-gradient-to-br from-emerald-50/50 to-card dark:from-[#c8ff00]/[0.06] dark:to-card">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <CalendarClock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-          <CardTitle className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+          <CalendarClock className="h-4 w-4 text-emerald-600 dark:text-[#c8ff00]" />
+          <CardTitle className="text-sm font-semibold text-emerald-800 dark:text-[#dcff66]">
             {t.dashboard.overview.nextAppointment}
           </CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/40">
-            <span className="text-lg font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
+          <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-emerald-100 dark:bg-[#c8ff00]/15">
+            <span className="text-lg font-bold text-emerald-700 dark:text-[#c8ff00] leading-tight">
               {formatTime(apt.starts_at, intl)}
             </span>
-            <span className="text-[10px] text-emerald-600/70 dark:text-emerald-500/70 leading-tight">
+            <span className="text-[10px] text-emerald-600/70 dark:text-[#c8ff00]/70 leading-tight">
               {formatTime(apt.ends_at, intl)}
             </span>
           </div>
@@ -353,7 +313,7 @@ export default async function DashboardPage({
       {/* Welcome */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
-          {getGreeting(O)}, <span className="text-emerald-600 dark:text-emerald-400">{businessName}</span> 👋
+          {getGreeting(O)}, <span className="text-emerald-600 dark:text-[#c8ff00]">{businessName}</span> 👋
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {O.subtitle}
@@ -363,30 +323,18 @@ export default async function DashboardPage({
       {/* Next upcoming appointment (highlighted) */}
       {nextAppointment && <NextAppointmentHighlight apt={nextAppointment} t={t} intl={intl} lang={lang} />}
 
-      {/* Quick stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          icon={Users}
-          label={O.statClients}
-          value={totalClients ?? 0}
-          sub={O.statClientsSub}
-          iconBg="bg-teal-600"
-        />
-        <StatCard
-          icon={CalendarDays}
-          label={O.statToday}
-          value={typedAppointments.length}
-          sub={formatDateLong(now.toISOString(), lang)}
-          iconBg="bg-emerald-600"
-        />
-        <StatCard
-          icon={TrendingUp}
-          label={O.statRevenue}
-          value={formatCurrency(monthlyRevenue, currency)}
-          sub={(localizedMonthNames(lang)[now.getMonth()] ?? '').charAt(0).toUpperCase() + (localizedMonthNames(lang)[now.getMonth()] ?? '').slice(1)}
-          iconBg="bg-teal-700"
-        />
-      </div>
+      {/* Quick stats (animées : compteurs + entrée échelonnée) */}
+      <AnimatedStats
+        totalClients={totalClients ?? 0}
+        todayCount={typedAppointments.length}
+        monthlyRevenueLabel={formatCurrency(monthlyRevenue, currency)}
+        clientsLabel={O.statClients}
+        clientsSub={O.statClientsSub}
+        todayLabel={O.statToday}
+        todaySub={formatDateLong(now.toISOString(), lang)}
+        revenueLabel={O.statRevenue}
+        revenueSub={(localizedMonthNames(lang)[now.getMonth()] ?? '').charAt(0).toUpperCase() + (localizedMonthNames(lang)[now.getMonth()] ?? '').slice(1)}
+      />
 
       {/* Today's appointments */}
       <Card>
@@ -394,7 +342,7 @@ export default async function DashboardPage({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <Clock className="h-4 w-4 text-emerald-600 dark:text-[#c8ff00]" />
                 {O.todayTitle}
               </CardTitle>
               <CardDescription className="mt-1">
@@ -451,8 +399,8 @@ export default async function DashboardPage({
             <Card>
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
-                    <CalendarCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-[#c8ff00]/15">
+                    <CalendarCheck className="h-5 w-5 text-emerald-600 dark:text-[#c8ff00]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-foreground">
@@ -461,7 +409,7 @@ export default async function DashboardPage({
                     <p className="text-xs text-muted-foreground mt-1">
                       {O.quickServicesDesc}
                     </p>
-                    <Button asChild size="sm" className="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700">
+                    <Button asChild size="sm" className="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-[#c8ff00] dark:text-[#0a0f0d] dark:hover:bg-[#dcff66]">
                       <Link href="/dashboard/services">
                         <Plus size={14} />
                         {O.actionCreateService}

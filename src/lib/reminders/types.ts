@@ -14,6 +14,9 @@ export interface ReminderPayload {
   endsAt: Date;
   timezone: string;
   currency: string;
+  /** Message personnalisé défini par le commerce (paramètres WhatsApp).
+   *  S'il est absent, le message standard buildWhatsAppMessage() est utilisé. */
+  customMessage?: string;
 }
 
 export interface ReminderResult {

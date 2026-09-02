@@ -60,6 +60,7 @@ export class ReminderService {
     endsAt: string;
     timezone: string;
     currency: string;
+    customMessage?: string;
   }): ReminderPayload {
     return {
       appointmentId: data.appointmentId,
@@ -73,6 +74,7 @@ export class ReminderService {
       endsAt: new Date(data.endsAt),
       timezone: data.timezone,
       currency: data.currency,
+      customMessage: data.customMessage,
     };
   }
 }

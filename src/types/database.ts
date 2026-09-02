@@ -53,6 +53,12 @@ export interface Profile {
   // Rôle d'accès (migration 10 : admin-role-migration.sql)
   // 'user' = panneau de bord marchand — 'admin' = panneau de contrôle général
   role?: 'user' | 'admin' | null;
+  // Configuration des rappels WhatsApp (migration 1.5.0)
+  whatsapp_enabled?: boolean | null;
+  whatsapp_reminder_24h?: boolean | null;
+  whatsapp_reminder_2h?: boolean | null;
+  whatsapp_reminder_1h?: boolean | null;
+  whatsapp_template?: string | null;
 }
 
 export interface Service {

@@ -80,39 +80,40 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* ===== THÈME SOMBRE (dark) ===== */
+/* ===== THÈME SOMBRE (dark) — identité Djola TikTak =====
+   Fond vert-noir profond + accent lime officiel #c8ff00 */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0a0f0d;
+  --foreground: #f0f7ec;
+  --card: #111816;
+  --card-foreground: #f0f7ec;
+  --popover: #111816;
+  --popover-foreground: #f0f7ec;
+  --primary: #c8ff00;
+  --primary-foreground: #0a0f0d;
+  --secondary: #1a2420;
+  --secondary-foreground: #d9ecc9;
+  --muted: #1a2420;
+  --muted-foreground: #8aa391;
+  --accent: #1f2c27;
+  --accent-foreground: #dcff66;
+  --destructive: #ff5d5d;
+  --border: rgba(200, 255, 0, 0.09);
+  --input: rgba(200, 255, 0, 0.14);
+  --ring: #c8ff00;
+  --chart-1: #c8ff00;
+  --chart-2: #7ee08a;
+  --chart-3: #f5c518;
+  --chart-4: #4ecdc4;
+  --chart-5: #ff8a5c;
+  --sidebar: #0d1411;
+  --sidebar-foreground: #f0f7ec;
+  --sidebar-primary: #c8ff00;
+  --sidebar-primary-foreground: #0a0f0d;
+  --sidebar-accent: #1a2420;
+  --sidebar-accent-foreground: #dcff66;
+  --sidebar-border: rgba(200, 255, 0, 0.09);
+  --sidebar-ring: #c8ff00;
 }
 
 /* ===== THÈME ÉMERAUDE ===== */

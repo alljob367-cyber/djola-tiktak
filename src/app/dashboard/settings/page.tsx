@@ -54,6 +54,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/i18n/provider';
 import { LanguageSwitcher } from '@/i18n/language-switcher';
+import { WhatsAppRemindersCard } from '@/components/dashboard/whatsapp-reminders-card';
 
 // ── Animation ────────────────────────────────────────────────
 const containerVariants = {
@@ -286,6 +287,11 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-foreground mt-1">
           {S.subtitle}
         </p>
+      </motion.div>
+
+      {/* ── WhatsApp Reminders Section ─────────────────────────── */}
+      <motion.div variants={itemVariants}>
+        <WhatsAppRemindersCard />
       </motion.div>
 
       {/* ── Payment Methods Section ──────────────────────────── */}

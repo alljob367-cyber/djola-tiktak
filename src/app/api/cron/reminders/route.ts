@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getReminderService } from '@/lib/reminders/service';
+import { formatReminderDateTime } from '@/lib/reminders/format';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,7 +70,12 @@ export async function POST(request: NextRequest) {
           business_name,
           phone,
           timezone,
-          currency
+          currency,
+          whatsapp_enabled,
+          whatsapp_reminder_24h,
+          whatsapp_reminder_2h,
+          whatsapp_reminder_1h,
+          whatsapp_template
         ),
         client:clients(
           id,
@@ -121,7 +127,18 @@ export async function POST(request: NextRequest) {
 
     // Type the Supabase join result
     interface AptClient { id: string; name: string; phone: string; email: string }
-    interface AptProfile { id: string; business_name: string; phone: string; timezone: string; currency: string }
+    interface AptProfile {
+      id: string;
+      business_name: string;
+      phone: string;
+      timezone: string;
+      currency: string;
+      whatsapp_enabled?: boolean | null;
+      whatsapp_reminder_24h?: boolean | null;
+      whatsapp_reminder_2h?: boolean | null;
+      whatsapp_reminder_1h?: boolean | null;
+      whatsapp_template?: string | null;
+    }
     interface AptService { id: string; name: string; price: number }
     interface AppointmentJoined {
       id: string;
@@ -133,23 +150,49 @@ export async function POST(request: NextRequest) {
       service: AptService | null;
     }
 
+    /** Remplit le modèle WhatsApp personnalisé du commerce. */
+    function fillTemplate(
+      template: string,
+      vars: { client: string; service: string; business: string; startsAt: string; timezone: string }
+    ): string {
+      const { date, time } = formatReminderDateTime(new Date(vars.startsAt), vars.timezone);
+      const jour = date.charAt(0).toUpperCase() + date.slice(1);
+      return template
+        .replaceAll('{client}', vars.client)
+        .replaceAll('{service}', vars.service)
+        .replaceAll('{business}', vars.business)
+        .replaceAll('{date}', jour)
+        .replaceAll('{heure}', time);
+    }
+
     for (const apt of appointments as unknown as AppointmentJoined[]) {
       const client = apt.client;
       const profile = apt.profile;
       const service = apt.service;
       if (!client || !profile || !service) continue;
 
+      // ── Configuration WhatsApp du commerce ─────────────
+      // horizon (h) avant RDV au-delà duquel on n'envoie pas
+      const waEnabled = profile.whatsapp_enabled === true;
+      const waHorizon = profile.whatsapp_reminder_24h
+        ? 24
+        : profile.whatsapp_reminder_2h
+          ? 2
+          : profile.whatsapp_reminder_1h
+            ? 1
+            : 0;
+      const hoursUntil = (new Date(apt.starts_at).getTime() - now.getTime()) / 3600000;
+      const waEligible = waEnabled && waHorizon > 0 && hoursUntil <= waHorizon + 0.5;
+
       // Déterminer les canaux disponibles
       // — email si le client a un email
-      // — sms / whatsapp si le client a un téléphone
-      //   (les providers passent en mode placeholder s'ils ne sont
-      //    pas configurés côté variables d'environnement — aucun
-      //    envoi réel tant que les clés API ne sont pas ajoutées)
+      // — whatsapp si activé par le commerce et dans le délai choisi
+      // — sms si le client a un téléphone (placeholder tant que non configuré)
       const channels: string[] = [];
       if (client.email) channels.push('email');
       if (client.phone) {
+        if (waEligible) channels.push('whatsapp');
         channels.push('sms');
-        channels.push('whatsapp');
       }
 
       for (const channel of channels) {
@@ -174,6 +217,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Construire le payload et envoyer via ReminderService
+          // (message personnalisé WhatsApp si défini par le commerce)
           const payload = reminderService.buildPayload({
             appointmentId: apt.id,
             clientName: client.name,
@@ -186,6 +230,16 @@ export async function POST(request: NextRequest) {
             endsAt: apt.ends_at,
             timezone: profile.timezone,
             currency: profile.currency || 'XAF',
+            customMessage:
+              channel === 'whatsapp' && profile.whatsapp_template
+                ? fillTemplate(profile.whatsapp_template, {
+                    client: client.name,
+                    service: service.name,
+                    business: profile.business_name,
+                    startsAt: apt.starts_at,
+                    timezone: profile.timezone,
+                  })
+                : undefined,
           });
 
           const results = await reminderService.sendReminder(payload, [channel]);

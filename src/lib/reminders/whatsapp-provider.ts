@@ -64,7 +64,7 @@ async function sendViaMeta(payload: ReminderPayload, to: string): Promise<Remind
       messaging_product: 'whatsapp',
       to,
       type: 'text',
-      text: { preview_url: false, body: buildWhatsAppMessage(payload) },
+      text: { preview_url: false, body: payload.customMessage ?? buildWhatsAppMessage(payload) },
     };
   }
 
@@ -108,7 +108,7 @@ async function sendViaTwilioWhatsApp(payload: ReminderPayload, to: string): Prom
   const body = new URLSearchParams({
     To: `whatsapp:${to}`,
     From: `whatsapp:${from}`,
-    Body: buildWhatsAppMessage(payload),
+    Body: payload.customMessage ?? buildWhatsAppMessage(payload),
   });
 
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
@@ -156,7 +156,7 @@ export class WhatsAppProvider implements NotificationProvider {
 
       if (!backend) {
         // Aucun fournisseur configuré — placeholder (développement)
-        console.log(`[WhatsApp/placeholder] Rappel pour ${payload.clientPhone} : ${buildWhatsAppMessage(payload)}`);
+        console.log(`[WhatsApp/placeholder] Rappel pour ${payload.clientPhone} : ${payload.customMessage ?? buildWhatsAppMessage(payload)}`);
         return { success: true, channel: this.channel, messageId: `wa-placeholder-${Date.now()}` };
       }
 
