@@ -33,7 +33,10 @@ export function WelcomeModal({ businessName }: { businessName: string }) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleDismiss(); }}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden gap-0 border-0 shadow-2xl">
+      <DialogContent
+        className="sm:max-w-lg border-0 shadow-2xl"
+        contentClassName="p-0 overflow-hidden gap-0"
+      >
         {/* Header with gradient */}
         <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-lime-500 px-6 pt-8 pb-6 text-white">
           <div className="flex items-start justify-between">

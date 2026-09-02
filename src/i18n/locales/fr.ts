@@ -812,6 +812,8 @@ export const fr = {
       capacityLabel: 'Places par créneau',
       capacityHint: 'table/groupe',
       capacityHint2: '1 = service individuel',
+      virtualBadge: 'Service en ligne',
+      quickDurations: 'Durées rapides — spécifiques à votre métier',
       imageLabel: 'Image du service',
       uploading: 'Envoi en cours…',
       addPhoto: 'Ajouter une photo',

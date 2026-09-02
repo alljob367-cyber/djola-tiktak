@@ -18,13 +18,18 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
-  Clock, Phone, ChevronRight, MessageCircle, Globe, ImageOff,
+  Clock, Phone, ChevronRight, Globe, ImageOff,
   Wallet, Sparkles, CalendarCheck, MapPin, Users,
   Megaphone, Gift, Copy, Check, Share2, BadgeCheck, Home, LayoutGrid, Tag, Info,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/availability/engine';
 import { getBusinessType, serviceMetadataChips } from '@/lib/business-types';
 import { VisualCarousel } from './visual-carousel';
+import {
+  WhatsAppIcon,
+  SocialButton,
+  type SocialNetwork,
+} from '@/components/ui/brand-icons';
 import { getPublicTheme, heroGradient, themeCssVars, type PublicTheme } from '@/lib/themes';
 import { useI18n } from '@/i18n/provider';
 import { LanguageSwitcher } from '@/i18n/language-switcher';
@@ -106,31 +111,6 @@ const revealCard: Variants = {
 };
 
 type TabKey = 'home' | 'services' | 'offers' | 'about';
-
-// ---------- Icônes réseaux (SVG inline) ----------
-
-const FacebookIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-);
-const InstagramIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
-);
-const TikTokIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 005.58 2.18V2.5a4.83 4.83 0 01-3.77 4.25h3.77z"/></svg>
-);
-const YouTubeIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.121 2.136c1.871.505 9.377.505 9.377.505s7.505 0 9.376-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-);
-
-const LinkedInIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z"/></svg>
-);
-const XIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-);
-const TelegramIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.692-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.26-1.91.178-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.113.025-1.899 1.208-5.356 3.553-.507.35-.966.52-1.38.509-.454-.01-1.327-.256-1.977-.467-.797-.259-1.43-.397-1.3-.838.065-.227.4-.459 1.005-.698 3.918-1.706 6.53-2.831 7.836-3.376 3.724-1.55 4.495-1.819 4.999-1.828z"/></svg>
-);
 
 /**
  * Normalise une URL saisie sans protocole (« facebook.com/xyz »)
@@ -363,17 +343,18 @@ export default function PublicProfileView({ profile, services, promos, initials 
   const bookingHref = `/${profile.slug}/booking`;
   const whatsappLink = profile.whatsapp_url || (profile.phone ? `https://wa.me/${profile.phone.replace(/\D/g, '')}` : null);
 
-  // Tous les réseaux sociaux configurés, URLs normalisées
-  const socialLinks = [
-    { key: 'whatsapp', url: withProtocol(profile.whatsapp_url), label: 'WhatsApp', icon: <MessageCircle className="size-4" />, classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' },
-    { key: 'facebook', url: withProtocol(profile.facebook_url), label: 'Facebook', icon: <FacebookIcon />, classes: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400' },
-    { key: 'instagram', url: withProtocol(profile.instagram_url), label: 'Instagram', icon: <InstagramIcon />, classes: 'bg-pink-100 text-pink-700 dark:bg-pink-950/40 dark:text-pink-400' },
-    { key: 'tiktok', url: withProtocol(profile.tiktok_url), label: 'TikTok', icon: <TikTokIcon />, classes: 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' },
-    { key: 'youtube', url: withProtocol(profile.youtube_url), label: 'YouTube', icon: <YouTubeIcon />, classes: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400' },
-    { key: 'linkedin', url: withProtocol(profile.linkedin_url), label: 'LinkedIn', icon: <LinkedInIcon />, classes: 'bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-400' },
-    { key: 'twitter', url: withProtocol(profile.twitter_url), label: 'X (Twitter)', icon: <XIcon />, classes: 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' },
-    { key: 'telegram', url: withProtocol(profile.telegram_url), label: 'Telegram', icon: <TelegramIcon />, classes: 'bg-sky-100 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400' },
-  ].flatMap((n) => (n.url ? [{ ...n, url: n.url }] : []));
+  // Tous les réseaux sociaux configurés — logos OFFICIELS aux couleurs de marque
+  const socialLinks = ([
+    { key: 'whatsapp', url: withProtocol(profile.whatsapp_url), label: 'WhatsApp' },
+    { key: 'facebook', url: withProtocol(profile.facebook_url), label: 'Facebook' },
+    { key: 'instagram', url: withProtocol(profile.instagram_url), label: 'Instagram' },
+    { key: 'tiktok', url: withProtocol(profile.tiktok_url), label: 'TikTok' },
+    { key: 'youtube', url: withProtocol(profile.youtube_url), label: 'YouTube' },
+    { key: 'linkedin', url: withProtocol(profile.linkedin_url), label: 'LinkedIn' },
+    { key: 'twitter', url: withProtocol(profile.twitter_url), label: 'X (Twitter)' },
+    { key: 'telegram', url: withProtocol(profile.telegram_url), label: 'Telegram' },
+  ] as Array<{ key: SocialNetwork; url: string | null; label: string }>)
+    .filter((n): n is { key: SocialNetwork; url: string; label: string } => Boolean(n.url));
   const hasPaymentMethods = profile.payment_methods_enabled && (profile.orange_money_phone || profile.mtn_momo_phone);
 
   // Services avec photo pour le carrousel de visuels (max 12)
@@ -529,9 +510,10 @@ export default function PublicProfileView({ profile, services, promos, initials 
                     target="_blank"
                     rel="noopener noreferrer"
                     title={P.whatsapp}
-                    className="inline-flex size-[42px] items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-muted"
+                    aria-label={P.whatsapp}
+                    className="inline-flex size-[42px] items-center justify-center rounded-lg bg-[#25D366] text-white shadow-sm transition-all hover:bg-[#1EBE5B] hover:scale-105 active:scale-95"
                   >
-                    <MessageCircle className="size-4 text-emerald-600" />
+                    <WhatsAppIcon className="size-4" />
                   </a>
                 )}
                 {profile.phone && (
@@ -645,25 +627,20 @@ export default function PublicProfileView({ profile, services, promos, initials 
                   )}
                 </ul>
 
-                {/* Réseaux sociaux — tous les réseaux configurés s'affichent,
-                    URLs normalisées (protocole ajouté si manquant) */}
+                {/* Réseaux sociaux — logos officiels aux couleurs de marque,
+                    tous les réseaux configurés s'affichent (URLs normalisées) */}
                 {socialLinks.length > 0 && (
                   <>
                     <div className="my-3 h-px bg-border" />
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{P.socialTitle}</p>
                     <div className="flex flex-wrap gap-2">
                       {socialLinks.map((network) => (
-                        <a
+                        <SocialButton
                           key={network.key}
+                          network={network.key}
                           href={network.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`${network.label} — ${profile.business_name}`}
-                          title={network.label}
-                          className={`inline-flex size-10 items-center justify-center rounded-full transition-all hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${network.classes}`}
-                        >
-                          {network.icon}
-                        </a>
+                          ariaLabel={`${network.label} — ${profile.business_name}`}
+                        />
                       ))}
                     </div>
                   </>
@@ -822,7 +799,7 @@ export default function PublicProfileView({ profile, services, promos, initials 
                         <li className="flex items-center gap-2.5"><Phone className="size-4" style={{ color: theme.primary }} /><a href={`tel:${profile.phone}`} className="hover:underline">{profile.phone}</a></li>
                       )}
                       {whatsappLink && (
-                        <li className="flex items-center gap-2.5"><MessageCircle className="size-4 text-emerald-600" /><a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="hover:underline">{P.whatsapp}</a></li>
+                        <li className="flex items-center gap-2.5"><WhatsAppIcon className="size-4 text-[#25D366]" /><a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="hover:underline">WhatsApp</a></li>
                       )}
                       {profile.google_maps_url && (
                         <li className="flex items-center gap-2.5"><MapPin className="size-4 text-red-500" /><a href={profile.google_maps_url} target="_blank" rel="noopener noreferrer" className="hover:underline">{P.itinerary}</a></li>

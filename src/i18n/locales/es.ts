@@ -808,6 +808,8 @@ export const es: Dictionary = {
       capacityLabel: 'Plazas por horario',
       capacityHint: 'mesa/grupo',
       capacityHint2: '1 = servicio individual',
+      virtualBadge: 'Servicio en línea',
+      quickDurations: 'Duraciones rápidas — específicas de su oficio',
       imageLabel: 'Imagen del servicio',
       uploading: 'Enviando…',
       addPhoto: 'Añadir una foto',

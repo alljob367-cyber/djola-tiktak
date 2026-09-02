@@ -808,6 +808,8 @@ export const en: Dictionary = {
       capacityLabel: 'Seats per slot',
       capacityHint: 'table/group',
       capacityHint2: '1 = individual service',
+      virtualBadge: 'Online service',
+      quickDurations: 'Quick durations — tailored to your business',
       imageLabel: 'Service image',
       uploading: 'Uploading…',
       addPhoto: 'Add a photo',

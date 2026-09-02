@@ -15,11 +15,9 @@ import {
   ShieldCheck,
   RefreshCw,
   AlertCircle,
-  MessageCircle,
-  Instagram,
+  Share2,
   Globe,
   MapPin,
-  Youtube,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -43,6 +41,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  WhatsAppIcon,
+  FacebookIcon,
+  InstagramIcon,
+  TikTokIcon,
+  YouTubeIcon,
+  LinkedInIcon,
+  XIcon as XIcon2,
+  TelegramIcon,
+} from '@/components/ui/brand-icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -505,36 +513,36 @@ export default function ProfilePage() {
             {/* Social Media Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2"><MessageCircle size={16} className="text-emerald-600" />{P.socialTitle}</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2"><Share2 size={16} className="text-emerald-600" />{P.socialTitle}</CardTitle>
                 <CardDescription>{P.socialDesc}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="whatsapp"><span className="inline-flex items-center gap-2"><MessageCircle size={14} className="text-green-600" />WhatsApp</span></Label>
+                  <Label htmlFor="whatsapp"><span className="inline-flex items-center gap-2"><WhatsAppIcon size={14} className="text-[#25D366]" />WhatsApp</span></Label>
                   <Input id="whatsapp" placeholder="https://wa.me/237600000000" {...register('whatsapp_url')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="facebook"><span className="inline-flex items-center gap-2"><svg className="h-3.5 w-3.5 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>Facebook</span></Label>
+                  <Label htmlFor="facebook"><span className="inline-flex items-center gap-2"><FacebookIcon size={14} className="text-[#1877F2]" />Facebook</span></Label>
                   <Input id="facebook" placeholder="https://facebook.com/votre-page" {...register('facebook_url')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="instagram"><span className="inline-flex items-center gap-2"><Instagram size={14} className="text-pink-600" />Instagram</span></Label>
+                  <Label htmlFor="instagram"><span className="inline-flex items-center gap-2"><InstagramIcon size={14} className="text-[#E4405F]" />Instagram</span></Label>
                   <Input id="instagram" placeholder="https://instagram.com/votre-compte" {...register('instagram_url')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tiktok"><span className="inline-flex items-center gap-2"><svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="black"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 005.58 2.18V2.5a4.83 4.83 0 01-3.77 4.25h3.77z"/></svg>TikTok</span></Label>
+                  <Label htmlFor="tiktok"><span className="inline-flex items-center gap-2"><TikTokIcon size={14} className="text-black dark:text-white" />TikTok</span></Label>
                   <Input id="tiktok" placeholder="https://tiktok.com/@votre-compte" {...register('tiktok_url')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="linkedin"><span className="inline-flex items-center gap-2"><svg className="h-3.5 w-3.5 text-sky-700" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z"/></svg>LinkedIn</span></Label>
+                  <Label htmlFor="linkedin"><span className="inline-flex items-center gap-2"><LinkedInIcon size={14} className="text-[#0A66C2]" />LinkedIn</span></Label>
                   <Input id="linkedin" placeholder="https://linkedin.com/in/votre-profil" {...register('linkedin_url')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="twitter"><span className="inline-flex items-center gap-2"><svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>X (Twitter)</span></Label>
+                  <Label htmlFor="twitter"><span className="inline-flex items-center gap-2"><XIcon2 size={14} className="text-black dark:text-white" />X (Twitter)</span></Label>
                   <Input id="twitter" placeholder="https://x.com/votre-compte" {...register('twitter_url')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="telegram"><span className="inline-flex items-center gap-2"><svg className="h-3.5 w-3.5 text-sky-500" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.692-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.26-1.91.178-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.113.025-1.899 1.208-5.356 3.553-.507.35-.966.52-1.38.509-.454-.01-1.327-.256-1.977-.467-.797-.259-1.43-.397-1.3-.838.065-.227.4-.459 1.005-.698 3.918-1.706 6.53-2.831 7.836-3.376 3.724-1.55 4.495-1.819 4.999-1.828z"/></svg>Telegram</span></Label>
+                  <Label htmlFor="telegram"><span className="inline-flex items-center gap-2"><TelegramIcon size={14} className="text-[#26A5E4]" />Telegram</span></Label>
                   <Input id="telegram" placeholder="https://t.me/votre-canal" {...register('telegram_url')} />
                 </div>
                 <Separator />
@@ -548,7 +556,7 @@ export default function ProfilePage() {
                     <Input id="gmaps" placeholder="https://maps.app.goo.gl/..." {...register('google_maps_url')} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="youtube"><span className="inline-flex items-center gap-2"><Youtube size={14} className="text-red-600" />YouTube</span></Label>
+                    <Label htmlFor="youtube"><span className="inline-flex items-center gap-2"><YouTubeIcon size={14} className="text-[#FF0000]" />YouTube</span></Label>
                     <Input id="youtube" placeholder="https://youtube.com/@votre-chaine" {...register('youtube_url')} />
                   </div>
                 </div>
