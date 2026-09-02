@@ -70,6 +70,7 @@ const SIDEBAR_ICONS: Array<{ href: string; icon: React.ElementType; key: string 
 
 const MOBILE_ICONS: Array<{ href: string; icon: React.ElementType; key: string }> = [
   { href: '/dashboard', icon: LayoutDashboard, key: 'mobileHome' },
+  { href: '/dashboard/services', icon: CalendarCheck, key: 'mobileServices' },
   { href: '/dashboard/appointments', icon: CalendarDays, key: 'mobileAppointments' },
   { href: '/dashboard/clients', icon: Users, key: 'mobileClients' },
   { href: '/dashboard/availability', icon: Clock, key: 'mobileAvailability' },
@@ -173,7 +174,7 @@ function MobileNavLink({ item, label, pathname }: { item: { href: string; icon: 
     <Link
       href={item.href}
       className={cn(
-        'flex flex-col items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-medium transition-colors min-w-0 flex-1',
+        'flex flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-medium transition-colors min-w-0 flex-1',
         active
           ? 'text-emerald-600 dark:text-[#c8ff00]'
           : 'text-muted-foreground hover:text-foreground'

@@ -1,6 +1,7 @@
 {
   "name": "Djola TikTak — Rendez-vous en un clic",
   "short_name": "Djola",
+  "id": "/",
   "description": "Votre rendez-vous en un clic — Prise de RDV pour prestataires locaux",
   "start_url": "/",
   "display": "standalone",
